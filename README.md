@@ -5,7 +5,7 @@ Web interface for evaluating physics accuracy in AI-generated video.
 ## Project structure
 
 ```
-newtonbench/
+PhysicsLENS/
 ├── backend/
 │   ├── main.py               # FastAPI server — edit to add routes
 │   ├── requirements.txt

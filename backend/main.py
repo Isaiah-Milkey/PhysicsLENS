@@ -1,5 +1,5 @@
 """
-NewtonBench Physics Diagnostic — FastAPI Backend
+PhysicsLENS Physics Diagnostic — FastAPI Backend
 ------------------------------------------------
 Pipeline types:
   - Single-video:  run(video_path: str)
@@ -80,7 +80,7 @@ PIPELINES = {
 # App
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="NewtonBench API")
+app = FastAPI(title="PhysicsLENS API")
 
 app.add_middleware(
     CORSMiddleware,
