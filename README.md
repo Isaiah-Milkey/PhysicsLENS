@@ -1,4 +1,4 @@
-# NewtonBench — Physics Diagnostic Pipeline
+# PhysicsLENS — Physics Diagnostic Pipeline
 
 Web interface for evaluating physics accuracy in AI-generated video.
 
