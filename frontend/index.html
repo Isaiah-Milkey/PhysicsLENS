@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NewtonBench — Physics Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #f7f6f3;
+    --surface:  #ffffff;
+    --border:   #e0ddd6;
+    --text:     #1a1917;
+    --muted:    #7a7873;
+    --blue:     #1a54c4;
+    --blue-bg:  #eef3fd;
+    --green:    #1a7a3c;
+    --green-bg: #edf7f1;
+    --amber:    #9a6200;
+    --amber-bg: #fdf5e6;
+    --red:      #b91c1c;
+    --red-bg:   #fef2f2;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+    --radius:   6px;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 52px; display: flex; align-items: center; gap: 1rem; }
+  .topbar-logo { font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+  .topbar-sep { color: var(--border); }
+  .topbar-sub { font-size: 12px; color: var(--muted); }
+
+  .workspace { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 52px); }
+
+  /* ── Sidebar ── */
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+  .sidebar-section { padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid var(--border); }
+  .section-title { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+
+  .drop-zone { border: 1px dashed var(--border); border-radius: var(--radius); padding: 1.2rem 1rem; text-align: center; cursor: pointer; position: relative; transition: border-color 0.15s, background 0.15s; background: var(--bg); }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--text); background: #f0ede8; }
+  .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-icon { font-size: 20px; margin-bottom: 5px; }
+  .drop-label { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .drop-label strong { color: var(--text); font-weight: 500; }
+  .drop-tag { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+  .file-chip { display: none; align-items: center; gap: 8px; border-radius: var(--radius); padding: 7px 10px; margin-top: 6px; font-size: 11px; }
+  .file-chip.gt { background: var(--blue-bg); border: 1px solid #c3d7f7; color: var(--blue); }
+  .file-chip.ai { background: var(--red-bg);  border: 1px solid #fecaca; color: var(--red); }
+  .file-chip .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-chip .fsize { opacity: 0.7; flex-shrink: 0; }
+  .file-chip.show { display: flex; }
+
+  .pair-zone { display: none; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .pair-zone.show { display: flex; }
+  .pair-divider { font-size: 10px; color: var(--muted); text-align: center; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 0; }
+
+  .pipeline-list { display: flex; flex-direction: column; gap: 6px; }
+  .p-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; transition: border-color 0.12s, background 0.12s; background: var(--surface); }
+  .p-card:hover { border-color: #bbb; background: var(--bg); }
+  .p-card.active { border-color: var(--text); background: var(--text); }
+  .p-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 6px; }
+  .p-name { font-size: 13px; font-weight: 500; }
+  .p-card.active .p-name { color: #fff; }
+  .p-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .p-card.active .p-desc { color: #aaa; }
+  .p-badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .p-badge { font-size: 9px; font-weight: 500; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.06em; text-transform: uppercase; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .p-badge.pair { background: #fdf5e6; color: #9a6200; border-color: #f0d9a0; }
+  .p-card.active .p-badge { background: rgba(255,255,255,0.12); color: #ccc; border-color: rgba(255,255,255,0.2); }
+
+  .run-wrap { padding: 1rem 1.25rem; border-top: 1px solid var(--border); }
+  .run-btn { width: 100%; padding: 10px; border: 1px solid var(--text); border-radius: var(--radius); background: var(--text); color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s; }
+  .run-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .run-btn:not(:disabled):hover { opacity: 0.85; }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  .run-btn.loading .spinner { display: block; }
+  .run-btn.loading .btn-text { opacity: 0.6; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Main panel ── */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Tab bar */
+  .tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .tab-btn { padding: 0 1.25rem; height: 44px; font-size: 12px; font-weight: 500; color: var(--muted); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; display: flex; align-items: center; gap: 6px; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: none; }
+  .tab-btn.has-content .tab-dot { display: block; }
+
+  .tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-panel.active { display: flex; }
+
+  /* ── Preview tab ── */
+  .preview-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .preview-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); }
+  .preview-empty .empty-icon { font-size: 36px; opacity: 0.25; }
+  .preview-empty .empty-text { font-size: 13px; }
+
+  .video-compare { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .video-row { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: 0; }
+  .video-slot { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--border); }
+  .video-slot:last-child { border-right: none; }
+  .video-slot-label { padding: 8px 12px; font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .label-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .label-dot.gt { background: var(--blue); }
+  .label-dot.ai { background: var(--red); }
+  .video-slot video { flex: 1; width: 100%; height: 100%; object-fit: contain; background: #0d0d0d; display: block; min-height: 0; }
+
+  .playback-bar { border-top: 1px solid var(--border); background: var(--surface); padding: 10px 1.5rem; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .pb-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius); width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: background 0.12s; flex-shrink: 0; }
+  .pb-btn:hover { background: var(--bg); }
+  .pb-time { font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink: 0; min-width: 80px; }
+  .pb-scrubber { flex: 1; -webkit-appearance: none; appearance: none; height: 3px; border-radius: 2px; background: var(--border); outline: none; cursor: pointer; }
+  .pb-scrubber::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--text); cursor: pointer; }
+  .pb-speed { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px 6px; background: none; cursor: pointer; flex-shrink: 0; }
+
+  /* ── Output tab ── */
+  .output-tab { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .output-tab-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface); flex-shrink: 0; }
+  .output-title { font-size: 13px; font-weight: 500; }
+  .status-pill { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 99px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .pill-idle    { background: var(--bg);       color: var(--muted); border: 1px solid var(--border); }
+  .pill-running { background: var(--blue-bg);  color: var(--blue);  border: 1px solid #c3d7f7; }
+  .pill-done    { background: var(--green-bg); color: var(--green); border: 1px solid #c6e8d4; }
+  .pill-error   { background: var(--red-bg);   color: var(--red);   border: 1px solid #fecaca; }
+
+  .output-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .log-pane { padding: 1.25rem 1.5rem; font-family: var(--mono); font-size: 12px; line-height: 2; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .log-line { display: flex; gap: 12px; }
+  .log-ts { color: var(--muted); flex-shrink: 0; }
+  .log-info    .log-msg { color: var(--muted); }
+  .log-success .log-msg { color: var(--green); }
+  .log-warn    .log-msg { color: var(--amber); }
+  .log-error   .log-msg { color: var(--red); }
+
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); }
+  .empty-icon { font-size: 40px; opacity: 0.3; }
+  .empty-text { font-size: 13px; }
+
+  .results-pane { padding: 1.5rem; display: none; flex-direction: column; gap: 1.5rem; }
+  .results-pane.show { display: flex; }
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .metric-value { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .metric-value.fail { color: var(--red); }
+  .metric-value.pass { color: var(--green); }
+  .metric-sub { font-size: 11px; color: var(--muted); }
+  .severity-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .sev-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .sev-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .sev-val { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .sev-track { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .sev-fill { height: 100%; border-radius: 3px; width: 0; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .image-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .image-block img { width: 100%; display: block; }
+  .image-caption { font-size: 11px; color: var(--muted); padding: 8px 12px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">NewtonBench</span>
+  <span class="topbar-sep">—</span>
+  <span class="topbar-sub">Physics Diagnostic Pipeline</span>
+</div>
+
+<div class="workspace">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="section-title">Input video</div>
+      <div class="drop-tag" id="dropTagGt">Video</div>
+      <div class="drop-zone" id="dropZoneGt">
+        <input type="file" id="videoGt" accept="video/*" />
+        <div class="drop-icon">▶</div>
+        <div class="drop-label"><strong>Choose a video</strong> or drag here<br>MP4 · MOV · AVI</div>
+      </div>
+      <div class="file-chip gt" id="chipGt">
+        <span>✓</span><span class="fname" id="nameGt">—</span><span class="fsize" id="sizeGt">—</span>
+      </div>
+
+      <div class="pair-zone" id="pairZone">
+        <div class="pair-divider">+ AI video</div>
+        <div class="drop-zone" id="dropZoneAi">
+          <input type="file" id="videoAi" accept="video/*" />
+          <div class="drop-icon">▶</div>
+          <div class="drop-label"><strong>AI-generated video</strong><br>MP4 · MOV · AVI</div>
+        </div>
+        <div class="file-chip ai" id="chipAi">
+          <span>✓</span><span class="fname" id="nameAi">—</span><span class="fsize" id="sizeAi">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="flex:1">
+      <div class="section-title">Pipeline</div>
+      <div class="pipeline-list" id="pipelineList">
+        <div style="font-size:12px;color:var(--muted)">Loading…</div>
+      </div>
+    </div>
+
+    <div class="run-wrap">
+      <button class="run-btn" id="runBtn" disabled>
+        <div class="spinner"></div>
+        <span class="btn-text">Run pipeline</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="preview">
+        Preview
+        <span class="tab-dot"></span>
+      </button>
+      <button class="tab-btn" data-tab="output" id="tabOutput">
+        Output
+        <span class="tab-dot"></span>
+      </button>
+    </div>
+
+    <!-- Preview tab -->
+    <div class="tab-panel active" data-panel="preview">
+      <div class="preview-panel" id="previewPanel">
+        <div class="preview-empty" id="previewEmpty">
+          <div class="empty-icon">▶</div>
+          <div class="empty-text">Upload a video to preview it here.</div>
+        </div>
+
+        <!-- Single video -->
+        <div class="video-compare" id="singlePlayer" style="display:none">
+          <div class="video-row" style="grid-template-columns:1fr">
+            <div class="video-slot" style="border:none">
+              <div class="video-slot-label">
+                <span class="label-dot gt"></span>
+                <span id="singleLabel">Video</span>
+              </div>
+              <video id="vidSingle" preload="metadata"></video>
+            </div>
+          </div>
+          <div class="playback-bar">
+            <button class="pb-btn" id="btnSinglePlay" title="Play / Pause">▶</button>
+            <span class="pb-time" id="timeSingle">0:00 / 0:00</span>
+            <input type="range" class="pb-scrubber" id="scrubSingle" min="0" value="0" step="0.01" />
+            <select class="pb-speed" id="speedSingle">
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.5">1.5×</option>
+              <option value="2">2×</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Side-by-side compare -->
+        <div class="video-compare" id="comparePlayer" style="display:none">
+          <div class="video-row">
+            <div class="video-slot">
+              <div class="video-slot-label">
+                <span class="label-dot gt"></span>
+                <span id="labelGt">GT</span>
+              </div>
+              <video id="vidGt" preload="metadata"></video>
+            </div>
+            <div class="video-slot">
+              <div class="video-slot-label">
+                <span class="label-dot ai"></span>
+                <span id="labelAi">AI</span>
+              </div>
+              <video id="vidAi" preload="metadata"></video>
+            </div>
+          </div>
+          <div class="playback-bar">
+            <button class="pb-btn" id="btnComparePlay" title="Play / Pause">▶</button>
+            <button class="pb-btn" id="btnSync" title="Re-sync videos" style="font-size:11px">↺</button>
+            <span class="pb-time" id="timeCompare">0:00 / 0:00</span>
+            <input type="range" class="pb-scrubber" id="scrubCompare" min="0" value="0" step="0.01" />
+            <select class="pb-speed" id="speedCompare">
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.5">1.5×</option>
+              <option value="2">2×</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output tab -->
+    <div class="tab-panel" data-panel="output">
+      <div class="output-tab">
+        <div class="output-tab-header">
+          <span class="output-title" id="outputTitle">Output</span>
+          <span class="status-pill pill-idle" id="statusPill">Idle</span>
+        </div>
+        <div class="output-body">
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">⬡</div>
+            <div class="empty-text">Select a video and pipeline, then run.</div>
+          </div>
+          <div class="log-pane" id="logPane" style="display:none"></div>
+          <div class="results-pane" id="resultsPane">
+            <div class="metrics-grid" id="metricsGrid"></div>
+            <div class="severity-block" id="severityBlock" style="display:none">
+              <div class="sev-header">
+                <span class="sev-title" id="sevTitle">—</span>
+                <span class="sev-val" id="sevVal">—</span>
+              </div>
+              <div class="sev-track"><div class="sev-fill" id="sevFill"></div></div>
+            </div>
+            <div id="imageBlocks"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+let selectedPipeline = null;
+let fileGt = null;
+let fileAi = null;
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.add("active");
+  });
+});
+
+// ── Pipelines ─────────────────────────────────────────────────────────────────
+async function loadPipelines() {
+  try {
+    const res = await fetch(`${API}/pipelines`);
+    renderPipelines(await res.json());
+  } catch {
+    document.getElementById("pipelineList").innerHTML =
+      '<div style="font-size:12px;color:var(--red)">Could not reach backend.</div>';
+  }
+}
+
+function renderPipelines(pipelines) {
+  const list = document.getElementById("pipelineList");
+  list.innerHTML = "";
+  pipelines.forEach(p => {
+    const card = document.createElement("div");
+    card.className = "p-card";
+    card.dataset.id = p.id;
+    const pairBadge = p.requires_pair ? `<span class="p-badge pair">GT+AI</span>` : "";
+    card.innerHTML = `
+      <div class="p-card-header">
+        <span class="p-name">${p.name}</span>
+        <div class="p-badges">${pairBadge}<span class="p-badge">${p.badge}</span></div>
+      </div>
+      <div class="p-desc">${p.desc}</div>`;
+    card.addEventListener("click", () => {
+      document.querySelectorAll(".p-card").forEach(c => c.classList.remove("active"));
+      card.classList.add("active");
+      selectedPipeline = p;
+      const pairZone = document.getElementById("pairZone");
+      const tagGt    = document.getElementById("dropTagGt");
+      if (p.requires_pair) {
+        pairZone.classList.add("show");
+        tagGt.textContent = "GT (ground truth)";
+      } else {
+        pairZone.classList.remove("show");
+        tagGt.textContent = "Video";
+      }
+      refreshPreview();
+      updateRunBtn();
+    });
+    list.appendChild(card);
+  });
+}
+
+// ── File uploads ──────────────────────────────────────────────────────────────
+function makeDropHandler(inputId, zoneId, chipId, nameId, sizeId, slot) {
+  const input = document.getElementById(inputId);
+  const zone  = document.getElementById(zoneId);
+  const chip  = document.getElementById(chipId);
+
+  function handle(file) {
+    if (!file || !file.type.startsWith("video/")) return;
+    if (slot === "gt") fileGt = file;
+    else               fileAi = file;
+    document.getElementById(nameId).textContent = file.name;
+    document.getElementById(sizeId).textContent = (file.size / 1048576).toFixed(1) + " MB";
+    chip.classList.add("show");
+    refreshPreview();
+    updateRunBtn();
+  }
+
+  input.addEventListener("change", e => handle(e.target.files[0]));
+  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("drag"));
+  zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("drag"); handle(e.dataTransfer.files[0]); });
+}
+
+makeDropHandler("videoGt", "dropZoneGt", "chipGt", "nameGt", "sizeGt", "gt");
+makeDropHandler("videoAi", "dropZoneAi", "chipAi", "nameAi", "sizeAi", "ai");
+
+// ── Video preview ─────────────────────────────────────────────────────────────
+function fmt(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+function refreshPreview() {
+  const isPair     = selectedPipeline?.requires_pair;
+  const hasSingle  = !!fileGt && !isPair;
+  const hasCompare = !!fileGt && !!fileAi && isPair;
+
+  document.getElementById("previewEmpty").style.display   = (hasSingle || hasCompare) ? "none" : "flex";
+  document.getElementById("singlePlayer").style.display   = hasSingle ? "flex" : "none";
+  document.getElementById("comparePlayer").style.display  = hasCompare ? "flex" : "none";
+
+  if (hasSingle) {
+    const vid = document.getElementById("vidSingle");
+    vid.src = URL.createObjectURL(fileGt);
+    document.getElementById("singleLabel").textContent = fileGt.name;
+    setupSinglePlayer(vid, "btnSinglePlay", "scrubSingle", "timeSingle", "speedSingle");
+  }
+
+  if (hasCompare) {
+    const vGt = document.getElementById("vidGt");
+    const vAi = document.getElementById("vidAi");
+    vGt.src = URL.createObjectURL(fileGt);
+    vAi.src = URL.createObjectURL(fileAi);
+    document.getElementById("labelGt").textContent = fileGt.name;
+    document.getElementById("labelAi").textContent = fileAi.name;
+    setupComparePlayer(vGt, vAi);
+  }
+}
+
+function setupSinglePlayer(vid, playId, scrubId, timeId, speedId) {
+  const btnPlay = document.getElementById(playId);
+  const scrub   = document.getElementById(scrubId);
+  const timeEl  = document.getElementById(timeId);
+  const speedEl = document.getElementById(speedId);
+
+  vid.onloadedmetadata = () => {
+    scrub.max = vid.duration;
+    timeEl.textContent = `0:00 / ${fmt(vid.duration)}`;
+  };
+  vid.ontimeupdate = () => {
+    scrub.value = vid.currentTime;
+    timeEl.textContent = `${fmt(vid.currentTime)} / ${fmt(vid.duration)}`;
+  };
+  vid.onended = () => { btnPlay.textContent = "▶"; };
+
+  btnPlay.onclick = () => {
+    if (vid.paused) { vid.play(); btnPlay.textContent = "⏸"; }
+    else            { vid.pause(); btnPlay.textContent = "▶"; }
+  };
+  scrub.oninput = () => { vid.currentTime = scrub.value; };
+  speedEl.onchange = () => { vid.playbackRate = parseFloat(speedEl.value); };
+}
+
+function setupComparePlayer(vGt, vAi) {
+  const btnPlay  = document.getElementById("btnComparePlay");
+  const btnSync  = document.getElementById("btnSync");
+  const scrub    = document.getElementById("scrubCompare");
+  const timeEl   = document.getElementById("timeCompare");
+  const speedEl  = document.getElementById("speedCompare");
+  let playing = false;
+
+  function updateTime() {
+    const t = vGt.currentTime, d = vGt.duration || 0;
+    scrub.value = t;
+    timeEl.textContent = `${fmt(t)} / ${fmt(d)}`;
+  }
+
+  vGt.onloadedmetadata = () => { scrub.max = vGt.duration; updateTime(); };
+  vGt.ontimeupdate = updateTime;
+  vGt.onended = () => { playing = false; btnPlay.textContent = "▶"; };
+
+  function playBoth() {
+    vGt.play(); vAi.play();
+    playing = true; btnPlay.textContent = "⏸";
+  }
+  function pauseBoth() {
+    vGt.pause(); vAi.pause();
+    playing = false; btnPlay.textContent = "▶";
+  }
+
+  btnPlay.onclick = () => { playing ? pauseBoth() : playBoth(); };
+
+  btnSync.onclick = () => {
+    const t = vGt.currentTime;
+    vAi.currentTime = t;
+    if (playing) { vAi.play(); }
+  };
+
+  scrub.oninput = () => {
+    vGt.currentTime = scrub.value;
+    vAi.currentTime = scrub.value;
+  };
+
+  speedEl.onchange = () => {
+    const r = parseFloat(speedEl.value);
+    vGt.playbackRate = r;
+    vAi.playbackRate = r;
+  };
+
+  // Keep them in sync if one drifts > 150ms
+  vGt.ontimeupdate = () => {
+    updateTime();
+    if (!vAi.paused && Math.abs(vGt.currentTime - vAi.currentTime) > 0.15) {
+      vAi.currentTime = vGt.currentTime;
+    }
+  };
+}
+
+// ── Run ───────────────────────────────────────────────────────────────────────
+function updateRunBtn() {
+  const btn = document.getElementById("runBtn");
+  const needsPair = selectedPipeline?.requires_pair;
+  btn.disabled = !(selectedPipeline && fileGt && (!needsPair || fileAi));
+}
+
+document.getElementById("runBtn").addEventListener("click", runPipeline);
+
+async function runPipeline() {
+  if (!selectedPipeline || !fileGt) return;
+
+  // Switch to output tab
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelector(".tab-btn[data-tab='output']").classList.add("active");
+  document.querySelector(".tab-panel[data-panel='output']").classList.add("active");
+
+  setStatus("running", "Running");
+  document.getElementById("outputTitle").textContent    = selectedPipeline.name;
+  document.getElementById("emptyState").style.display   = "none";
+  document.getElementById("logPane").style.display      = "block";
+  document.getElementById("logPane").innerHTML          = "";
+  document.getElementById("resultsPane").classList.remove("show");
+  document.getElementById("metricsGrid").innerHTML      = "";
+  document.getElementById("imageBlocks").innerHTML      = "";
+  document.getElementById("severityBlock").style.display = "none";
+
+  const btn = document.getElementById("runBtn");
+  btn.classList.add("loading"); btn.disabled = true;
+
+  const form = new FormData();
+  form.append("pipeline_id", selectedPipeline.id);
+  form.append("video", fileGt);
+  if (selectedPipeline.requires_pair && fileAi) form.append("video_ai", fileAi);
+
+  try {
+    const res    = await fetch(`${API}/run`, { method: "POST", body: form });
+    const reader = res.body.getReader();
+    const dec    = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split("\n"); buf = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try { handleEvent(JSON.parse(line)); } catch {}
+      }
+    }
+  } catch (err) {
+    appendLog("error", "Connection error: " + err.message);
+    setStatus("error", "Error");
+  } finally {
+    btn.classList.remove("loading"); btn.disabled = false;
+    document.getElementById("tabOutput").classList.add("has-content");
+  }
+}
+
+function handleEvent(ev) {
+  switch (ev.type) {
+    case "log":      appendLog(ev.level, ev.text); break;
+    case "metric":   document.getElementById("resultsPane").classList.add("show"); appendMetric(ev.label, ev.value, ev.sub); break;
+    case "severity": document.getElementById("resultsPane").classList.add("show"); showSeverity(ev.label, ev.value, ev.color); break;
+    case "image":    document.getElementById("resultsPane").classList.add("show"); appendImage(ev.data, ev.mime, ev.caption); break;
+    case "done":     setStatus("done", "Done"); break;
+    case "error":    appendLog("error", ev.text); setStatus("error", "Error"); break;
+  }
+}
+
+function appendLog(level, text) {
+  const pane = document.getElementById("logPane");
+  const line = document.createElement("div");
+  line.className = `log-line log-${level}`;
+  const ts  = new Date().toTimeString().slice(0, 8);
+  const pfx = level === "success" ? "✓" : level === "warn" ? "⚠" : level === "error" ? "✗" : "·";
+  line.innerHTML = `<span class="log-ts">${ts}</span><span class="log-msg">${pfx} ${text}</span>`;
+  pane.appendChild(line);
+  line.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function appendMetric(label, value, sub) {
+  const grid = document.getElementById("metricsGrid");
+  const card = document.createElement("div");
+  card.className = "metric-card";
+  const cls = value === "FAIL" ? "fail" : value === "PASS" ? "pass" : "";
+  card.innerHTML = `<div class="metric-label">${label}</div><div class="metric-value ${cls}">${value}</div><div class="metric-sub">${sub}</div>`;
+  grid.appendChild(card);
+}
+
+function showSeverity(label, value, color) {
+  const block = document.getElementById("severityBlock");
+  block.style.display = "block";
+  document.getElementById("sevTitle").textContent = label;
+  document.getElementById("sevVal").textContent   = value + "%";
+  document.getElementById("sevFill").style.background = color;
+  setTimeout(() => { document.getElementById("sevFill").style.width = value + "%"; }, 50);
+}
+
+function appendImage(b64, mime, caption) {
+  const wrap = document.createElement("div");
+  wrap.className = "image-block";
+  const img = document.createElement("img");
+  img.src = `data:${mime};base64,${b64}`;
+  img.alt = caption || "Pipeline output";
+  wrap.appendChild(img);
+  if (caption) {
+    const cap = document.createElement("div");
+    cap.className = "image-caption";
+    cap.textContent = caption;
+    wrap.appendChild(cap);
+  }
+  document.getElementById("imageBlocks").appendChild(wrap);
+}
+
+function setStatus(state, label) {
+  const pill = document.getElementById("statusPill");
+  pill.className = "status-pill pill-" + state;
+  pill.textContent = label;
+}
+
+loadPipelines();
+</script>
+</body>
+</html>
