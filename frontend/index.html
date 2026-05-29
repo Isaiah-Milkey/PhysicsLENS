@@ -161,6 +161,8 @@
   .image-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
   .image-block img { width: 100%; display: block; }
   .image-caption { font-size: 11px; color: var(--muted); padding: 8px 12px; border-top: 1px solid var(--border); }
+  .video-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .video-block video { width: 100%; display: block; background: #000; max-height: 480px; object-fit: contain; }
 </style>
 </head>
 <body>
@@ -576,7 +578,7 @@ async function runPipeline() {
       const lines = buf.split("\n"); buf = lines.pop();
       for (const line of lines) {
         if (!line.trim()) continue;
-        try { handleEvent(JSON.parse(line)); } catch {}
+        try { handleEvent(JSON.parse(line)); } catch(e) { console.error("handleEvent error:", e, line.slice(0,200)); }
       }
     }
   } catch (err) {
@@ -594,6 +596,7 @@ function handleEvent(ev) {
     case "metric":   document.getElementById("resultsPane").classList.add("show"); appendMetric(ev.label, ev.value, ev.sub); break;
     case "severity": document.getElementById("resultsPane").classList.add("show"); showSeverity(ev.label, ev.value, ev.color); break;
     case "image":    document.getElementById("resultsPane").classList.add("show"); appendImage(ev.data, ev.mime, ev.caption); break;
+    case "video":    document.getElementById("resultsPane").classList.add("show"); appendVideo(ev.data, ev.mime, ev.caption); break;
     case "done":     setStatus("done", "Done"); break;
     case "error":    appendLog("error", ev.text); setStatus("error", "Error"); break;
   }
@@ -635,6 +638,32 @@ function appendImage(b64, mime, caption) {
   img.src = `data:${mime};base64,${b64}`;
   img.alt = caption || "Pipeline output";
   wrap.appendChild(img);
+  if (caption) {
+    const cap = document.createElement("div");
+    cap.className = "image-caption";
+    cap.textContent = caption;
+    wrap.appendChild(cap);
+  }
+  document.getElementById("imageBlocks").appendChild(wrap);
+}
+
+function appendVideo(b64, mime, caption) {
+  const wrap = document.createElement("div");
+  wrap.className = "video-block";
+  let media;
+  if (mime.startsWith("video/")) {
+    media = document.createElement("video");
+    media.src = `data:${mime};base64,${b64}`;
+    media.controls = true;
+    media.loop = true;
+  } else {
+    // animated WebP / GIF — <img> auto-plays in all browsers
+    media = document.createElement("img");
+    media.src = `data:${mime};base64,${b64}`;
+    media.alt = caption || "Flow visualization";
+  }
+  media.style.width = "100%";
+  wrap.appendChild(media);
   if (caption) {
     const cap = document.createElement("div");
     cap.className = "image-caption";

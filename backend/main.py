@@ -22,7 +22,8 @@ from fastapi.staticfiles import StaticFiles
 from pipelines.screening         import run as run_screening
 from pipelines.collision         import run as run_collision
 from pipelines.full_diagnostic   import run as run_full
-from pipelines.optical_flow_compare import run as run_optical_flow
+from pipelines.optical_flow_compare  import run as run_optical_flow
+from pipelines.sparse_flow_compare   import run as run_sparse_flow
 
 # ---------------------------------------------------------------------------
 # Pipeline registry
@@ -44,11 +45,19 @@ from pipelines.optical_flow_compare import run as run_optical_flow
 PIPELINES = {
     "optical_flow": {
         "id":            "optical_flow",
-        "name":          "Optical flow comparison",
-        "desc":          "Compares GT vs AI optical flow distributions: speed, direction, and flow derivatives.",
+        "name":          "Optical flow comparison (dense)",
+        "desc":          "Compares GT vs AI optical flow distributions using DIS dense flow: speed, direction, and flow derivatives.",
         "badge":         "L1",
         "requires_pair": True,
         "run":           run_optical_flow,
+    },
+    "sparse_flow": {
+        "id":            "sparse_flow",
+        "name":          "Sparse flow comparison (LK)",
+        "desc":          "Tracks Shi-Tomasi corners with Lucas-Kanade across GT and AI videos. Shows coloured trajectory trails and compares flow distributions.",
+        "badge":         "L1",
+        "requires_pair": True,
+        "run":           run_sparse_flow,
     },
     "screening": {
         "id":            "screening",
