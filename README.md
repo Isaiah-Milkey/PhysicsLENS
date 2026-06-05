@@ -32,6 +32,38 @@ Then open `frontend/index.html` in a browser. The UI fetches pipelines from
 For production, FastAPI also serves the frontend — just run uvicorn and visit
 `http://localhost:8000`.
 
+### Accessing from a remote (e.g. H100) server
+
+The frontend is hardcoded to call `http://localhost:8000`. From your laptop,
+forward the port over SSH, then open `http://localhost:8000` locally:
+
+```bash
+ssh -L 8000:localhost:8000 <user>@<server>
+./run.sh        # on the server (activates the conda env + starts uvicorn)
+```
+
+### GPU pipeline (SAM3 object tracking)
+
+The `sam_track` pipeline needs a CUDA GPU and the extra ML stack:
+
+```bash
+pip install -r requirements-gpu.txt   # torch, transformers>=5.5, accelerate, …
+```
+
+It uses two HuggingFace models, downloaded on first run into `$HF_HOME`:
+
+* **SAM 3** — `facebook/sam3` is **gated**. Request access on its HF page, then
+  authenticate once: `hf auth login` (or `export HF_TOKEN=...`) with an approved
+  account. Until then the pipeline returns a clear "request access" error and the
+  other pipelines keep working.
+* **DINOv2** — `facebook/dinov2-base` is Apache-2.0 (no gating).
+
+Sanity-check the model stack any time with:
+
+```bash
+python backend/scripts/check_models.py            # checks imports + DINOv2 + SAM3 access
+```
+
 ---
 
 ## Adding a pipeline

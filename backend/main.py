@@ -24,6 +24,7 @@ from pipelines.collision         import run as run_collision
 from pipelines.full_diagnostic   import run as run_full
 from pipelines.optical_flow_compare  import run as run_optical_flow
 from pipelines.sparse_flow_compare   import run as run_sparse_flow
+from pipelines.sam_track_compare      import run as run_sam_track
 
 # ---------------------------------------------------------------------------
 # Pipeline registry
@@ -58,6 +59,15 @@ PIPELINES = {
         "badge":         "L1",
         "requires_pair": True,
         "run":           run_sparse_flow,
+    },
+    "sam_track": {
+        "id":             "sam_track",
+        "name":           "SAM3 object tracking (DINOv2)",
+        "desc":           "Segments an object you name (text prompt) with SAM 3, tracks it across GT and AI, and compares how its DINOv2 appearance-embedding drifts over time.",
+        "badge":          "L2",
+        "requires_pair":  True,
+        "requires_prompt": True,
+        "run":            run_sam_track,
     },
     "screening": {
         "id":            "screening",
@@ -120,6 +130,7 @@ async def run_pipeline(
     pipeline_id: str = Form(...),
     video:       UploadFile = File(...),
     video_ai:    Optional[UploadFile] = File(None),
+    prompt:      Optional[str] = Form(None),
 ):
     if pipeline_id not in PIPELINES:
         return {"error": f"Unknown pipeline: {pipeline_id}"}
@@ -135,13 +146,16 @@ async def run_pipeline(
             paths.append(_save_upload(video_ai))
 
         pipeline_fn = p["run"]
+        # Pipelines that opt in (requires_prompt) receive the text prompt as a
+        # keyword arg; every other pipeline's call signature stays untouched.
+        kwargs = {"prompt": prompt} if p.get("requires_prompt", False) else {}
 
         async def event_stream():
             try:
                 if p["requires_pair"]:
-                    gen = pipeline_fn(paths[0], paths[1])
+                    gen = pipeline_fn(paths[0], paths[1], **kwargs)
                 else:
-                    gen = pipeline_fn(paths[0])
+                    gen = pipeline_fn(paths[0], **kwargs)
                 async for event in gen:
                     yield json.dumps(event) + "\n"
             except Exception as exc:

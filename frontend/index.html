@@ -200,6 +200,14 @@
           <span>✓</span><span class="fname" id="nameAi">—</span><span class="fsize" id="sizeAi">—</span>
         </div>
       </div>
+
+      <div class="pair-zone" id="promptZone">
+        <div class="pair-divider">Object to segment</div>
+        <input type="text" id="promptInput" placeholder='e.g. "the ball"'
+               style="width:100%;padding:8px 10px;border:1px solid var(--border);
+                      border-radius:var(--radius);font-family:var(--sans);font-size:12px;
+                      background:var(--bg);color:var(--text);" />
+      </div>
     </div>
 
     <div class="sidebar-section" style="flex:1">
@@ -376,8 +384,9 @@ function renderPipelines(pipelines) {
       document.querySelectorAll(".p-card").forEach(c => c.classList.remove("active"));
       card.classList.add("active");
       selectedPipeline = p;
-      const pairZone = document.getElementById("pairZone");
-      const tagGt    = document.getElementById("dropTagGt");
+      const pairZone   = document.getElementById("pairZone");
+      const promptZone = document.getElementById("promptZone");
+      const tagGt      = document.getElementById("dropTagGt");
       if (p.requires_pair) {
         pairZone.classList.add("show");
         tagGt.textContent = "GT (ground truth)";
@@ -385,6 +394,7 @@ function renderPipelines(pipelines) {
         pairZone.classList.remove("show");
         tagGt.textContent = "Video";
       }
+      promptZone.classList.toggle("show", !!p.requires_prompt);
       refreshPreview();
       updateRunBtn();
     });
@@ -417,6 +427,7 @@ function makeDropHandler(inputId, zoneId, chipId, nameId, sizeId, slot) {
 
 makeDropHandler("videoGt", "dropZoneGt", "chipGt", "nameGt", "sizeGt", "gt");
 makeDropHandler("videoAi", "dropZoneAi", "chipAi", "nameAi", "sizeAi", "ai");
+document.getElementById("promptInput").addEventListener("input", updateRunBtn);
 
 // ── Video preview ─────────────────────────────────────────────────────────────
 function fmt(s) {
@@ -533,8 +544,10 @@ function setupComparePlayer(vGt, vAi) {
 // ── Run ───────────────────────────────────────────────────────────────────────
 function updateRunBtn() {
   const btn = document.getElementById("runBtn");
-  const needsPair = selectedPipeline?.requires_pair;
-  btn.disabled = !(selectedPipeline && fileGt && (!needsPair || fileAi));
+  const needsPair   = selectedPipeline?.requires_pair;
+  const needsPrompt = selectedPipeline?.requires_prompt;
+  const promptOk    = !needsPrompt || document.getElementById("promptInput").value.trim().length > 0;
+  btn.disabled = !(selectedPipeline && fileGt && (!needsPair || fileAi) && promptOk);
 }
 
 document.getElementById("runBtn").addEventListener("click", runPipeline);
@@ -565,6 +578,7 @@ async function runPipeline() {
   form.append("pipeline_id", selectedPipeline.id);
   form.append("video", fileGt);
   if (selectedPipeline.requires_pair && fileAi) form.append("video_ai", fileAi);
+  if (selectedPipeline.requires_prompt) form.append("prompt", document.getElementById("promptInput").value.trim());
 
   try {
     const res    = await fetch(`${API}/run`, { method: "POST", body: form });
