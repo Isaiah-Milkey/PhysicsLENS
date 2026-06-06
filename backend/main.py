@@ -1,13 +1,14 @@
 """
 PhysicsLENS Physics Diagnostic — FastAPI Backend
 ------------------------------------------------
-Pipeline types:
-  - Single-video:  run(video_path: str)
-  - Paired-video:  run(gt_path: str, ai_path: str)   requires_pair=True
-
-To add a pipeline, create a function in pipelines/ and register it below.
+Pipeline event schema yielded by each run() generator:
+  {"type": "log",      "level": "info|warn|error|success", "text": "..."}
+  {"type": "metric",   "label": "...", "value": "...", "sub": "..."}
+  {"type": "severity", "label": "...", "value": 0-100, "color": "#hex"}
+  {"type": "image",    "data": "<base64>", "mime": "image/png", "caption": "..."}
+  {"type": "done"}
+  {"type": "error",    "text": "..."}
 """
-
 import json
 import shutil
 import tempfile
@@ -19,79 +20,405 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from pipelines.screening         import run as run_screening
-from pipelines.collision         import run as run_collision
-from pipelines.full_diagnostic   import run as run_full
-from pipelines.optical_flow_compare  import run as run_optical_flow
-from pipelines.sparse_flow_compare   import run as run_sparse_flow
-from pipelines.sam_track_compare      import run as run_sam_track
+# ── Stage 1 — Screening ───────────────────────────────────────────────────────
+from pipelines.stage1.temporal_smoothness         import run as run_s1_temporal
+from pipelines.stage1.optical_flow_irregularities import run as run_s1_optical_flow
+from pipelines.stage1.embedding_biomarkers         import run as run_s1_embeddings
+from pipelines.stage1.vlm_suspicion                import run as run_s1_vlm
+
+# ── Stage 2 — Failure Localisation & Hypothesis Testing ──────────────────────
+from pipelines.stage2.object_tracker              import run as run_s2_object_tracker
+from pipelines.stage2.trajectory_extractor        import run as run_s2_trajectory_extractor
+from pipelines.stage2.event_localizer             import run as run_s2_event_localizer
+from pipelines.stage2.physics_hypothesis_generator import run as run_s2_hypothesis_generator
+from pipelines.stage2.hypothesis_ranker           import run as run_s2_hypothesis_ranker
+
+# ── Stage 3 — Specialist Evaluation ──────────────────────────────────────────
+from pipelines.stage3.collision_specialist    import run as run_s3_collision
+from pipelines.stage3.gravity_specialist      import run as run_s3_gravity
+from pipelines.stage3.momentum_specialist     import run as run_s3_momentum
+from pipelines.stage3.friction_specialist     import run as run_s3_friction
+from pipelines.stage3.deformation_specialist  import run as run_s3_deformation
+from pipelines.stage3.contact_specialist      import run as run_s3_contact
+from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
+from pipelines.stage3.causality_specialist    import run as run_s3_causality
+
+# ── Stage 4 — Final Diagnosis & Treatment Plan ────────────────────────────────
+from pipelines.stage4.physics_consistency_scorer import run as run_s4_scorer
+from pipelines.stage4.severity_assessor          import run as run_s4_severity
+from pipelines.stage4.physics_breakdown_timer    import run as run_s4_pbt
+from pipelines.stage4.failure_explainer          import run as run_s4_explainer
+from pipelines.stage4.diagnostic_report          import run as run_s4_report
 
 # ---------------------------------------------------------------------------
 # Pipeline registry
 # ---------------------------------------------------------------------------
-# Keys understood by the frontend:
-#   id, name, desc, badge         — display info
-#   requires_pair: bool           — True = expects (gt_path, ai_path)
-#   run: callable                 — the async generator function
+# Required keys: id, name, desc, badge, requires_pair, run
+# Optional keys: requires_prompt, settings (list of setting defs)
 #
-# Event schema yielded by each pipeline:
-#   {"type": "log",      "level": "info|warn|error|success", "text": "..."}
-#   {"type": "metric",   "label": "...", "value": "...", "sub": "..."}
-#   {"type": "severity", "label": "...", "value": 0-100, "color": "#hex"}
-#   {"type": "image",    "data": "<base64>", "mime": "image/png", "caption": "..."}
-#   {"type": "done"}
-#   {"type": "error",    "text": "..."}
+# Setting definition:
+#   {"id": str, "label": str, "type": "number|text|select|password",
+#    "default": any, "min": num, "max": num,
+#    "options": [{"value": any, "label": str}]}   # for select type
 # ---------------------------------------------------------------------------
 
 PIPELINES = {
-    "optical_flow": {
-        "id":            "optical_flow",
-        "name":          "Optical flow comparison (dense)",
-        "desc":          "Compares GT vs AI optical flow distributions using DIS dense flow: speed, direction, and flow derivatives.",
-        "badge":         "L1",
-        "requires_pair": True,
-        "run":           run_optical_flow,
-    },
-    "sparse_flow": {
-        "id":            "sparse_flow",
-        "name":          "Sparse flow comparison (LK)",
-        "desc":          "Tracks Shi-Tomasi corners with Lucas-Kanade across GT and AI videos. Shows coloured trajectory trails and compares flow distributions.",
-        "badge":         "L1",
-        "requires_pair": True,
-        "run":           run_sparse_flow,
-    },
-    "sam_track": {
-        "id":             "sam_track",
-        "name":           "SAM3 object tracking (DINOv2)",
-        "desc":           "Segments an object you name (text prompt) with SAM 3, tracks it across GT and AI, and compares how its DINOv2 appearance-embedding drifts over time.",
-        "badge":          "L2",
-        "requires_pair":  True,
-        "requires_prompt": True,
-        "run":            run_sam_track,
-    },
-    "screening": {
-        "id":            "screening",
-        "name":          "Dummy Screening test",
-        "desc":          "FAKE VALUES - Cheap, broad anomaly detection. Optical flow, temporal smoothness, VLM suspicion score.",
-        "badge":         "L1",
+    # ── Stage 1: Screening ───────────────────────────────────────────────────
+    "s1_temporal": {
+        "id":    "s1_temporal",
+        "name":  "Temporal Smoothness Anomalies",
+        "desc":  "Track keypoints frame-to-frame; compute velocity & acceleration; flag sudden jumps.",
+        "badge": "cheap",
+        "dummy": False,
         "requires_pair": False,
-        "run":           run_screening,
+        "settings": [
+            {"id": "num_keypoints",   "label": "Number of keypoints",           "type": "number",
+             "default": 5,   "min": 1,   "max": 50},
+            {"id": "accel_threshold", "label": "Acceleration threshold (px/s²)", "type": "number",
+             "default": 40000, "min": 0.1, "max": 100000},
+        ],
+        "run": run_s1_temporal,
     },
-    "collision": {
-        "id":            "collision",
-        "name":          "Dummy Collision specialist",
-        "desc":          "FAKE VALUES - Impulse consistency, rebound angle, and momentum transfer checks.",
-        "badge":         "L3",
+    "s1_optical_flow": {
+        "id":    "s1_optical_flow",
+        "name":  "Optical Flow Irregularities",
+        "desc":  "Detect flow magnitude spikes, directional chaos, and impossible motion via sparse LK flow.",
+        "badge": "cheap",
+        "dummy": False,
         "requires_pair": False,
-        "run":           run_collision,
+        "settings": [
+            {"id": "num_keypoints",         "label": "Tracked keypoints",               "type": "number",
+             "default": 30,   "min": 5,   "max": 200},
+            {"id": "spike_threshold",       "label": "Flow spike threshold (px/frame)",  "type": "number",
+             "default": 20.0, "min": 1.0, "max": 200.0},
+            {"id": "consistency_threshold", "label": "Direction consistency floor (0–1)", "type": "number",
+             "default": 0.5,  "min": 0.0, "max": 1.0},
+        ],
+        "run": run_s1_optical_flow,
     },
-    "full_diagnostic": {
-        "id":            "full_diagnostic",
-        "name":          "Full diagnostic",
-        "desc":          "All stages: screening → differential diagnosis → specialist tests → adjudication.",
-        "badge":         "Full",
+    "s1_embeddings": {
+        "id":    "s1_embeddings",
+        "name":  "Embedding Biomarkers",
+        "desc":  "Encode whole frames with a vision model; detect latent velocity/acceleration spikes as physics anomalies.",
+        "badge": "cheap",
+        "dummy": False,
         "requires_pair": False,
-        "run":           run_full,
+        "settings": [
+            {"id": "model", "label": "Vision model", "type": "select",
+             "default": "dinov2",
+             "options": [
+                 {"value": "dinov2",  "label": "DINOv2 (ViT-S/14)"},
+                 {"value": "clip",    "label": "CLIP (ViT-B/32)"},
+                 {"value": "siglip",  "label": "SigLIP (google/siglip-base)"},
+             ]},
+            {"id": "sample_every",    "label": "Sample every N frames",        "type": "number",
+             "default": 5,   "min": 1,  "max": 60},
+            {"id": "accel_threshold", "label": "Latent acceleration threshold", "type": "number",
+             "default": 0.5, "min": 0.01, "max": 10.0},
+        ],
+        "run": run_s1_embeddings,
+    },
+    "s1_vlm": {
+        "id":    "s1_vlm",
+        "name":  "VLM Suspicion Scores",
+        "desc":  "Ask a vision-language model to rate keyframes for physics plausibility. Requires OpenRouter API key.",
+        "badge": "cheap",
+        "dummy": False,
+        "requires_pair": False,
+        "settings": [
+            {"id": "model", "label": "Model", "type": "select",
+             "default": "gpt-4o",
+             "options": [
+                 {"value": "gpt-4o",        "label": "GPT-4o"},
+                 {"value": "gemini-2-flash", "label": "Gemini 2 Flash"},
+                 {"value": "claude-3.5",     "label": "Claude 3.5 Sonnet"},
+                 {"value": "llava-video",    "label": "LLaVA-Video"},
+                 {"value": "videochatgpt",   "label": "VideoChatGPT"},
+             ]},
+            {"id": "num_frames", "label": "Keyframes to sample", "type": "number",
+             "default": 5, "min": 1, "max": 20},
+            {"id": "api_key",    "label": "OpenRouter API key",   "type": "password",
+             "default": ""},
+        ],
+        "run": run_s1_vlm,
+    },
+
+    # ── Stage 2: Failure Localisation & Hypothesis Testing ───────────────────
+    "s2_object_tracker": {
+        "id":    "s2_object_tracker",
+        "name":  "Object Tracker",
+        "desc":  "Track salient objects with Shi-Tomasi + LK flow; measure appearance drift with DINOv2 (ported from SAM3 pipeline).",
+        "badge": "medium",
+        "dummy": False,
+        "requires_pair": False,
+        "settings": [
+            {"id": "num_keypoints", "label": "Keypoints to detect",    "type": "number",
+             "default": 50, "min": 10, "max": 300},
+            {"id": "sample_every",  "label": "Sample every N frames",   "type": "number",
+             "default": 1,  "min": 1,  "max": 10},
+            {"id": "use_dinov2",    "label": "DINOv2 appearance drift", "type": "select",
+             "default": "true",
+             "options": [
+                 {"value": "true",  "label": "Enabled (requires torch)"},
+                 {"value": "false", "label": "Disabled (faster)"},
+             ]},
+        ],
+        "run": run_s2_object_tracker,
+    },
+    "s2_trajectory_extractor": {
+        "id":    "s2_trajectory_extractor",
+        "name":  "Trajectory Extractor",
+        "desc":  "Convert bounding-box tracks into position, velocity, acceleration, and contact-timing profiles.",
+        "badge": "medium",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "smoothing_window", "label": "Smoothing window (frames)", "type": "number",
+             "default": 5, "min": 1, "max": 30},
+            {"id": "fps", "label": "Video FPS override (0 = auto)", "type": "number",
+             "default": 0, "min": 0, "max": 240},
+        ],
+        "run": run_s2_trajectory_extractor,
+    },
+    "s2_event_localizer": {
+        "id":    "s2_event_localizer",
+        "name":  "Event Localizer",
+        "desc":  "Use Stage 1 anomaly timestamps to crop the timeline into candidate failure windows.",
+        "badge": "medium",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "context_frames", "label": "Context frames around anomaly", "type": "number",
+             "default": 15, "min": 1, "max": 60},
+        ],
+        "run": run_s2_event_localizer,
+    },
+    "s2_hypothesis_generator": {
+        "id":    "s2_hypothesis_generator",
+        "name":  "Physics Hypothesis Generator",
+        "desc":  "Map trajectory evidence to likely failure categories using cheap heuristics.",
+        "badge": "medium",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "accel_spike_threshold", "label": "Acceleration spike threshold (σ)", "type": "number",
+             "default": 4.0, "min": 1.0, "max": 20.0},
+            {"id": "overlap_threshold", "label": "Overlap threshold (IoU)", "type": "number",
+             "default": 0.05, "min": 0.01, "max": 1.0},
+        ],
+        "run": run_s2_hypothesis_generator,
+    },
+    "s2_hypothesis_ranker": {
+        "id":    "s2_hypothesis_ranker",
+        "name":  "Hypothesis Ranker",
+        "desc":  "Deduplicate and rank candidate failures by confidence score for Stage 3 routing.",
+        "badge": "medium",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "min_score",      "label": "Minimum confidence score", "type": "number",
+             "default": 0.20, "min": 0.0, "max": 1.0},
+            {"id": "max_hypotheses", "label": "Max hypotheses to return",  "type": "number",
+             "default": 5, "min": 1, "max": 20},
+        ],
+        "run": run_s2_hypothesis_ranker,
+    },
+
+    # ── Stage 3: Specialist Evaluation ───────────────────────────────────────
+    "s3_collision": {
+        "id":    "s3_collision",
+        "name":  "Collision Specialist",
+        "desc":  "Verify approach/exit velocities, contact normals, and restitution bounds at impact events.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "restitution_min", "label": "Min restitution coefficient", "type": "number",
+             "default": 0.0, "min": 0.0, "max": 1.0},
+            {"id": "restitution_max", "label": "Max restitution coefficient", "type": "number",
+             "default": 1.0, "min": 0.0, "max": 1.0},
+        ],
+        "run": run_s3_collision,
+    },
+    "s3_gravity": {
+        "id":    "s3_gravity",
+        "name":  "Gravity Specialist",
+        "desc":  "Fit projectile trajectories and compare inferred gravitational acceleration to expected value.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "g_tolerance", "label": "Gravitational accel tolerance (fraction)", "type": "number",
+             "default": 0.20, "min": 0.01, "max": 1.0},
+        ],
+        "run": run_s3_gravity,
+    },
+    "s3_momentum": {
+        "id":    "s3_momentum",
+        "name":  "Momentum Specialist",
+        "desc":  "Check linear and angular momentum conservation across interaction events.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "momentum_tolerance", "label": "Momentum tolerance (fraction)", "type": "number",
+             "default": 0.15, "min": 0.01, "max": 1.0},
+            {"id": "energy_tolerance",   "label": "Energy tolerance (fraction)",   "type": "number",
+             "default": 0.20, "min": 0.01, "max": 1.0},
+        ],
+        "run": run_s3_momentum,
+    },
+    "s3_friction": {
+        "id":    "s3_friction",
+        "name":  "Friction Specialist",
+        "desc":  "Measure deceleration rates and infer friction coefficients; flag sliding anomalies.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "mu_min", "label": "Min plausible friction coefficient", "type": "number",
+             "default": 0.0, "min": 0.0, "max": 5.0},
+            {"id": "mu_max", "label": "Max plausible friction coefficient", "type": "number",
+             "default": 1.5, "min": 0.0, "max": 5.0},
+        ],
+        "run": run_s3_friction,
+    },
+    "s3_deformation": {
+        "id":    "s3_deformation",
+        "name":  "Deformation Specialist",
+        "desc":  "Analyse surface deformation of soft objects; check proportionality to applied force.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "deformation_threshold", "label": "Deformation threshold (normalised)", "type": "number",
+             "default": 0.05, "min": 0.001, "max": 1.0},
+        ],
+        "run": run_s3_deformation,
+    },
+    "s3_contact": {
+        "id":    "s3_contact",
+        "name":  "Contact Specialist",
+        "desc":  "Detect interpenetration, phantom contacts, and sudden separation violating non-penetration constraints.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "overlap_threshold", "label": "Overlap threshold (fraction of area)", "type": "number",
+             "default": 0.02, "min": 0.001, "max": 1.0},
+        ],
+        "run": run_s3_contact,
+    },
+    "s3_fluid": {
+        "id":    "s3_fluid",
+        "name":  "Fluid Specialist",
+        "desc":  "Check fluid flow patterns for continuity, incompressibility, and viscosity violations.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "viscosity_mode", "label": "Viscosity regime", "type": "select",
+             "default": "low",
+             "options": [
+                 {"value": "low",  "label": "Low viscosity (water)"},
+                 {"value": "high", "label": "High viscosity (syrup)"},
+             ]},
+        ],
+        "run": run_s3_fluid,
+    },
+    "s3_causality": {
+        "id":    "s3_causality",
+        "name":  "Causality Specialist",
+        "desc":  "Verify effects follow causes with plausible delay; detect time-reversed sequences and temporal drift.",
+        "badge": "expensive",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "max_causal_lag_frames", "label": "Max causal lag (frames)", "type": "number",
+             "default": 3, "min": 1, "max": 30},
+        ],
+        "run": run_s3_causality,
+    },
+
+    # ── Stage 4: Final Diagnosis & Treatment Plan ─────────────────────────────
+    "s4_scorer": {
+        "id":    "s4_scorer",
+        "name":  "Physics Consistency Scorer",
+        "desc":  "Aggregate Stage 1–3 evidence into a single Physics Consistency Score (0–100).",
+        "badge": "output",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "w_stage1", "label": "Stage 1 weight", "type": "number",
+             "default": 0.2, "min": 0.0, "max": 1.0},
+            {"id": "w_stage2", "label": "Stage 2 weight", "type": "number",
+             "default": 0.3, "min": 0.0, "max": 1.0},
+            {"id": "w_stage3", "label": "Stage 3 weight", "type": "number",
+             "default": 0.5, "min": 0.0, "max": 1.0},
+        ],
+        "run": run_s4_scorer,
+    },
+    "s4_severity": {
+        "id":    "s4_severity",
+        "name":  "Severity Assessor",
+        "desc":  "Map confirmed failure type and confidence onto Critical / Moderate / Minor / Inconclusive.",
+        "badge": "output",
+        "dummy": True,
+        "requires_pair": False,
+        "run": run_s4_severity,
+    },
+    "s4_pbt": {
+        "id":    "s4_pbt",
+        "name":  "Physics Breakdown Timer",
+        "desc":  "Pinpoint the exact frame where the video first deviates from physical law (PBT).",
+        "badge": "output",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "method", "label": "Change-point method", "type": "select",
+             "default": "cusum",
+             "options": [
+                 {"value": "cusum", "label": "CUSUM"},
+                 {"value": "bocpd", "label": "BOCPD"},
+                 {"value": "pelt",  "label": "PELT"},
+             ]},
+        ],
+        "run": run_s4_pbt,
+    },
+    "s4_explainer": {
+        "id":    "s4_explainer",
+        "name":  "Failure Explainer",
+        "desc":  "Generate a structured, human-readable explanation of the detected physics failure.",
+        "badge": "output",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "use_vlm", "label": "Enhance with VLM description", "type": "select",
+             "default": "false",
+             "options": [
+                 {"value": "false", "label": "No"},
+                 {"value": "true",  "label": "Yes (requires API key)"},
+             ]},
+        ],
+        "run": run_s4_explainer,
+    },
+    "s4_report": {
+        "id":    "s4_report",
+        "name":  "Diagnostic Report",
+        "desc":  "Compile all Stage 4 outputs into a final report: score, severity, PBT, explanation, and recommendations.",
+        "badge": "output",
+        "dummy": True,
+        "requires_pair": False,
+        "settings": [
+            {"id": "output_format", "label": "Report format", "type": "select",
+             "default": "json",
+             "options": [
+                 {"value": "json", "label": "JSON"},
+                 {"value": "html", "label": "HTML"},
+                 {"value": "pdf",  "label": "PDF"},
+             ]},
+        ],
+        "run": run_s4_report,
     },
 }
 
@@ -127,32 +454,37 @@ def _save_upload(upload: UploadFile) -> str:
 
 @app.post("/run")
 async def run_pipeline(
-    pipeline_id: str = Form(...),
-    video:       UploadFile = File(...),
+    pipeline_id: str           = Form(...),
+    video:       UploadFile    = File(...),
     video_ai:    Optional[UploadFile] = File(None),
     prompt:      Optional[str] = Form(None),
+    settings:    Optional[str] = Form(None),   # JSON string of setting values
 ):
     if pipeline_id not in PIPELINES:
         return {"error": f"Unknown pipeline: {pipeline_id}"}
 
-    p = PIPELINES[pipeline_id]
+    p     = PIPELINES[pipeline_id]
     paths = []
 
     try:
         paths.append(_save_upload(video))
-        if p["requires_pair"]:
+        if p.get("requires_pair"):
             if video_ai is None:
                 return {"error": "This pipeline requires both a GT and AI video."}
             paths.append(_save_upload(video_ai))
 
+        # Build kwargs for the pipeline run() function
+        kwargs: dict = {}
+        if p.get("requires_prompt"):
+            kwargs["prompt"] = prompt
+        if p.get("settings"):
+            kwargs["settings"] = settings   # forwarded as raw JSON string
+
         pipeline_fn = p["run"]
-        # Pipelines that opt in (requires_prompt) receive the text prompt as a
-        # keyword arg; every other pipeline's call signature stays untouched.
-        kwargs = {"prompt": prompt} if p.get("requires_prompt", False) else {}
 
         async def event_stream():
             try:
-                if p["requires_pair"]:
+                if p.get("requires_pair"):
                     gen = pipeline_fn(paths[0], paths[1], **kwargs)
                 else:
                     gen = pipeline_fn(paths[0], **kwargs)

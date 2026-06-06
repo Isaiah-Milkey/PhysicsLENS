@@ -1,114 +1,211 @@
 # PhysicsLENS — Physics Diagnostic Pipeline
 
-Web interface for evaluating physics accuracy in AI-generated video.
+Web interface for evaluating physics accuracy in AI-generated video.  
+Structured as a four-stage medical diagnostic workflow.
+
+---
+
+## Architecture
+
+PhysicsLENS follows a **triage → localize → specialize → diagnose** pipeline,
+analogous to a clinical pathway:
+
+| Stage | Medical analogy | Role | Cost |
+|-------|----------------|------|------|
+| 1 — Screening | Triage / vital signs | Rapidly flag suspicious regions | Cheap |
+| 2 — Differential Diagnosis | Primary care evaluation | Localize failures, rank hypotheses | Medium |
+| 3 — Specialist Evaluation | Expert adjudication | Confirm/reject specific failures | Expensive |
+| 4 — Final Diagnosis | Treatment plan | Score, severity, PBT, report | Output |
+
+---
 
 ## Project structure
 
 ```
-PhysicsLENS/
+physicslens/
 ├── backend/
-│   ├── main.py               # FastAPI server — edit to add routes
+│   ├── main.py                      # FastAPI server + pipeline registry
 │   ├── requirements.txt
-│   └── pipelines/
-│       ├── __init__.py
-│       ├── screening.py       # Stage 1 — replace stubs with real code
-│       ├── collision.py       # Stage 3 — collision specialist
-│       └── full_diagnostic.py # All stages end-to-end
-└── frontend/
-    └── index.html            # Self-contained UI, no build step needed
+│   ├── requirements-gpu.txt         # torch, transformers, SAM3, etc.
+│   ├── pipelines/
+│   │   ├── stage1/                  # Screening
+│   │   │   ├── temporal_smoothness.py           ✅ verified
+│   │   │   ├── optical_flow_irregularities.py   ✅ verified
+│   │   │   ├── embedding_biomarkers.py           🔵 implemented
+│   │   │   └── vlm_suspicion.py                 🔵 implemented
+│   │   ├── stage2/                  # Failure localisation & hypothesis testing
+│   │   │   ├── object_tracker.py                🔵 implemented
+│   │   │   ├── trajectory_extractor.py          🔶 stub
+│   │   │   ├── event_localizer.py               🔶 stub
+│   │   │   ├── physics_hypothesis_generator.py  🔶 stub
+│   │   │   └── hypothesis_ranker.py             🔶 stub
+│   │   ├── stage3/                  # Specialist evaluation (one file per failure type)
+│   │   │   ├── collision_specialist.py          🔶 stub
+│   │   │   ├── gravity_specialist.py            🔶 stub
+│   │   │   ├── momentum_specialist.py           🔶 stub
+│   │   │   ├── friction_specialist.py           🔶 stub
+│   │   │   ├── deformation_specialist.py        🔶 stub
+│   │   │   ├── contact_specialist.py            🔶 stub
+│   │   │   ├── fluid_specialist.py              🔶 stub
+│   │   │   └── causality_specialist.py          🔶 stub
+│   │   └── stage4/                  # Final diagnosis outputs
+│   │       ├── physics_consistency_scorer.py    🔶 stub
+│   │       ├── severity_assessor.py             🔶 stub
+│   │       ├── physics_breakdown_timer.py       🔶 stub
+│   │       ├── failure_explainer.py             🔶 stub
+│   │       └── diagnostic_report.py             🔶 stub
+│   ├── tools/                       # Shared utilities
+│   │   ├── video.py
+│   │   ├── flow.py
+│   │   ├── embeddings.py
+│   │   └── vlm.py
+│   ├── scripts/
+│   │   └── check_models.py          # Sanity-check ML model availability
+│   └── archive_files/               # Old flat pipelines, kept for reference
+├── frontend/
+│   └── index.html                   # Self-contained UI — no build step
+└── test_videos/
 ```
+
+| Status | Meaning |
+|--------|---------|
+| ✅ verified | Implemented and tested end-to-end on real videos |
+| 🔵 implemented | Code complete, not yet fully validated |
+| 🔶 stub | Placeholder — returns dummy output, not yet implemented |
+
+> In the UI, stub pipelines show a yellow **STUB** badge and a dashed card border.
+> Flip `"dummy": False` in `PIPELINES` (main.py) to promote a pipeline to live.
+
+---
 
 ## Setup
 
+### 1. Create / activate the conda environment
+
 ```bash
+conda create -n physicslens python=3.11 -y
+conda activate physicslens
 cd backend
 pip install -r requirements.txt
+```
+
+### 2. Start the server
+
+```bash
+cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-Then open `frontend/index.html` in a browser. The UI fetches pipelines from
-`http://localhost:8000` on load.
+Then open `http://localhost:8000` in a browser.  FastAPI also serves the
+frontend statically, so no separate web server is needed.
 
-For production, FastAPI also serves the frontend — just run uvicorn and visit
-`http://localhost:8000`.
+### 3. Accessing from a remote server (e.g. H100)
 
-### Accessing from a remote (e.g. H100) server
-
-The frontend is hardcoded to call `http://localhost:8000`. From your laptop,
-forward the port over SSH, then open `http://localhost:8000` locally:
+The frontend calls `http://localhost:8000`.  Forward the port over SSH, then
+open `http://localhost:8000` locally:
 
 ```bash
 ssh -L 8000:localhost:8000 <user>@<server>
-./run.sh        # on the server (activates the conda env + starts uvicorn)
+# on the server:
+conda activate physicslens && cd backend && uvicorn main:app --reload --port 8000
 ```
 
-### GPU pipeline (SAM3 object tracking)
+### GPU pipelines
 
-The `sam_track` pipeline needs a CUDA GPU and the extra ML stack:
+The object tracker and embedding pipelines benefit from a CUDA GPU.  Install
+the extended ML stack:
 
 ```bash
 pip install -r requirements-gpu.txt   # torch, transformers>=5.5, accelerate, …
 ```
 
-It uses two HuggingFace models, downloaded on first run into `$HF_HOME`:
-
-* **SAM 3** — `facebook/sam3` is **gated**. Request access on its HF page, then
-  authenticate once: `hf auth login` (or `export HF_TOKEN=...`) with an approved
-  account. Until then the pipeline returns a clear "request access" error and the
-  other pipelines keep working.
-* **DINOv2** — `facebook/dinov2-base` is Apache-2.0 (no gating).
-
-Sanity-check the model stack any time with:
+The **SAM 3** model (`facebook/sam3`) is **gated** on HuggingFace.  Request
+access on its model page, then authenticate once:
 
 ```bash
-python backend/scripts/check_models.py            # checks imports + DINOv2 + SAM3 access
+hf auth login          # or: export HF_TOKEN=<token>
+```
+
+**DINOv2** (`facebook/dinov2-base`) is Apache-2.0 — no gating required.
+
+Sanity-check the model stack:
+
+```bash
+python scripts/check_models.py
 ```
 
 ---
 
 ## Adding a pipeline
 
-1. Create `backend/pipelines/your_pipeline.py`:
+### 1. Create the module
 
 ```python
-import asyncio
+# backend/pipelines/stageN/my_test.py
+import asyncio, json
 from typing import AsyncGenerator
 
-async def run(video_path: str) -> AsyncGenerator[dict, None]:
-    yield {"type": "log", "level": "info", "text": "Starting..."}
-    await asyncio.sleep(0.5)
+async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
+    cfg = json.loads(settings) if settings else {}
 
-    # --- your real code here ---
+    yield {"type": "log", "level": "info", "text": "Starting…"}
+    await asyncio.sleep(0)
 
-    yield {"type": "metric", "label": "Score", "value": "0.85", "sub": "description"}
-    yield {"type": "severity", "label": "Physics score", "value": 85, "color": "#1a7a3c"}
+    # --- your implementation here ---
+
+    yield {"type": "metric",   "label": "Score",         "value": "0.85", "sub": "description"}
+    yield {"type": "severity", "label": "Physics score",  "value": 85,     "color": "#1a7a3c"}
     yield {"type": "done"}
 ```
 
-2. Register it in `backend/main.py`:
+### 2. Register it in `main.py`
 
 ```python
-from pipelines.your_pipeline import run as run_yours
+from pipelines.stageN.my_test import run as run_my_test
 
-PIPELINES["your_pipeline"] = {
-    "id": "your_pipeline",
-    "name": "Your pipeline name",
-    "desc": "Short description shown in the UI.",
-    "badge": "L2",
-    "run": run_yours,
+PIPELINES["my_test"] = {
+    "id":           "my_test",
+    "name":         "My Test Name",
+    "desc":         "Short description shown on the test card.",
+    "badge":        "medium",       # cheap | medium | expensive | output
+    "dummy":        False,          # True = STUB badge + dashed border in UI
+    "requires_pair": False,
+    "settings": [
+        {"id": "threshold", "label": "Threshold", "type": "number",
+         "default": 0.5, "min": 0.0, "max": 1.0},
+    ],
+    "run": run_my_test,
 }
 ```
 
-That's it — the UI auto-loads the pipeline list from `/pipelines` on startup.
+### 3. Add the pipeline ID to `STAGES` in `frontend/index.html`
+
+```js
+{ id: 'specialist', ..., pipelines: [..., 'my_test'] },
+```
+
+The UI auto-loads the pipeline list from `GET /pipelines` on startup.
 
 ---
 
 ## Event schema (pipeline → frontend)
 
-| `type`     | Required keys                              | Notes                        |
-|------------|--------------------------------------------|------------------------------|
-| `log`      | `level` (info/warn/error/success), `text`  | Appears in log stream        |
-| `metric`   | `label`, `value`, `sub`                    | Value "PASS"/"FAIL" colored  |
-| `severity` | `label`, `value` (0–100), `color` (hex)    | Renders progress bar         |
-| `done`     | —                                          | Sets status to Done          |
-| `error`    | `text`                                     | Logs + sets status to Error  |
+| `type`     | Required keys                              | Notes                          |
+|------------|--------------------------------------------|--------------------------------|
+| `log`      | `level` (info/warn/error/success), `text`  | Appears in live log stream     |
+| `metric`   | `label`, `value`, `sub`                    | `"PASS"` / `"FAIL"` colored   |
+| `severity` | `label`, `value` (0–100), `color` (hex)    | Renders animated progress bar  |
+| `image`    | `data` (base64), `mime`, `caption`         | Rendered inline                |
+| `plotly`   | `data` (JSON string), `caption`            | Interactive Plotly chart       |
+| `video`    | `data` (base64), `mime`, `caption`         | Inline video player            |
+| `done`     | —                                          | Sets status to Done            |
+| `error`    | `text`                                     | Logs error + sets status       |
+
+---
+
+## UI overview
+
+- **Left pane** — stage selector, test list, settings, run button
+- **Right pane → Report tab** — live output for the selected test; restores the last result when you switch between tests
+- **Right pane → Previous Reports tab** — full run history for the selected test, collapsible per-run detail
+- **Full Report button** (top right) — modal with a cross-test diagnostic report grouped by stage
