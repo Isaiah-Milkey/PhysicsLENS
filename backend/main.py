@@ -25,6 +25,7 @@ from pipelines.stage1.temporal_smoothness         import run as run_s1_temporal
 from pipelines.stage1.optical_flow_irregularities import run as run_s1_optical_flow
 from pipelines.stage1.embedding_biomarkers         import run as run_s1_embeddings
 from pipelines.stage1.vlm_suspicion                import run as run_s1_vlm
+from pipelines.stage1.camera_motion                import run as run_s1_camera_motion
 
 # ── Stage 2 — Failure Localisation & Hypothesis Testing ──────────────────────
 from pipelines.stage2.object_tracker              import run as run_s2_object_tracker
@@ -117,6 +118,33 @@ PIPELINES = {
              "default": 0.5, "min": 0.01, "max": 10.0},
         ],
         "run": run_s1_embeddings,
+    },
+    "s1_camera_motion": {
+        "id":    "s1_camera_motion",
+        "name":  "Camera Motion Detector",
+        "desc":  "KLT optical flow + camera-path decomposition. Detects excessive or erratic camera movement — smooth pans, orbits and zooms score near zero even when fast.",
+        "badge": "cheap",
+        "dummy": False,
+        "requires_pair": False,
+        "settings": [
+            {"id": "num_points",       "label": "Feature points to track (total)",                                       "type": "number",
+             "default": 300,  "min": 20,   "max": 600},
+            {"id": "n_zones",          "label": "Zone grid size N (NxN grid, e.g. 3 = 9 zones)",                        "type": "number",
+             "default": 3,    "min": 1,    "max": 6},
+            {"id": "smooth_frames",    "label": "Temporal smoothing window (frames)",                                    "type": "number",
+             "default": 15,   "min": 3,    "max": 60},
+            {"id": "motion_threshold", "label": "Motion threshold (0–1) — score above this = excessive movement",         "type": "number",
+             "default": 0.60, "min": 0.05, "max": 0.95},
+            {"id": "jitter_px",        "label": "Tremor calibration (px/frame of high-freq jitter = score 1.0) — raise to be less sensitive", "type": "number",
+             "default": 2.0,  "min": 0.2,  "max": 10.0},
+            {"id": "jitter_weight",    "label": "Jitter signal weight (rest goes to model-residual signal)",            "type": "number",
+             "default": 0.80, "min": 0.0,  "max": 1.0},
+            {"id": "min_inlier_ratio", "label": "Min RANSAC inlier ratio — frames below this skip the residual signal", "type": "number",
+             "default": 0.30, "min": 0.05, "max": 0.95},
+            {"id": "max_height",       "label": "Max resolution height (0 = no limit)",                                 "type": "number",
+             "default": 720,  "min": 0,    "max": 2160},
+        ],
+        "run": run_s1_camera_motion,
     },
     "s1_vlm": {
         "id":    "s1_vlm",

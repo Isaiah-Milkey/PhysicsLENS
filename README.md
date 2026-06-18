@@ -31,6 +31,7 @@ physicslens/
 │   │   ├── stage1/                  # Screening
 │   │   │   ├── temporal_smoothness.py           ✅ verified
 │   │   │   ├── optical_flow_irregularities.py   ✅ verified
+│   │   │   ├── camera_motion.py                 🔵 implemented
 │   │   │   ├── embedding_biomarkers.py           🔵 implemented
 │   │   │   └── vlm_suspicion.py                 🔵 implemented
 │   │   ├── stage2/                  # Failure localisation & hypothesis testing
