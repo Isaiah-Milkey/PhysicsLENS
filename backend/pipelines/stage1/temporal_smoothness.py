@@ -145,11 +145,28 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         "caption": "Velocity per keypoint (top). Acceleration with red-highlighted anomalous frames (bottom).",
     }
 
+    # ── Structured signals for Stage 2 Event Localizer ────────────────────────
+    # Per flagged frame, score = peak acceleration there relative to the threshold.
+    acc_by_frame: dict[int, float] = {}
+    for am in all_accs:
+        for j, a in enumerate(am):
+            fr = j + 2
+            if a > acc_thresh:
+                acc_by_frame[fr] = max(acc_by_frame.get(fr, 0.0), float(a))
+    signals = [
+        {"frame": int(fi), "signal_type": "temporal_anomaly",
+         "score": round(acc_by_frame.get(int(fi), acc_thresh) / max(acc_thresh, 1e-6), 3)}
+        for fi in sorted(flagged)
+    ]
     n_flagged = len(flagged)
     peak_acc  = float(max((a.max() for a in all_accs if len(a)), default=0))
     mean_acc  = float(np.mean(np.concatenate(all_accs)) if all_accs else 0)
     score     = min(int(n_flagged / max(n, 1) * 300), 100)
     color     = "#E24B4A" if score > 40 else "#EF9F27" if score > 15 else "#4CAF50"
+
+    yield {"type": "signal", "source": "s1_temporal", "source_name": "Temporal Smoothness",
+           "fps": float(fps), "n_frames": int(n), "severity": score,
+           "type_severities": {"temporal_anomaly": score}, "signals": signals}
 
     yield {"type": "metric", "label": "Flagged frames",    "value": str(n_flagged),    "sub": f"of {n} total"}
     yield {"type": "metric", "label": "Peak acceleration", "value": f"{peak_acc:.1f}", "sub": "px/s²"}

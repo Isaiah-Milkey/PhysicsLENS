@@ -523,6 +523,18 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                 }
                 await asyncio.sleep(0)
 
+    # ── Structured signals for Stage 2 Event Localizer ────────────────────────
+    # One signal per excessive-movement interval, placed at its peak frame.
+    signals = []
+    for s0i, s1i in intervals:
+        seg = fused_smooth[s0i:s1i]
+        if len(seg) == 0:
+            continue
+        peak_fr = s0i + int(np.argmax(seg))
+        signals.append({"frame": int(peak_fr), "signal_type": "camera_motion",
+                        "score": round(float(seg.max()) / max(shake_threshold, 1e-6), 3)})
+    # severity computed below (needs peak/shaky stats); emit signal after it.
+
     # ── Metrics ───────────────────────────────────────────────────────────────
     mean_score  = float(fused_smooth[1:].mean())
     peak_score  = float(fused_smooth.max())
@@ -559,6 +571,10 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     color    = ("#E24B4A" if severity > 55
                 else "#EF9F27" if severity > 25
                 else "#4CAF50")
+
+    yield {"type": "signal", "source": "s1_camera_motion", "source_name": "Camera Motion",
+           "fps": float(fps), "n_frames": int(n), "severity": severity,
+           "type_severities": {"camera_motion": severity}, "signals": signals}
     yield {"type": "severity", "label": "Camera motion severity",
            "value": severity, "color": color}
 

@@ -136,9 +136,21 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         "caption": "Latent velocity (top) and acceleration (bottom). Red shaded regions = frames with abrupt embedding shifts.",
     }
 
+    # ── Structured signals for Stage 2 Event Localizer ────────────────────────
+    # Sampled indices → original-frame indices (×sample_every); fps stays the
+    # source fps so the localizer maps each frame back to the right timestamp.
+    signals = [
+        {"frame": int(fi * sample_every), "signal_type": "embedding_jump",
+         "score": round(float(acc_norm[fi - 2]) / max(acc_thresh, 1e-6), 3)}
+        for fi in sorted(flagged) if 0 <= fi - 2 < len(acc_norm)
+    ]
     n_flagged = len(flagged)
     score     = min(int(n_flagged / max(n, 1) * 300), 100)
     color     = "#E24B4A" if score > 40 else "#EF9F27" if score > 15 else "#4CAF50"
+
+    yield {"type": "signal", "source": "s1_embeddings", "source_name": f"Embedding ({model_key.upper()})",
+           "fps": float(fps), "n_frames": int(n * sample_every), "severity": score,
+           "type_severities": {"embedding_jump": score}, "signals": signals}
 
     yield {"type": "metric", "label": "Flagged frames",  "value": str(n_flagged),            "sub": f"of {n} sampled"}
     yield {"type": "metric", "label": "Peak latent acc", "value": f"{acc_norm.max():.4f}",   "sub": "‖Δ²z‖"}

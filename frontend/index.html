@@ -237,6 +237,51 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 .video-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .video-block video { width: 100%; display: block; background: #000; max-height: 440px; object-fit: contain; }
 
+/* ── Marker video viewer (Event Localizer) ── */
+.mv-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.mv-stage { position: relative; background: #0d0d0d; line-height: 0; }
+.mv-video { width: 100%; display: block; background: #000; max-height: 460px; object-fit: contain; }
+.mv-roi { position: absolute; border: 2px solid; border-radius: 3px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0,0,0,0.12); transition: opacity 0.15s; opacity: 0; }
+.mv-roi.show { opacity: 1; }
+.mv-roi-tag { position: absolute; top: -20px; left: -2px; font-family: var(--mono); font-size: 10px; font-weight: 600; color: #fff; padding: 1px 6px; border-radius: 3px 3px 0 0; white-space: nowrap; }
+.mv-empty-tag { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; font-size: 13px; pointer-events: none; }
+.mv-controls { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-top: 1px solid var(--border); background: var(--surface); }
+.mv-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius); height: 32px; min-width: 32px; padding: 0 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text); flex-shrink: 0; transition: background 0.12s, border-color 0.12s; }
+.mv-btn:hover:not(:disabled) { background: var(--bg); border-color: #bbb; }
+.mv-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.mv-time { font-family: var(--mono); font-size: 12px; color: var(--muted); flex-shrink: 0; min-width: 92px; }
+.mv-counter { font-family: var(--mono); font-size: 12px; color: var(--muted); flex-shrink: 0; margin-left: auto; }
+
+/* Per-diagnostic lane timeline */
+.mv-lanes { position: relative; padding: 10px 12px 2px; }
+.mv-lane { display: flex; align-items: center; gap: 8px; height: 18px; margin-bottom: 5px; }
+.mv-lane:last-child { margin-bottom: 0; }
+.mv-lane-label { width: 132px; flex-shrink: 0; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; user-select: none; }
+.mv-lane-label:hover { color: var(--text); }
+.mv-lane-label .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mv-chk { font-size: 12px; width: 13px; flex-shrink: 0; line-height: 1; }
+.mv-lane.off { opacity: 0.4; }
+.mv-grp.off { opacity: 0.4; }
+.mv-lane-track { position: relative; flex: 1; height: 14px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; overflow: hidden; }
+.mv-seg { position: absolute; top: 0; bottom: 0; border-radius: 2px; opacity: 0.62; transition: opacity 0.12s; }
+.mv-seg:hover, .mv-seg.active { opacity: 1; }
+.mv-ph { position: absolute; width: 2px; background: var(--text); pointer-events: none; z-index: 6; transform: translateX(-1px); }
+.mv-axis { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); padding: 4px 1px 0; margin-left: 140px; }
+.mv-list { display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; border-top: 1px solid var(--border); }
+.mv-grp-hdr { display: flex; align-items: center; gap: 7px; padding: 7px 12px 5px; font-size: 11px; font-weight: 600; color: var(--text); background: var(--bg); border-bottom: 1px solid var(--border); }
+.mv-grp-hdr .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mv-grp-count { font-family: var(--mono); font-weight: 400; color: var(--muted); }
+.mv-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px 7px 22px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.12s; }
+.mv-row:last-child { border-bottom: none; }
+.mv-row:hover { background: var(--bg); }
+.mv-row.active { background: var(--blue-bg); }
+.mv-row-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.mv-row-idx { font-family: var(--mono); font-size: 11px; color: var(--muted); min-width: 26px; }
+.mv-row-label { font-size: 13px; flex: 1; }
+.mv-row-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.mv-row-sev { font-family: var(--mono); font-size: 11px; font-weight: 600; min-width: 30px; text-align: right; flex-shrink: 0; }
+.mv-none { padding: 14px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+
 /* ── Test Report Footer (shown after run in output tab) ── */
 .test-report-footer {
   border: 1.5px solid var(--border); border-radius: var(--radius);
@@ -545,6 +590,8 @@ const STAGE_COLORS = { s1: '#1a54c4', s2: '#c05621', s3: '#7c3aed', s4: '#1a7a3c
 
 let allPipelines = {}, selectedStage = null, selectedPipeline = null;
 let videoFile = null, reportData = [], lastEntry = null, showDetails = false;
+// Stage 1 anomaly signals, keyed by source id — forwarded into the Event Localizer.
+let stage1SignalStore = {};
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
@@ -685,6 +732,15 @@ function fmt(s) {
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
+// Precise timestamp — keeps sub-second detail for short clips (1–2 s videos)
+// where m:ss would collapse everything to 0:00 / 0:01.
+function fmtT(s) {
+  s = Math.max(0, +s || 0);
+  if (s < 10)  return s.toFixed(2) + "s";   // 0.83s
+  if (s < 60)  return s.toFixed(1) + "s";   // 23.4s
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${m}:${sec.toFixed(0).padStart(2, "0")}`;
+}
 
 function handleVideoFile(file) {
   if (!file || !file.type.startsWith("video/")) return;
@@ -742,7 +798,7 @@ async function runPipeline() {
     pipelineName: selectedPipeline.name,
     timestamp:    new Date().toTimeString().slice(0, 8),
     status:       'running',
-    logs: [], metrics: [], severities: [], images: [], videos: [], plots: [],
+    logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [],
     excluded: false,
     comment:  "",
   };
@@ -769,7 +825,18 @@ async function runPipeline() {
   form.append("video", videoFile);
   if (selectedPipeline.requires_pair)   form.append("video_ai", videoFile);
   if (selectedPipeline.requires_prompt) form.append("prompt", document.getElementById("promptInput").value.trim());
-  if (selectedPipeline.settings && selectedPipeline.settings.length) form.append("settings", collectSettings());
+
+  // Build settings; the Event Localizer also receives accumulated Stage 1 signals.
+  let settingsObj = (selectedPipeline.settings && selectedPipeline.settings.length)
+    ? JSON.parse(collectSettings()) : {};
+  if (selectedPipeline.id === "s2_event_localizer") {
+    settingsObj.stage1_signals = Object.values(stage1SignalStore);
+    const totalSig = settingsObj.stage1_signals.reduce((a, g) => a + (g.signals?.length || 0), 0);
+    appendLog(totalSig ? "info" : "warn",
+      totalSig ? `Forwarding ${totalSig} Stage 1 signal(s) from ${settingsObj.stage1_signals.length} screening test(s).`
+               : "No Stage 1 signals stored yet — run a Stage 1 screening test first.", entry);
+  }
+  if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
 
   try {
     const res = await fetch(`${API}/run`, { method: "POST", body: form });
@@ -826,6 +893,16 @@ function handleEvent(ev, entry) {
     document.getElementById("resultsPane").classList.add("show");
     appendVideo(ev.data, ev.mime, ev.caption);
     entry.videos.push({data:ev.data, mime:ev.mime, caption:ev.caption});
+  } else if (ev.type === "signal") {
+    // Stash Stage 1 anomaly signals for the Event Localizer to consume later.
+    stage1SignalStore[ev.source] = {
+      source: ev.source, source_name: ev.source_name || ev.source,
+      fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [],
+    };
+  } else if (ev.type === "marker_video") {
+    document.getElementById("resultsPane").classList.add("show");
+    renderMarkerVideo(document.getElementById("imageBlocks"), ev);
+    entry.markerVideos.push(ev);
   } else if (ev.type === "done") {
     setStatus("done", "Done"); entry.status = "done";
   } else if (ev.type === "error") {
@@ -885,6 +962,283 @@ function appendVideo(b64, mime, caption) {
   media.style.width="100%"; wrap.appendChild(media);
   if (caption) { const c=document.createElement("div"); c.className="image-caption"; c.textContent=caption; wrap.appendChild(c); }
   document.getElementById("imageBlocks").appendChild(wrap);
+}
+
+// ── Marker video viewer (Event Localizer output) ───────────────────────────────
+function renderMarkerVideo(container, mv) {
+  const markers = (mv.markers || []).slice().sort((a, b) => a.t_start - b.t_start || a.lane - b.lane);
+  // Lanes: prefer backend ordering, else derive from markers (by type).
+  let lanes = (mv.lanes || []).slice();
+  if (!lanes.length) {
+    const seen = {};
+    markers.forEach(m => { if (!(m.type in seen)) seen[m.type] = { type: m.type, label: m.type_label || m.type, color: m.color }; });
+    lanes = Object.values(seen);
+  }
+  const laneIndex = {}; lanes.forEach((l, i) => laneIndex[l.type] = i);
+  const hidden = new Set();   // diagnostics toggled off for individual evaluation
+  const T = mv.duration || 0;
+  // Frame strip — a JPEG-per-frame player (no <video> element). This needs no
+  // ffmpeg, never hangs on malformed / AI-generated clips, and seeks instantly
+  // and frame-exactly. The backend sends `frames` + their `frame_times`.
+  const strip = mv.frames || [];
+  const stripTimes = mv.frame_times || [];
+  const hasFrames = strip.length > 0;
+  // Legacy fallback: an animated clip sent as a data URL (no frame seeking).
+  const legacySrc = (!hasFrames && mv.data) ? `data:${mv.mime};base64,${mv.data}` : null;
+  const playable = hasFrames;
+  const wrap = document.createElement("div"); wrap.className = "mv-block";
+
+  // Stage: frame image + ROI overlay
+  const stage = document.createElement("div"); stage.className = "mv-stage";
+  const media = document.createElement("img"); media.className = "mv-video"; media.alt = mv.caption || "";
+  media.src = hasFrames ? `data:image/jpeg;base64,${strip[0]}` : (legacySrc || "");
+  stage.appendChild(media);
+  const roi = document.createElement("div"); roi.className = "mv-roi";
+  const roiTag = document.createElement("div"); roiTag.className = "mv-roi-tag";
+  roi.appendChild(roiTag); stage.appendChild(roi);
+  wrap.appendChild(stage);
+
+  // Lane timeline (one row per diagnostic) + a single full-height playhead
+  const lanesEl = document.createElement("div"); lanesEl.className = "mv-lanes";
+  const laneTracks = {};
+  lanes.forEach(l => {
+    const row = document.createElement("div"); row.className = "mv-lane"; row.dataset.type = l.type;
+    const label = document.createElement("div"); label.className = "mv-lane-label";
+    label.innerHTML = `<span class="mv-chk">☑</span><span class="dot" style="background:${l.color}"></span>${l.label}`;
+    label.title = (l.source ? `${l.label} — from “${l.source}” test. ` : `${l.label}. `) + "Click to show/hide this diagnostic.";
+    label.addEventListener("click", () => toggleLane(l.type));
+    const trk = document.createElement("div"); trk.className = "mv-lane-track"; trk.dataset.type = l.type;
+    laneTracks[l.type] = trk;
+    row.append(label, trk); lanesEl.appendChild(row);
+  });
+  const playhead = document.createElement("div"); playhead.className = "mv-ph";
+  lanesEl.appendChild(playhead);
+  wrap.appendChild(lanesEl);
+
+  const axis = document.createElement("div"); axis.className = "mv-axis";
+  axis.innerHTML = `<span>0.00s</span><span>${fmtT(mv.duration || 0)}</span>`;
+  wrap.appendChild(axis);
+
+  // Controls
+  const controls = document.createElement("div"); controls.className = "mv-controls";
+  const btnPrev = mkBtn("◀◀", "Previous marker");
+  const btnPlay = mkBtn("▶", "Play / pause");
+  const btnNext = mkBtn("▶▶", "Next marker");
+  const timeEl = document.createElement("span"); timeEl.className = "mv-time"; timeEl.textContent = `0.00s / ${fmtT(mv.duration || 0)}`;
+  const counter = document.createElement("span"); counter.className = "mv-counter";
+  counter.textContent = `${markers.length} marker${markers.length !== 1 ? "s" : ""} · ${lanes.length} lane${lanes.length !== 1 ? "s" : ""}`;
+  controls.append(btnPrev, btnPlay, btnNext, timeEl, counter);
+  if (!playable) { btnPrev.disabled = btnPlay.disabled = btnNext.disabled = true; }
+  wrap.appendChild(controls);
+
+  if (mv.caption) { const c = document.createElement("div"); c.className = "image-caption"; c.textContent = mv.caption; wrap.appendChild(c); }
+
+  // Marker list grouped by diagnostic
+  const list = document.createElement("div");
+  if (markers.length) {
+    list.className = "mv-list";
+    lanes.forEach(l => {
+      const laneMarkers = markers.map((m, i) => [m, i]).filter(([m]) => m.type === l.type);
+      if (!laneMarkers.length) return;
+      const grp = document.createElement("div"); grp.className = "mv-grp"; grp.dataset.type = l.type;
+      const hdr = document.createElement("div"); hdr.className = "mv-grp-hdr";
+      const srcTxt = l.source ? ` · from “${l.source}”` : "";
+      const sevTxt = (l.severity != null) ? ` · test ${l.severity}%` : "";
+      hdr.innerHTML = `<span class="dot" style="background:${l.color}"></span>${l.label}` +
+                      `<span class="mv-grp-count">${srcTxt}${sevTxt} · ${laneMarkers.length} marker${laneMarkers.length !== 1 ? "s" : ""}</span>`;
+      hdr.style.cursor = "pointer"; hdr.title = "Click to show/hide this diagnostic.";
+      hdr.addEventListener("click", () => toggleLane(l.type));
+      grp.appendChild(hdr);
+      laneMarkers.forEach(([m, i]) => {
+        const row = document.createElement("div"); row.className = "mv-row"; row.dataset.idx = i;
+        row.innerHTML =
+          `<span class="mv-row-idx">#${m.id + 1}</span>` +
+          `<span class="mv-row-dot" style="background:${m.color}"></span>` +
+          `<span class="mv-row-label">${fmtT(m.t_start)}–${fmtT(m.t_end)}</span>` +
+          `<span class="mv-row-meta">${m.n_signals} sig</span>` +
+          `<span class="mv-row-sev" style="color:${m.color}">${m.severity}</span>`;
+        row.addEventListener("click", () => seekToMarker(i));
+        grp.appendChild(row);
+      });
+      list.appendChild(grp);
+    });
+  } else {
+    list.className = "mv-none";
+    list.textContent = "No defect markers on this timeline — run a Stage 1 screening test, then re-run the Event Localizer.";
+  }
+  wrap.appendChild(list);
+  container.appendChild(wrap);
+
+  // ── Frame player engine ────────────────────────────────────────────────────
+  // curT is the playhead time in seconds, in the SAME timebase as the markers.
+  // No <video> element means no duration/seeking quirks — positioning is curT/T.
+  let curT = 0, curFrame = -1, playing = false, rafId = null, lastTs = 0;
+
+  function nearestFrameIdx(t, times) {
+    if (!times || !times.length) return 0;
+    let lo = 0, hi = times.length - 1;
+    if (t <= times[0]) return 0;
+    if (t >= times[hi]) return hi;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (times[mid] < t) lo = mid + 1; else hi = mid; }
+    return (lo > 0 && (t - times[lo - 1]) <= (times[lo] - t)) ? lo - 1 : lo;
+  }
+  // Returns the highest-severity marker whose event clip time range covers t, or null.
+  function getEventClip(t) {
+    let best = null, bestSev = -1;
+    for (const m of markers) {
+      if (hidden.has(m.type)) continue;
+      const et = m.event_times;
+      if (!et || !et.length || !m.event_frames || !m.event_frames.length) continue;
+      if (t >= et[0] && t <= et[et.length - 1] && m.severity > bestSev) {
+        best = m; bestSev = m.severity;
+      }
+    }
+    return best;
+  }
+  function render() {
+    if (hasFrames) {
+      // Near an event: use that marker's dense clip for smooth playback.
+      // Elsewhere: use the sparse overview strip for scrubbing.
+      const clip   = getEventClip(curT);
+      const frms   = clip ? clip.event_frames : strip;
+      const times  = clip ? clip.event_times  : stripTimes;
+      const idx    = nearestFrameIdx(curT, times);
+      const newSrc = `data:image/jpeg;base64,${frms[idx]}`;
+      if (newSrc !== media.src) { media.src = newSrc; curFrame = idx; }
+    }
+    positionPlayhead();
+    timeEl.textContent = `${fmtT(curT)} / ${fmtT(T)}`;
+    const idx = activeMarkerAt(curT); highlight(idx); updateRoi(idx);
+  }
+  function seek(t) { curT = Math.max(0, Math.min(+t || 0, T)); render(); }
+  function play() {
+    if (playing || !playable) return;
+    if (curT >= T - 1e-3) curT = 0;
+    playing = true; lastTs = 0; btnPlay.textContent = "⏸";
+    rafId = requestAnimationFrame(tick);
+  }
+  function pause() {
+    playing = false; btnPlay.textContent = "▶";
+    if (rafId) cancelAnimationFrame(rafId); rafId = null;
+  }
+  function tick(ts) {
+    if (!playing) return;
+    if (lastTs) curT += (ts - lastTs) / 1000;
+    lastTs = ts;
+    if (curT >= T) { curT = T; render(); pause(); return; }
+    render();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function layoutSegments() {
+    Object.values(laneTracks).forEach(t => t.querySelectorAll(".mv-seg").forEach(s => s.remove()));
+    if (!T) return;
+    markers.forEach((m, i) => {
+      if (hidden.has(m.type)) return;
+      const trk = laneTracks[m.type]; if (!trk) return;
+      const seg = document.createElement("div"); seg.className = "mv-seg"; seg.dataset.idx = i;
+      seg.style.left  = (m.t_start / T * 100) + "%";
+      seg.style.width = Math.max(0.7, (m.t_end - m.t_start) / T * 100) + "%";
+      seg.style.background = m.color;
+      seg.title = `#${m.id + 1} ${m.type_label} ${fmtT(m.t_start)}–${fmtT(m.t_end)} (sev ${m.severity})`;
+      seg.addEventListener("click", e => { e.stopPropagation(); seekToMarker(i); });
+      trk.appendChild(seg);
+    });
+    positionPlayhead();
+  }
+  function positionPlayhead() {
+    const firstTrk = laneTracks[lanes[0]?.type];
+    if (!firstTrk) return;
+    const cont = lanesEl.getBoundingClientRect();
+    const tr   = firstTrk.getBoundingClientRect();
+    const rows = lanesEl.querySelectorAll(".mv-lane-track");
+    const last = rows[rows.length - 1].getBoundingClientRect();
+    const frac = T ? Math.max(0, Math.min(1, curT / T)) : 0;
+    playhead.style.left   = (tr.left - cont.left + frac * tr.width) + "px";
+    playhead.style.top    = (tr.top - cont.top) + "px";
+    playhead.style.height = (last.bottom - tr.top) + "px";
+  }
+  // Highest-severity marker window containing the current time (drives the ROI).
+  function activeMarkerAt(t) {
+    let best = -1, bestSev = -1;
+    for (let i = 0; i < markers.length; i++) {
+      const m = markers[i];
+      if (hidden.has(m.type)) continue;
+      if (t >= m.t_start && t <= m.t_end && m.severity > bestSev) { best = i; bestSev = m.severity; }
+    }
+    return best;
+  }
+  function updateRoi(idx) {
+    const m = idx >= 0 ? markers[idx] : null;
+    if (!m || !m.region || !hasFrames) { roi.classList.remove("show"); return; }
+    // Region coords are in source pixels → map from the source dimensions
+    // (frame strip is a downscaled copy).
+    const vw = mv.src_width || media.naturalWidth, vh = mv.src_height || media.naturalHeight;
+    const cw = media.clientWidth, ch = media.clientHeight;
+    if (!vw || !vh || !cw || !ch) { roi.classList.remove("show"); return; }
+    const scale = Math.min(cw / vw, ch / vh);
+    const ox = (cw - vw * scale) / 2, oy = (ch - vh * scale) / 2;
+    roi.style.left   = (ox + m.region.x * scale) + "px";
+    roi.style.top    = (oy + m.region.y * scale) + "px";
+    roi.style.width  = (m.region.w * scale) + "px";
+    roi.style.height = (m.region.h * scale) + "px";
+    roi.style.borderColor = m.color;
+    roiTag.style.background = m.color;
+    roiTag.textContent = `#${m.id + 1} ${m.type_label}`;
+    roi.classList.add("show");
+  }
+  function highlight(idx) {
+    list.querySelectorAll(".mv-row").forEach(r => r.classList.toggle("active", +r.dataset.idx === idx));
+    Object.values(laneTracks).forEach(t => t.querySelectorAll(".mv-seg").forEach(s => s.classList.toggle("active", +s.dataset.idx === idx)));
+  }
+  function seekToMarker(i) { if (markers[i]) seek(markers[i].t_center); }
+  function visibleMarkers() { return markers.map((m, i) => [m, i]).filter(([m]) => !hidden.has(m.type)); }
+
+  btnPlay.onclick = () => { playing ? pause() : play(); };
+  btnPrev.onclick = () => {
+    const vis = visibleMarkers(); let target = null;
+    for (let k = vis.length - 1; k >= 0; k--) if (vis[k][0].t_center < curT - 0.05) { target = vis[k][1]; break; }
+    if (target !== null) seekToMarker(target); else if (vis.length) seekToMarker(vis[0][1]);
+  };
+  btnNext.onclick = () => {
+    const vis = visibleMarkers(); let target = null;
+    for (let k = 0; k < vis.length; k++) if (vis[k][0].t_center > curT + 0.05) { target = vis[k][1]; break; }
+    if (target !== null) seekToMarker(target); else if (vis.length) seekToMarker(vis[vis.length - 1][1]);
+  };
+  Object.values(laneTracks).forEach(trk => trk.addEventListener("click", e => {
+    if (!T) return;
+    const r = trk.getBoundingClientRect();
+    seek(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * T);
+  }));
+
+  // ── Per-diagnostic show/hide (evaluate diagnostics individually) ───────────
+  function updateCounter() {
+    const vis = markers.filter(m => !hidden.has(m.type)).length;
+    const lanesVis = lanes.filter(l => !hidden.has(l.type)).length;
+    counter.textContent = `${vis} marker${vis !== 1 ? "s" : ""} · ${lanesVis}/${lanes.length} lane${lanes.length !== 1 ? "s" : ""}`;
+  }
+  function toggleLane(type) {
+    if (hidden.has(type)) hidden.delete(type); else hidden.add(type);
+    lanesEl.querySelectorAll(".mv-lane").forEach(r => {
+      const off = hidden.has(r.dataset.type);
+      r.classList.toggle("off", off);
+      const chk = r.querySelector(".mv-chk"); if (chk) chk.textContent = off ? "☐" : "☑";
+    });
+    list.querySelectorAll(".mv-grp").forEach(g => g.classList.toggle("off", hidden.has(g.dataset.type)));
+    layoutSegments();
+    updateCounter();
+    const idx = activeMarkerAt(curT); highlight(idx); updateRoi(idx);
+  }
+
+  window.addEventListener("resize", () => { positionPlayhead(); updateRoi(activeMarkerAt(curT)); });
+  // The ROI needs the frame's rendered size; refresh once it has decoded.
+  media.addEventListener("load", () => { positionPlayhead(); updateRoi(activeMarkerAt(curT)); });
+  if (T) layoutSegments();
+  render();
+}
+
+function mkBtn(label, title) {
+  const b = document.createElement("button"); b.className = "mv-btn"; b.textContent = label; b.title = title; return b;
 }
 
 function setStatus(state, label) {
@@ -1096,6 +1450,9 @@ function populateEntryDetail(entry, body) {
     body.appendChild(wrap);
   });
 
+  // Marker videos (Event Localizer)
+  (entry.markerVideos || []).forEach(mv => renderMarkerVideo(body, mv));
+
   // Logs
   if (entry.logs.length) {
     const details = document.createElement("details");
@@ -1229,8 +1586,9 @@ function restoreEntryToOutputPane(entry) {
     if (v.caption) { const c=document.createElement("div"); c.className="image-caption"; c.textContent=v.caption; wrap.appendChild(c); }
     ib.appendChild(wrap);
   });
+  (entry.markerVideos || []).forEach(mv => renderMarkerVideo(ib, mv));
 
-  if (entry.metrics.length || entry.severities.length || entry.images.length || entry.plots.length || entry.videos.length)
+  if (entry.metrics.length || entry.severities.length || entry.images.length || entry.plots.length || entry.videos.length || (entry.markerVideos||[]).length)
     document.getElementById("resultsPane").classList.add("show");
 
   lastEntry = entry;

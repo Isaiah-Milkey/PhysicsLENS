@@ -6,6 +6,11 @@ Pipeline event schema yielded by each run() generator:
   {"type": "metric",   "label": "...", "value": "...", "sub": "..."}
   {"type": "severity", "label": "...", "value": 0-100, "color": "#hex"}
   {"type": "image",    "data": "<base64>", "mime": "image/png", "caption": "..."}
+  {"type": "signal",   "source": "...", "fps": float, "signals": [{"frame", "signal_type", "score"}]}
+  {"type": "marker_video", "data": "<base64>", "mime": "video/mp4", "fps": float,
+                       "duration": float, "src_width": int, "src_height": int,
+                       "markers": [{"id", "t_start", "t_end", "t_center", "label",
+                                    "severity", "color", "region"}], "caption": "..."}
   {"type": "done"}
   {"type": "error",    "text": "..."}
 """
@@ -217,13 +222,17 @@ PIPELINES = {
     "s2_event_localizer": {
         "id":    "s2_event_localizer",
         "name":  "Event Localizer",
-        "desc":  "Use Stage 1 anomaly timestamps to crop the timeline into candidate failure windows.",
+        "desc":  "Crop the timeline into candidate failure windows from Stage 1 signals; emits a seek-able defect-marker viewer.",
         "badge": "medium",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "context_frames", "label": "Context frames around anomaly", "type": "number",
-             "default": 15, "min": 1, "max": 60},
+            {"id": "window_seconds", "label": "Merge signals within (seconds)", "type": "number",
+             "default": 0.5, "min": 0.1, "max": 10},
+            {"id": "min_signals_per_window", "label": "Min signals to form a marker", "type": "number",
+             "default": 1, "min": 1, "max": 20},
+            {"id": "min_test_severity", "label": "Min test severity to include (%)", "type": "number",
+             "default": 15, "min": 0, "max": 100},
         ],
         "run": run_s2_event_localizer,
     },
