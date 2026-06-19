@@ -18,7 +18,7 @@ Metrics
 
 GPU not required — falls back gracefully if DINOv2 / torch are absent.
 """
-import asyncio, json
+import asyncio, base64, json
 from typing import AsyncGenerator, Optional
 
 import cv2
@@ -26,7 +26,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from tools.video import load_frames, frame_to_gray
+from tools.video import load_frames, frame_to_gray, encode_video_browser
 from tools.flow  import detect_keypoints, track_keypoints
 
 _PALETTE = [
@@ -64,6 +64,39 @@ def _box_from_points(pts: np.ndarray, H: int, W: int) -> Optional[tuple]:
     return (max(0, x0 - px), max(0, y0 - py), min(W, x1 + px), min(H, y1 + py))
 
 
+def _hex_to_bgr(hex_color: str) -> tuple:
+    h = hex_color.lstrip("#")
+    return (int(h[4:6], 16), int(h[2:4], 16), int(h[0:2], 16))
+
+
+def _render_annotated(
+    frames: list, obj_tracks: list[dict], max_frames: int = 240
+) -> tuple[list, int]:
+    """Draw each track's box + 'obj N' label (legend colors) on every frame.
+    Returns (annotated frames, subsample step)."""
+    by_frame: dict[int, list] = {}
+    for ct in obj_tracks:
+        for f, box in zip(ct["frames"], ct["boxes"]):
+            by_frame.setdefault(f, []).append((ct["id"], box))
+
+    n    = len(frames)
+    step = max(1, -(-n // max_frames))   # ceil division
+    out  = []
+    for f in range(0, n, step):
+        img = frames[f].copy()
+        for tid, (x0, y0, x1, y1) in by_frame.get(f, []):
+            color = _hex_to_bgr(_PALETTE[tid % len(_PALETTE)])
+            cv2.rectangle(img, (x0, y0), (x1, y1), color, 2)
+            label = f"obj {tid}"
+            (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
+            ty = y0 - 6 if y0 - th - 10 >= 0 else min(y1 + th + 6, img.shape[0] - 4)
+            cv2.rectangle(img, (x0, ty - th - 4), (x0 + tw + 6, ty + 4), color, -1)
+            cv2.putText(img, label, (x0 + 3, ty), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.55, (255, 255, 255), 2, cv2.LINE_AA)
+        out.append(img)
+    return out, step
+
+
 def _cluster_points(pts: np.ndarray, dist_thresh: float) -> list[list[int]]:
     """Greedy single-linkage clustering by pairwise Euclidean distance."""
     assigned = [False] * len(pts)
@@ -81,15 +114,16 @@ def _cluster_points(pts: np.ndarray, dist_thresh: float) -> list[list[int]]:
 
 # ── DINOv2 appearance drift (ported from sam_track_compare.py) ───────────────
 
-def _embed_crops_dinov2(crops: list[np.ndarray]) -> np.ndarray:
+def _embed_crops_dinov2(crops: list[np.ndarray], model=None) -> np.ndarray:
     """
     L2-normalised DINOv2 (ViT-S/14) CLS-token embeddings for a list of
     BGR/RGB uint8 crop arrays.  Ported from sam_track_compare._embed_track.
     Returns (K, D) float32.
     """
     from tools.embeddings import load_dinov2, embed_frames_dinov2
-    model = load_dinov2()
-    embs  = embed_frames_dinov2(crops, model)       # (K, D), already L2-normed inside
+    if model is None:
+        model = load_dinov2()
+    embs  = embed_frames_dinov2(crops, model)       # (K, D)
     # Ensure L2 normalisation (safe double-norm)
     norms = np.linalg.norm(embs, axis=1, keepdims=True)
     embs  = embs / np.where(norms < 1e-8, 1.0, norms)
@@ -114,6 +148,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     num_kp       = max(5,  int(cfg.get("num_keypoints", 50)))
     sample_every = max(1,  int(cfg.get("sample_every",   1)))
     use_dinov2   = str(cfg.get("use_dinov2", "true")).lower() not in ("false", "0", "no")
+    render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
 
     yield {"type": "log", "level": "info", "text": "Loading video…"}
     frames, fps = load_frames(video_path, step=sample_every)
@@ -130,11 +165,24 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     await asyncio.sleep(0)
 
     # ── Phase 1: LK sparse tracking ───────────────────────────────────────────
-    gray0 = frame_to_gray(frames[0])
-    pts0  = detect_keypoints(gray0, n=num_kp)
+    # Some videos open on featureless frames (solid black/white lead-in);
+    # scan forward to the first frame with detectable corners.
+    start = 0
+    pts0  = None
+    while start <= n - 3:
+        gray0 = frame_to_gray(frames[start])
+        pts0  = detect_keypoints(gray0, n=num_kp)
+        if pts0 is not None and len(pts0) > 0:
+            break
+        start += 1
     if pts0 is None or len(pts0) == 0:
-        yield {"type": "error", "text": "No keypoints detected in first frame."}
+        yield {"type": "error", "text": "No keypoints detected in any frame."}
         return
+    if start > 0:
+        yield {"type": "log", "level": "warn",
+               "text": f"First {start} frame(s) featureless — tracking starts at frame {start}."}
+        frames = frames[start:]
+        n      = len(frames)
 
     nk       = len(pts0)
     tracks   = [[pts0[i, 0].tolist()] for i in range(nk)]   # list of [x,y] or None
@@ -201,6 +249,30 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
            "text": f"{n_objects} distinct object track(s) found from {nk} keypoints."}
     await asyncio.sleep(0)
 
+    # ── Phase 2b: Annotated video — show which region each "obj N" is ─────────
+    if render_video and n_objects > 0:
+        yield {"type": "log", "level": "info", "text": "Rendering labeled object video…"}
+        await asyncio.sleep(0)
+        try:
+            loop = asyncio.get_event_loop()
+            ann_frames, step = _render_annotated(frames, obj_tracks)
+            data, mime = await loop.run_in_executor(
+                None, encode_video_browser, ann_frames, eff_fps / step
+            )
+            yield {
+                "type": "video",
+                "data": base64.b64encode(data).decode(),
+                "mime": mime,
+                "caption": ("Tracked objects — box colors and labels match the "
+                            "plot legend (obj N below)."),
+            }
+            yield {"type": "log", "level": "info",
+                   "text": f"Labeled video ready ({len(data)/1024:.0f} KB, {mime})."}
+        except Exception as exc:
+            yield {"type": "log", "level": "warn",
+                   "text": f"Labeled video rendering failed ({exc}) — continuing."}
+        await asyncio.sleep(0)
+
     # ── Phase 3: DINOv2 appearance drift (ported from sam_track_compare) ──────
     dino_drifts: dict[int, np.ndarray] = {}
     dino_available = False
@@ -210,6 +282,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                "text": "Loading DINOv2 for appearance-drift analysis (sam_track_compare approach)…"}
         await asyncio.sleep(0)
         try:
+            from tools.embeddings import load_dinov2
+            dino_model = load_dinov2()
             for ct in obj_tracks:
                 crops = []
                 for f, box in zip(ct["frames"], ct["boxes"]):
@@ -221,7 +295,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                 if len(crops) < 2:
                     continue
 
-                embs  = _embed_crops_dinov2(crops)      # (K, D) L2-normed
+                embs  = _embed_crops_dinov2(crops, dino_model)  # (K, D) L2-normed
                 drift = _drift_curve(embs)              # (K,)  cosine dist to frame 0
                 dino_drifts[ct["id"]] = drift
 

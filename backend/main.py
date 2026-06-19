@@ -190,6 +190,12 @@ PIPELINES = {
                  {"value": "true",  "label": "Enabled (requires torch)"},
                  {"value": "false", "label": "Disabled (faster)"},
              ]},
+            {"id": "render_video",  "label": "Labeled object video",    "type": "select",
+             "default": "true",
+             "options": [
+                 {"value": "true",  "label": "Show annotated video"},
+                 {"value": "false", "label": "Skip (faster)"},
+             ]},
         ],
         "run": run_s2_object_tracker,
     },

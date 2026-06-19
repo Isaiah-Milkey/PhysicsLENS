@@ -41,6 +41,70 @@ def frame_to_gray(frame: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 
+def encode_video_browser(
+    frames: List[np.ndarray],
+    fps: float,
+    max_width: int = 640,
+) -> Tuple[bytes, str]:
+    """
+    Encode BGR frames to a browser-playable clip. Tries H.264 MP4 via the
+    system ffmpeg first, falls back to animated WebP via Pillow.
+    Returns (bytes, mime_type).
+    """
+    import os, shutil, subprocess, tempfile
+
+    if not frames:
+        raise RuntimeError("No frames to encode.")
+
+    h, w = frames[0].shape[:2]
+    scale = min(1.0, max_width / w)
+    if scale < 1.0:
+        w, h = int(w * scale), int(h * scale)
+        frames = [cv2.resize(f, (w, h)) for f in frames]
+    # libx264 yuv420p requires even dimensions
+    w -= w % 2
+    h -= h % 2
+    frames = [np.ascontiguousarray(f[:h, :w]) for f in frames]
+    fps = float(max(1.0, min(60.0, fps)))
+
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg:
+        out_path = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False).name
+        try:
+            subprocess.run(
+                [ffmpeg, "-y", "-loglevel", "error",
+                 "-f", "rawvideo", "-pix_fmt", "bgr24",
+                 "-s", f"{w}x{h}", "-r", f"{fps:.3f}", "-i", "-",
+                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
+                 "-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path],
+                input=b"".join(f.tobytes() for f in frames),
+                capture_output=True, check=True, timeout=120,
+            )
+            with open(out_path, "rb") as fh:
+                data = fh.read()
+            if len(data) > 100:
+                return data, "video/mp4"
+        except Exception:
+            pass
+        finally:
+            if os.path.exists(out_path):
+                os.unlink(out_path)
+
+    # Fallback: animated WebP (no codec needed; frontend renders as <img>)
+    from PIL import Image
+    if len(frames) > 120:
+        idx = np.linspace(0, len(frames) - 1, 120, dtype=int)
+        fps = fps * 120 / len(frames)
+        frames = [frames[i] for i in idx]
+    pil = [Image.fromarray(cv2.cvtColor(f, cv2.COLOR_BGR2RGB)) for f in frames]
+    buf = io.BytesIO()
+    pil[0].save(
+        buf, format="WEBP", save_all=True, append_images=pil[1:],
+        loop=0, duration=max(33, int(1000 / fps)), method=3,
+    )
+    return buf.getvalue(), "image/webp"
+
+
 def fig_to_b64(fig) -> str:
     """Render a matplotlib figure to a base64 PNG string."""
     buf = io.BytesIO()
