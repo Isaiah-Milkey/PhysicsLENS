@@ -3,6 +3,7 @@ import numpy as np
 from pipelines.stage3.water_incompressibility import analyze as incompressibility
 from pipelines.stage3.water_mass_conservation import analyze as mass_conservation
 from pipelines.stage3.water_vorticity import analyze as vorticity
+from pipelines.stage3.water_surface_coherence import analyze as surface_coherence
 
 
 def _moving_blob(n=64, cx=20, r=10):
@@ -76,4 +77,38 @@ def test_vorticity_flags_too_smooth_translation():
     res = vorticity(frames, fps=30.0,
                     cfg={"backend": "cpu", "min_vorticity": 5.0, "require_motion": True})
     assert res["severity"] > 0
+    assert len(res["signals"]) >= 1
+
+
+def _textured_blue(n=64, shift=0, seed=0):
+    """Full-frame blue water sheet with coarse aperiodic texture that translates.
+
+    Uses GaussianBlur + multi-channel modulation so the texture carries into
+    the grayscale luminance Farneback tracks (avoids the aperture problem and
+    uint8-overflow issues of single-channel blue-only fixtures). The blue
+    channel is dominant so the HSV water mask covers the whole frame.
+    """
+    rng = np.random.default_rng(seed)
+    base = cv2.GaussianBlur(rng.random((n, n)).astype(np.float32), (0, 0), sigmaX=3)
+    base = (base - base.min()) / (base.max() - base.min())  # coarse aperiodic 0..1
+    tex = 60.0 + 120.0 * np.roll(base, shift, axis=1)        # 60..180 float
+    f = np.zeros((n, n, 3), dtype=np.uint8)
+    f[:, :, 0] = np.clip(150 + tex * 0.5, 0, 255).astype(np.uint8)   # B: 150..210 (dominant)
+    f[:, :, 1] = np.clip(20  + tex * 0.3, 0, 255).astype(np.uint8)   # G: 20..54  (low)
+    f[:, :, 2] = np.clip(10  + tex * 0.15, 0, 255).astype(np.uint8)  # R: 10..27  (low)
+    return f
+
+
+def test_surface_coherence_high_correlation_for_advecting_texture():
+    # texture translates coherently → flow-warp predicts next frame well
+    frames = [_textured_blue(shift=3 * i, seed=1) for i in range(6)]
+    res = surface_coherence(frames, fps=30.0, cfg={"backend": "cpu"})
+    assert set(res) >= {"time", "series", "severity", "signals", "metrics", "color"}
+    assert res["severity"] < 60
+
+
+def test_surface_coherence_flags_random_flicker():
+    # each frame independent random texture → no advection coherence
+    frames = [_textured_blue(seed=i) for i in range(6)]
+    res = surface_coherence(frames, fps=30.0, cfg={"backend": "cpu"})
     assert len(res["signals"]) >= 1
