@@ -83,3 +83,34 @@ def test_water_mask_flags_blue_region():
     assert mask.shape == (40, 40)
     assert mask[:, :20].mean() > 0.5    # left half mostly water
     assert mask[:, 20:].mean() < 0.2    # right half mostly not
+
+
+from tools.fluid import compute_flow_sequence, timeseries_figure
+import json as _json
+
+
+def _blue_frame(n=48, fill_to=24):
+    f = np.zeros((n, n, 3), dtype=np.uint8)
+    f[:, :fill_to] = (200, 60, 20)
+    return f
+
+
+def test_compute_flow_sequence_shapes():
+    frames = [_blue_frame(), _blue_frame(), _blue_frame()]
+    seq = compute_flow_sequence(frames, backend="cpu", mask_method="hsv")
+    assert len(seq) == 2
+    for s in seq:
+        assert set(s) == {"u", "v", "mask", "div", "curl", "mag"}
+        assert s["u"].shape == (48, 48)
+        assert s["mask"].dtype == bool
+
+
+def test_compute_flow_sequence_too_short():
+    assert compute_flow_sequence([_blue_frame()]) == []
+
+
+def test_timeseries_figure_returns_plotly_json():
+    out = timeseries_figure([0.0, 1.0], [("sig", [0.1, 0.2], "#1a54c4")],
+                            "Demo", threshold=0.5)
+    parsed = _json.loads(out)
+    assert "data" in parsed and "layout" in parsed

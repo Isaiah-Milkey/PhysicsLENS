@@ -119,3 +119,42 @@ def water_mask(frame_bgr: np.ndarray, method: str = "auto") -> Tuple[np.ndarray,
     use = _detect_mask_method() if method == "auto" else method
     # `use == "hsv"` is the only implemented path; any other value falls through to HSV.
     return _hsv_water_mask(frame_bgr), "hsv"
+
+
+def compute_flow_sequence(frames: List[np.ndarray], backend: str = "auto",
+                          mask_method: str = "auto") -> List[dict]:
+    if len(frames) < 2:
+        return []
+    grays = [cv2.cvtColor(f, cv2.COLOR_BGR2GRAY) for f in frames]
+    seq: List[dict] = []
+    for i in range(1, len(frames)):
+        u, v = dense_flow(grays[i - 1], grays[i], backend=backend)
+        div, curl = helmholtz(u, v)
+        mag = flow_magnitude(u, v)
+        mask, _ = water_mask(frames[i], method=mask_method)
+        seq.append({"u": u, "v": v, "mask": mask, "div": div, "curl": curl, "mag": mag})
+    return seq
+
+
+def timeseries_figure(time, traces, title: str,
+                      threshold: Optional[float] = None,
+                      ythresh_label: str = "") -> str:
+    import plotly.graph_objects as go
+    fig = go.Figure()
+    for name, yvals, color in traces:
+        fig.add_trace(go.Scatter(x=list(time), y=list(yvals), mode="lines",
+                                 name=name, line=dict(color=color, width=1.6)))
+    if threshold is not None:
+        fig.add_hline(y=threshold, line=dict(color="red", dash="dash", width=1.2),
+                      annotation_text=ythresh_label or f"threshold = {threshold}",
+                      annotation_position="top right")
+    fig.update_layout(
+        title=dict(text=title, font=dict(size=15, color="#1a1917")),
+        height=420, legend=dict(orientation="h", y=1.08),
+        plot_bgcolor="white", paper_bgcolor="white",
+        margin=dict(l=60, r=40, t=80, b=50),
+        font=dict(family="IBM Plex Sans, sans-serif", size=13),
+        xaxis=dict(title="Time (s)", showgrid=True, gridcolor="#ebebeb"),
+        yaxis=dict(showgrid=True, gridcolor="#ebebeb"),
+    )
+    return fig.to_json()
