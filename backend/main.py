@@ -48,6 +48,12 @@ from pipelines.stage3.deformation_specialist  import run as run_s3_deformation
 from pipelines.stage3.contact_specialist      import run as run_s3_contact
 from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
 from pipelines.stage3.causality_specialist    import run as run_s3_causality
+from pipelines.stage3.water_incompressibility   import run as run_s3_water_incompress
+from pipelines.stage3.water_mass_conservation    import run as run_s3_water_mass
+from pipelines.stage3.water_vorticity            import run as run_s3_water_vort
+from pipelines.stage3.water_surface_coherence    import run as run_s3_water_surface
+from pipelines.stage3.water_vlm_judge            import run as run_s3_water_vlm
+from pipelines.stage3.water_vbench_flow          import run as run_s3_water_vbench
 
 # ── Stage 4 — Final Diagnosis & Treatment Plan ────────────────────────────────
 from pipelines.stage4.physics_consistency_scorer import run as run_s4_scorer
@@ -55,6 +61,7 @@ from pipelines.stage4.severity_assessor          import run as run_s4_severity
 from pipelines.stage4.physics_breakdown_timer    import run as run_s4_pbt
 from pipelines.stage4.failure_explainer          import run as run_s4_explainer
 from pipelines.stage4.diagnostic_report          import run as run_s4_report
+from pipelines.stage4.water_benchmark            import run as run_s4_water_benchmark
 
 # ---------------------------------------------------------------------------
 # Pipeline registry
@@ -382,6 +389,83 @@ PIPELINES = {
         ],
         "run": run_s3_causality,
     },
+    "s3_water_incompressibility": {
+        "id": "s3_water_incompressibility", "name": "Water — Incompressibility",
+        "desc": "Dense-flow divergence ∇·v in the water region; flags unphysical sources/sinks (water created or destroyed).",
+        "badge": "medium", "dummy": False, "requires_pair": False,
+        "settings": [
+            {"id": "divergence_threshold", "label": "Normalized divergence threshold", "type": "number",
+             "default": 0.08, "min": 0.01, "max": 2.0},
+            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
+             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
+                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
+        ],
+        "run": run_s3_water_incompress,
+    },
+    "s3_water_mass_conservation": {
+        "id": "s3_water_mass_conservation", "name": "Water — Mass Conservation",
+        "desc": "Track water-region area over time; flags discontinuous jumps (water popping in/out).",
+        "badge": "medium", "dummy": False, "requires_pair": False,
+        "settings": [
+            {"id": "jump_threshold", "label": "Area jump threshold (fraction/frame)", "type": "number",
+             "default": 0.20, "min": 0.02, "max": 1.0},
+        ],
+        "run": run_s3_water_mass,
+    },
+    "s3_water_vorticity": {
+        "id": "s3_water_vorticity", "name": "Water — Vorticity / Turbulence",
+        "desc": "Curl ∇×v statistics; flags implausibly smooth or chaotic swirl in moving water.",
+        "badge": "medium", "dummy": False, "requires_pair": False,
+        "settings": [
+            {"id": "min_vorticity", "label": "Lower plausible band", "type": "number",
+             "default": 0.02, "min": 0.0, "max": 1.0},
+            {"id": "max_vorticity", "label": "Upper plausible band", "type": "number",
+             "default": 0.80, "min": 0.0, "max": 3.0},
+            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
+             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
+                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
+        ],
+        "run": run_s3_water_vort,
+    },
+    "s3_water_surface_coherence": {
+        "id": "s3_water_surface_coherence", "name": "Water — Surface & Splash Coherence",
+        "desc": "Flow-warp vs actual cross-correlation in the water region; flags flicker-in-place (texture not advecting with flow).",
+        "badge": "medium", "dummy": False, "requires_pair": False,
+        "settings": [
+            {"id": "coherence_floor", "label": "Min advection correlation (0–1)", "type": "number",
+             "default": 0.35, "min": 0.0, "max": 1.0},
+            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
+             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
+                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
+        ],
+        "run": run_s3_water_surface,
+    },
+    "s3_water_vbench_flow": {
+        "id": "s3_water_vbench_flow", "name": "Water — VBench-style Flow (SOTA)",
+        "desc": "SOTA comparator: whole-frame motion smoothness + flicker (VBench family). Coarse, not water-aware.",
+        "badge": "medium", "dummy": False, "requires_pair": False,
+        "settings": [
+            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
+             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
+                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
+        ],
+        "run": run_s3_water_vbench,
+    },
+    "s3_water_vlm_judge": {
+        "id": "s3_water_vlm_judge", "name": "Water — VLM-as-Judge (SOTA)",
+        "desc": "SOTA comparator: VLM rates keyframes for fluid plausibility (VideoPhy/PhyGenEval style). Requires OpenRouter key.",
+        "badge": "expensive", "dummy": False, "requires_pair": False,
+        "settings": [
+            {"id": "model", "label": "Model", "type": "select", "default": "gpt-4o",
+             "options": [{"value": "gpt-4o", "label": "GPT-4o"},
+                         {"value": "gemini-2-flash", "label": "Gemini 2 Flash"},
+                         {"value": "claude-3.5", "label": "Claude 3.5 Sonnet"}]},
+            {"id": "num_frames", "label": "Keyframes to sample", "type": "number",
+             "default": 5, "min": 1, "max": 20},
+            {"id": "api_key", "label": "OpenRouter API key", "type": "password", "default": ""},
+        ],
+        "run": run_s3_water_vlm,
+    },
 
     # ── Stage 4: Final Diagnosis & Treatment Plan ─────────────────────────────
     "s4_scorer": {
@@ -462,6 +546,21 @@ PIPELINES = {
              ]},
         ],
         "run": run_s4_report,
+    },
+    "s4_water_benchmark": {
+        "id": "s4_water_benchmark", "name": "Water Physics Benchmark",
+        "desc": "Runs the 4 grounded water tests + SOTA comparators side by side and highlights where grounded signals localize failures the coarse scores miss.",
+        "badge": "output", "dummy": False, "requires_pair": False,
+        "settings": [
+            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
+             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
+                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
+            {"id": "api_key", "label": "OpenRouter API key (optional, adds VLM-judge)", "type": "password", "default": ""},
+            {"id": "model", "label": "VLM model (if key set)", "type": "select", "default": "gpt-4o",
+             "options": [{"value": "gpt-4o", "label": "GPT-4o"},
+                         {"value": "gemini-2-flash", "label": "Gemini 2 Flash"}]},
+        ],
+        "run": run_s4_water_benchmark,
     },
 }
 
