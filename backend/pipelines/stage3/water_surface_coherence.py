@@ -55,7 +55,7 @@ def analyze(frames: List[np.ndarray], fps: float, cfg: dict,
                             "score": round(float(corr_floor - corr), 3)})
 
     n = max(len(flow_seq), 1)
-    severity = min(int(len(flagged) / n * 250), 100)
+    severity = min(int(len(flagged) / n * 250), 100)  # *250 saturates: ~40% flagged frames -> severity 100
     time = [i / fps for i in range(1, len(flow_seq) + 1)]
     return {
         "time": time,

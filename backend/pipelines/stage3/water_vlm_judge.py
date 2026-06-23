@@ -6,7 +6,7 @@ model to rate fluid-physics plausibility against a rubric, average the verdict
 into a single score. Self-contained OpenRouter call (no edits to tools/vlm.py);
 reuses frame_to_b64 / OPENROUTER_MODELS read-only.
 """
-import asyncio, json
+import json
 from typing import Any, AsyncGenerator, Dict, List
 
 import numpy as np
@@ -30,7 +30,10 @@ WATER_RUBRIC = (
 def parse_verdict(raw: str) -> Dict[str, Any]:
     """Tolerant parser: strip fences, default to nulls on failure."""
     try:
-        s = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        import re
+        s = raw.strip()
+        s = re.sub(r"^```(?:json)?\s*", "", s)
+        s = re.sub(r"\s*```$", "", s).strip()
         d = json.loads(s)
         return {
             "plausibility": float(d["plausibility"]) if d.get("plausibility") is not None else None,
@@ -70,6 +73,9 @@ async def score_keyframes(frames: List[np.ndarray], model_key: str, api_key: str
                          "HTTP-Referer": "https://physicslens.local"},
                 json=payload, timeout=aiohttp.ClientTimeout(total=45),
             ) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    raise RuntimeError(f"OpenRouter {resp.status}: {body[:200]}")
                 data = await resp.json()
             verdicts.append(parse_verdict(data["choices"][0]["message"]["content"]))
     return verdicts
