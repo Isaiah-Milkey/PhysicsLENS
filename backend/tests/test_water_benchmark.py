@@ -13,3 +13,27 @@ def test_vbench_returns_single_score():
     res = vbench(frames, fps=30.0, cfg={"backend": "cpu"})
     assert "severity" in res and 0 <= res["severity"] <= 100
     assert "metrics" in res and isinstance(res["metrics"], list)
+
+
+from pipelines.stage3.water_vlm_judge import parse_verdict, severity_from_verdicts
+
+
+def test_parse_verdict_handles_fenced_json():
+    raw = '```json\n{"plausibility": 0.2, "violations": ["water vanishes"], "explanation": "x"}\n```'
+    v = parse_verdict(raw)
+    assert v["plausibility"] == 0.2
+    assert "water vanishes" in v["violations"]
+
+
+def test_parse_verdict_is_robust_to_garbage():
+    v = parse_verdict("not json at all")
+    assert v["plausibility"] is None
+    assert v["violations"] == []
+
+
+def test_severity_from_verdicts_inverts_plausibility():
+    vs = [{"plausibility": 1.0, "violations": [], "explanation": ""},
+          {"plausibility": 0.0, "violations": ["x"], "explanation": ""}]
+    s = severity_from_verdicts(vs)
+    assert 40 <= s <= 60   # mean plausibility 0.5 → ~50
+    assert severity_from_verdicts([]) == 0
