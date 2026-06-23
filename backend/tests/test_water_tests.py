@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 from pipelines.stage3.water_incompressibility import analyze as incompressibility
 from pipelines.stage3.water_mass_conservation import analyze as mass_conservation
@@ -46,22 +47,31 @@ def test_mass_conservation_flags_sudden_area_jump():
 def test_vorticity_returns_contract_and_runs():
     frames = [_moving_blob(cx=20 + 2 * i) for i in range(6)]
     res = vorticity(frames, fps=30.0, cfg={"backend": "cpu"})
-    assert set(res) >= {"time", "series", "severity", "signals", "metrics", "color"}
+    assert set(res) == {"time", "series", "flagged", "severity", "color",
+                        "signals", "metrics", "summary"}
     assert 0 <= res["severity"] <= 100
 
 
 def test_vorticity_flags_too_smooth_translation():
-    # Textured water sheet translating rigidly: real motion, ~zero curl. With
-    # the lower plausibility band raised above the observed swirl, the
-    # "implausibly smooth" branch must FLAG it (this is the meaningful signal).
-    rng = np.random.default_rng(3)
-    tex = (rng.random((64, 64)) * 80 + 120).astype(np.uint8)
+    # Full-frame blue water sheet (contiguous HSV mask survives MORPH_OPEN) with a
+    # coarse, aperiodic brightness texture that translates rigidly: real motion,
+    # ~zero curl. The texture is modulated across all three channels so it carries
+    # into the grayscale luminance Farneback tracks (a blue-only swing is crushed
+    # to ~7 gray levels by BGR->GRAY weighting and a single sinusoid triggers the
+    # aperture problem, so neither produces measurable flow). With the lower
+    # plausibility band raised above the observed swirl, the "implausibly smooth"
+    # branch must FLAG it.
+    n = 64
+    rng = np.random.default_rng(0)
+    base = cv2.GaussianBlur(rng.random((n, n)).astype(np.float32), (0, 0), sigmaX=3)
+    base = (base - base.min()) / (base.max() - base.min())   # coarse, aperiodic 0..1
     frames = []
     for i in range(6):
-        f = np.zeros((64, 64, 3), dtype=np.uint8)
-        f[:, :, 0] = np.clip(np.roll(tex, 3 * i, axis=1) + 80, 0, 255)  # blue, textured
-        f[:, :, 1] = 60
-        f[:, :, 2] = 20
+        tex = 60.0 + 120.0 * np.roll(base, 3 * i, axis=1)    # shifts 3px/frame
+        f = np.zeros((n, n, 3), dtype=np.uint8)
+        f[:, :, 0] = np.clip(150 + tex * 0.5, 0, 255).astype(np.uint8)   # bright blue, textured
+        f[:, :, 1] = np.clip(20 + tex * 0.3, 0, 255).astype(np.uint8)    # low green, textured
+        f[:, :, 2] = np.clip(10 + tex * 0.15, 0, 255).astype(np.uint8)   # low red  -> full water mask
         frames.append(f)
     res = vorticity(frames, fps=30.0,
                     cfg={"backend": "cpu", "min_vorticity": 5.0, "require_motion": True})

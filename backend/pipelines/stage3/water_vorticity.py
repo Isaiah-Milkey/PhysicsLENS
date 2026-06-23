@@ -30,20 +30,8 @@ def analyze(frames: List[np.ndarray], fps: float, cfg: dict,
 
     series, flagged, signals = [], [], []
     for i, s in enumerate(flow_seq, start=1):
-        mask = s["mask"]
-        has_mask = bool(mask.any())
-
-        if has_mask:
-            mean_curl = masked_mean(np.abs(s["curl"]), mask)
-            mean_mag = masked_mean(s["mag"], mask)
-        else:
-            # No water region detected: fall back to whole-frame statistics so
-            # that motion and swirl are still measurable for scenes where the
-            # HSV mask cannot isolate water (e.g. textured, low-saturation, or
-            # unusual-colour water sheets).
-            mean_curl = float(np.abs(s["curl"]).mean())
-            mean_mag = float(s["mag"].mean())
-
+        mean_curl = masked_mean(np.abs(s["curl"]), s["mask"])
+        mean_mag = masked_mean(s["mag"], s["mask"])
         norm = mean_curl / (mean_mag + 1e-6)
         series.append(norm)
         moving = mean_mag > motion_floor
