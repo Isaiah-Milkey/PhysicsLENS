@@ -96,3 +96,26 @@ def dense_flow(prev_gray: np.ndarray, curr_gray: np.ndarray,
         poly_n=5, poly_sigma=1.2, flags=0,
     )
     return flow[..., 0].astype(np.float32), flow[..., 1].astype(np.float32)
+
+
+def _detect_mask_method() -> str:
+    # SAM3 is a future drop-in; HSV is the reliable default that runs anywhere.
+    return "hsv"
+
+
+def _hsv_water_mask(frame_bgr: np.ndarray) -> np.ndarray:
+    hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
+    h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    blue = (h >= 90) & (h <= 140) & (s >= 40)      # blue/teal water
+    foam = (s <= 45) & (v >= 180)                  # bright white foam/spray
+    raw = (blue | foam).astype(np.uint8) * 255
+    k = np.ones((5, 5), np.uint8)
+    cleaned = cv2.morphologyEx(raw, cv2.MORPH_OPEN, k)
+    cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, k)
+    return cleaned > 0
+
+
+def water_mask(frame_bgr: np.ndarray, method: str = "auto") -> Tuple[np.ndarray, str]:
+    use = _detect_mask_method() if method == "auto" else method
+    # `use == "hsv"` is the only implemented path; any other value falls through to HSV.
+    return _hsv_water_mask(frame_bgr), "hsv"

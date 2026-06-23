@@ -70,3 +70,16 @@ def test_dense_flow_auto_returns_valid_shape():
     img = np.zeros((32, 32), dtype=np.uint8)
     u, v = dense_flow(img, img, backend="auto")
     assert u.shape == (32, 32) and v.shape == (32, 32)
+
+
+from tools.fluid import water_mask
+
+
+def test_water_mask_flags_blue_region():
+    frame = np.zeros((40, 40, 3), dtype=np.uint8)
+    frame[:, :20] = (200, 60, 20)   # BGR-ish blue water on the left half
+    mask, method = water_mask(frame, method="hsv")
+    assert method == "hsv"
+    assert mask.shape == (40, 40)
+    assert mask[:, :20].mean() > 0.5    # left half mostly water
+    assert mask[:, 20:].mean() < 0.2    # right half mostly not
