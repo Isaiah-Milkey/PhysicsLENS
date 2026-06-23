@@ -112,3 +112,19 @@ def test_surface_coherence_flags_random_flicker():
     frames = [_textured_blue(seed=i) for i in range(6)]
     res = surface_coherence(frames, fps=30.0, cfg={"backend": "cpu"})
     assert len(res["signals"]) >= 1
+
+
+def test_fluid_specialist_merges_four_grounded_analyses():
+    # Consolidated specialist runs all four grounded checks on one shared flow pass.
+    from pipelines.stage3.fluid_specialist import analyze_all
+    # moving + growing blob -> mass/incompressibility should fire
+    frames = [_moving_blob(cx=20 + 2 * i, r=6 + 3 * i) for i in range(6)]
+    out = analyze_all(frames, fps=30.0, cfg={"backend": "cpu"})
+    assert set(out["subs"]) == {
+        "incompressibility", "mass_conservation", "vorticity", "surface_coherence"}
+    for r in out["subs"].values():
+        assert 0 <= r["severity"] <= 100
+    # overall is the worst of the four; a growing blob produces a real violation
+    assert out["overall_severity"] == max(r["severity"] for r in out["subs"].values())
+    assert out["overall_severity"] > 0
+    assert isinstance(out["signals"], list) and len(out["signals"]) >= 1

@@ -48,10 +48,6 @@ from pipelines.stage3.deformation_specialist  import run as run_s3_deformation
 from pipelines.stage3.contact_specialist      import run as run_s3_contact
 from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
 from pipelines.stage3.causality_specialist    import run as run_s3_causality
-from pipelines.stage3.water_incompressibility   import run as run_s3_water_incompress
-from pipelines.stage3.water_mass_conservation    import run as run_s3_water_mass
-from pipelines.stage3.water_vorticity            import run as run_s3_water_vort
-from pipelines.stage3.water_surface_coherence    import run as run_s3_water_surface
 from pipelines.stage3.water_vlm_judge            import run as run_s3_water_vlm
 from pipelines.stage3.water_vbench_flow          import run as run_s3_water_vbench
 
@@ -362,17 +358,22 @@ PIPELINES = {
     "s3_fluid": {
         "id":    "s3_fluid",
         "name":  "Fluid Specialist",
-        "desc":  "Check fluid flow patterns for continuity, incompressibility, and viscosity violations.",
-        "badge": "expensive",
-        "dummy": True,
+        "desc":  "Grounded water-physics specialist: runs incompressibility (∇·v), mass conservation, vorticity (∇×v) and surface/splash coherence on one shared flow pass, with per-signal charts and an overall severity.",
+        "badge": "medium",
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "viscosity_mode", "label": "Viscosity regime", "type": "select",
-             "default": "low",
-             "options": [
-                 {"value": "low",  "label": "Low viscosity (water)"},
-                 {"value": "high", "label": "High viscosity (syrup)"},
-             ]},
+            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
+             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
+                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
+            {"id": "divergence_threshold", "label": "Incompressibility — divergence threshold", "type": "number",
+             "default": 0.08, "min": 0.01, "max": 2.0},
+            {"id": "jump_threshold", "label": "Mass conservation — area jump threshold", "type": "number",
+             "default": 0.20, "min": 0.02, "max": 1.0},
+            {"id": "max_vorticity", "label": "Vorticity — upper plausible band", "type": "number",
+             "default": 0.80, "min": 0.0, "max": 3.0},
+            {"id": "coherence_floor", "label": "Surface coherence — min advection correlation", "type": "number",
+             "default": 0.35, "min": 0.0, "max": 1.0},
         ],
         "run": run_s3_fluid,
     },
@@ -388,57 +389,6 @@ PIPELINES = {
              "default": 3, "min": 1, "max": 30},
         ],
         "run": run_s3_causality,
-    },
-    "s3_water_incompressibility": {
-        "id": "s3_water_incompressibility", "name": "Water — Incompressibility",
-        "desc": "Dense-flow divergence ∇·v in the water region; flags unphysical sources/sinks (water created or destroyed).",
-        "badge": "medium", "dummy": False, "requires_pair": False,
-        "settings": [
-            {"id": "divergence_threshold", "label": "Normalized divergence threshold", "type": "number",
-             "default": 0.08, "min": 0.01, "max": 2.0},
-            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
-             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
-                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
-        ],
-        "run": run_s3_water_incompress,
-    },
-    "s3_water_mass_conservation": {
-        "id": "s3_water_mass_conservation", "name": "Water — Mass Conservation",
-        "desc": "Track water-region area over time; flags discontinuous jumps (water popping in/out).",
-        "badge": "medium", "dummy": False, "requires_pair": False,
-        "settings": [
-            {"id": "jump_threshold", "label": "Area jump threshold (fraction/frame)", "type": "number",
-             "default": 0.20, "min": 0.02, "max": 1.0},
-        ],
-        "run": run_s3_water_mass,
-    },
-    "s3_water_vorticity": {
-        "id": "s3_water_vorticity", "name": "Water — Vorticity / Turbulence",
-        "desc": "Curl ∇×v statistics; flags implausibly smooth or chaotic swirl in moving water.",
-        "badge": "medium", "dummy": False, "requires_pair": False,
-        "settings": [
-            {"id": "min_vorticity", "label": "Lower plausible band", "type": "number",
-             "default": 0.02, "min": 0.0, "max": 1.0},
-            {"id": "max_vorticity", "label": "Upper plausible band", "type": "number",
-             "default": 0.80, "min": 0.0, "max": 3.0},
-            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
-             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
-                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
-        ],
-        "run": run_s3_water_vort,
-    },
-    "s3_water_surface_coherence": {
-        "id": "s3_water_surface_coherence", "name": "Water — Surface & Splash Coherence",
-        "desc": "Flow-warp vs actual cross-correlation in the water region; flags flicker-in-place (texture not advecting with flow).",
-        "badge": "medium", "dummy": False, "requires_pair": False,
-        "settings": [
-            {"id": "coherence_floor", "label": "Min advection correlation (0–1)", "type": "number",
-             "default": 0.35, "min": 0.0, "max": 1.0},
-            {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",
-             "options": [{"value": "auto", "label": "Auto (RAFT→Farneback)"},
-                         {"value": "gpu", "label": "GPU RAFT"}, {"value": "cpu", "label": "CPU Farneback"}]},
-        ],
-        "run": run_s3_water_surface,
     },
     "s3_water_vbench_flow": {
         "id": "s3_water_vbench_flow", "name": "Water — VBench-style Flow (SOTA)",

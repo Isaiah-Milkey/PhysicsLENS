@@ -47,12 +47,12 @@ physicslens/
 │   │   │   ├── friction_specialist.py           🔶 stub
 │   │   │   ├── deformation_specialist.py        🔶 stub
 │   │   │   ├── contact_specialist.py            🔶 stub
-│   │   │   ├── fluid_specialist.py              🔶 stub
+│   │   │   ├── fluid_specialist.py              ✅ verified (runs the 4 grounded checks below)
 │   │   │   ├── causality_specialist.py          🔶 stub
-│   │   │   ├── water_incompressibility.py       ✅ verified
-│   │   │   ├── water_mass_conservation.py       ✅ verified
-│   │   │   ├── water_vorticity.py               ✅ verified
-│   │   │   ├── water_surface_coherence.py       ✅ verified
+│   │   │   ├── water_incompressibility.py       ✅ component of Fluid Specialist + benchmark
+│   │   │   ├── water_mass_conservation.py       ✅ component of Fluid Specialist + benchmark
+│   │   │   ├── water_vorticity.py               ✅ component of Fluid Specialist + benchmark
+│   │   │   ├── water_surface_coherence.py       ✅ component of Fluid Specialist + benchmark
 │   │   │   ├── water_vlm_judge.py               🔵 implemented (SOTA comparator)
 │   │   │   └── water_vbench_flow.py             ✅ verified (SOTA comparator)
 │   │   └── stage4/                  # Final diagnosis outputs
