@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 from tools.fluid import helmholtz, flow_magnitude, masked_mean, severity_color
 
@@ -48,3 +49,24 @@ def test_severity_color_bands():
     assert severity_color(50) == "#E24B4A"
     assert severity_color(20) == "#EF9F27"
     assert severity_color(5) == "#4CAF50"
+
+
+from tools.fluid import dense_flow
+
+
+def test_dense_flow_recovers_uniform_translation():
+    rng = np.random.default_rng(0)
+    base = (rng.random((64, 64)) * 255).astype(np.uint8)
+    base = cv2.GaussianBlur(base, (0, 0), 2.0)
+    shifted = np.roll(base, shift=(0, 3), axis=(0, 1))  # +3 px in x
+    u, v = dense_flow(base, shifted, backend="cpu")
+    assert u.shape == base.shape
+    c = slice(8, -8)
+    assert abs(u[c, c].mean() - 3.0) < 1.0
+    assert abs(v[c, c].mean()) < 1.0
+
+
+def test_dense_flow_auto_returns_valid_shape():
+    img = np.zeros((32, 32), dtype=np.uint8)
+    u, v = dense_flow(img, img, backend="auto")
+    assert u.shape == (32, 32) and v.shape == (32, 32)

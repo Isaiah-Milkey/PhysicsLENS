@@ -36,3 +36,63 @@ def masked_mean(field: np.ndarray, mask: np.ndarray) -> float:
 
 def severity_color(score: int) -> str:
     return "#E24B4A" if score > 40 else "#EF9F27" if score > 15 else "#4CAF50"
+
+
+_FLOW_BACKEND: Optional[str] = None
+_RAFT_MODEL = None
+
+
+def _detect_flow_backend() -> str:
+    global _FLOW_BACKEND
+    if _FLOW_BACKEND is not None:
+        return _FLOW_BACKEND
+    backend = "farneback"
+    try:
+        import torch  # noqa: F401
+        if torch.cuda.is_available():
+            from torchvision.models.optical_flow import raft_small  # noqa: F401
+            backend = "raft"
+    except Exception:
+        backend = "farneback"
+    _FLOW_BACKEND = backend
+    return backend
+
+
+def _raft_flow(prev_gray: np.ndarray, curr_gray: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    global _RAFT_MODEL
+    import torch
+    import torch.nn.functional as F
+    from torchvision.models.optical_flow import raft_small, Raft_Small_Weights
+    if _RAFT_MODEL is None:
+        _RAFT_MODEL = raft_small(weights=Raft_Small_Weights.DEFAULT, progress=False).eval().cuda()
+
+    def prep(g: np.ndarray) -> "torch.Tensor":
+        rgb = cv2.cvtColor(g, cv2.COLOR_GRAY2RGB)
+        t = torch.from_numpy(rgb).permute(2, 0, 1).float() / 255.0
+        t = (t - 0.5) / 0.5
+        return t.unsqueeze(0).cuda()
+
+    h, w = prev_gray.shape[:2]
+    ph, pw = (8 - h % 8) % 8, (8 - w % 8) % 8  # RAFT needs /8 dims
+    a, b = prep(prev_gray), prep(curr_gray)
+    a = F.pad(a, (0, pw, 0, ph)); b = F.pad(b, (0, pw, 0, ph))
+    with torch.no_grad():
+        flow = _RAFT_MODEL(a, b)[-1][0].cpu().numpy()  # (2, H, W)
+    u, v = flow[0, :h, :w], flow[1, :h, :w]
+    return u.astype(np.float32), v.astype(np.float32)
+
+
+def dense_flow(prev_gray: np.ndarray, curr_gray: np.ndarray,
+               backend: str = "auto") -> Tuple[np.ndarray, np.ndarray]:
+    use = _detect_flow_backend() if backend == "auto" else backend
+    if use in ("raft", "gpu"):
+        try:
+            return _raft_flow(prev_gray, curr_gray)
+        except Exception:
+            use = "farneback"
+    flow = cv2.calcOpticalFlowFarneback(
+        prev_gray, curr_gray, None,
+        pyr_scale=0.5, levels=3, winsize=15, iterations=3,
+        poly_n=5, poly_sigma=1.2, flags=0,
+    )
+    return flow[..., 0].astype(np.float32), flow[..., 1].astype(np.float32)
