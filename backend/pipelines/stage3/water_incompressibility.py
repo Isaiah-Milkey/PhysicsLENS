@@ -20,7 +20,11 @@ def analyze(frames: List[np.ndarray], fps: float, cfg: dict,
             flow_seq: Optional[list] = None) -> dict:
     backend = cfg.get("backend", "auto")
     mask_method = cfg.get("mask_method", "auto")
-    threshold = float(cfg.get("divergence_threshold", 0.08))  # normalized; Farneback range ~0.09-0.25 for expanding sources
+    # Calibrated on real water (IMG_7513): the optical-flow divergence noise
+    # floor on genuine moving water is ~0.11 (max ~0.17) at 480p, so 0.25 gives
+    # ~1.5x margin above real-water false positives. (One-sided: kills false
+    # alarms on real footage; catching true fakes needs an AI clip to confirm.)
+    threshold = float(cfg.get("divergence_threshold", 0.25))  # normalized |∇·v|/|v|
     if flow_seq is None:
         flow_seq = compute_flow_sequence(frames, backend=backend, mask_method=mask_method)
 
@@ -74,7 +78,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
            "data": timeseries_figure(
                r["time"], [("normalized |∇·v|", r["series"]["normalized |∇·v|"], "#1a54c4")],
                "Incompressibility — normalized divergence",
-               threshold=float(cfg.get("divergence_threshold", 0.08)),
+               threshold=float(cfg.get("divergence_threshold", 0.25)),
                ythresh_label="divergence threshold"),
            "caption": "Normalized |∇·v| inside the water region. Spikes = sources/sinks."}
     yield {"type": "signal", "source": "s3_water_incompressibility",

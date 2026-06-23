@@ -114,3 +114,49 @@ def test_timeseries_figure_returns_plotly_json():
                             "Demo", threshold=0.5)
     parsed = _json.loads(out)
     assert "data" in parsed and "layout" in parsed
+
+
+from tools.fluid import resize_frames, motion_mask, resolve_water_region
+
+
+def _moving_square_clip(n=64, frames=8):
+    """A bright square translating across a static grey background."""
+    clip = []
+    for i in range(frames):
+        f = np.full((n, n, 3), 100, dtype=np.uint8)          # static grey bg
+        x = 5 + 6 * i
+        f[n // 2 - 5:n // 2 + 5, x:x + 10] = 240             # moving bright square
+        clip.append(f)
+    return clip
+
+
+def test_resize_frames_caps_height_and_keeps_aspect():
+    tall = [np.zeros((1080, 1920, 3), dtype=np.uint8)]
+    out = resize_frames(tall, max_height=480)
+    assert out[0].shape[0] == 480
+    assert out[0].shape[1] % 2 == 0
+    assert abs(out[0].shape[1] / out[0].shape[0] - 1920 / 1080) < 0.02
+    # no-op when already short enough or disabled
+    short = [np.zeros((240, 320, 3), dtype=np.uint8)]
+    assert resize_frames(short, max_height=480)[0].shape[0] == 240
+    assert resize_frames(tall, max_height=0)[0].shape[0] == 1080
+
+
+def test_motion_mask_isolates_mover_not_static_background():
+    clip = _moving_square_clip()
+    m = motion_mask(clip, min_floor=6.0)
+    assert m.dtype == bool and m.shape == (64, 64)
+    cov = m.mean()
+    assert 0.01 < cov < 0.6           # the moving band, not the whole frame
+    # the static top strip (no motion) must be excluded
+    assert m[:5, :].mean() < 0.1
+
+
+def test_resolve_water_region_modes():
+    clip = _moving_square_clip()
+    assert resolve_water_region(clip, "none")[0].all()          # whole frame
+    assert resolve_water_region(clip, "hsv") == (None, "hsv")    # per-frame later
+    mask, label = resolve_water_region(clip, "motion")
+    assert label == "motion" and mask.dtype == bool
+    # auto picks motion when coverage is plausible (static camera)
+    assert resolve_water_region(clip, "auto")[1] == "motion"

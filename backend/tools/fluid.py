@@ -121,17 +121,77 @@ def water_mask(frame_bgr: np.ndarray, method: str = "auto") -> Tuple[np.ndarray,
     return _hsv_water_mask(frame_bgr), "hsv"
 
 
+def resize_frames(frames: List[np.ndarray], max_height: int = 480) -> List[np.ndarray]:
+    """Downscale frames to `max_height` (aspect-preserving, even width) for a
+    consistent working resolution — keeps flow-based thresholds comparable
+    across input resolutions and speeds up dense flow. No-op if already short
+    enough or max_height <= 0."""
+    if not frames or max_height <= 0:
+        return frames
+    h, w = frames[0].shape[:2]
+    if h <= max_height:
+        return frames
+    nw = int(round(w * max_height / h))
+    nw -= nw % 2
+    return [cv2.resize(f, (nw, max_height)) for f in frames]
+
+
+def motion_mask(frames: List[np.ndarray], min_floor: float = 6.0) -> np.ndarray:
+    """Sequence-level water-activity mask: pixels whose grayscale intensity
+    varies over time above an *absolute* floor (moving surface, ripples,
+    splashes) — the static background falls below it. Works where colour
+    heuristics fail (clear/dark water). An absolute (not percentile) floor is
+    deliberate: it makes coverage reflect *how much* of the frame actually
+    moves, so a globally-moving scene (camera motion) yields near-full coverage
+    and is detectable as such by `resolve_water_region`."""
+    g = np.stack([cv2.cvtColor(f, cv2.COLOR_BGR2GRAY).astype(np.float32) for f in frames])
+    tstd = g.std(axis=0)
+    raw = (tstd > float(min_floor)).astype(np.uint8) * 255
+    raw = cv2.morphologyEx(raw, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    raw = cv2.morphologyEx(raw, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+    return raw > 0
+
+
+def resolve_water_region(frames: List[np.ndarray],
+                         mask_method: str = "auto") -> Tuple[Optional[np.ndarray], str]:
+    """Decide the water-region masking strategy for a whole clip.
+
+    Returns (static_mask | None, label). A static mask is applied to every
+    frame pair; `None` means 'compute the per-frame HSV mask in the loop'.
+    `auto` uses the motion mask when its coverage is plausible (static camera),
+    otherwise falls back to per-frame HSV.
+    """
+    h, w = frames[0].shape[:2]
+    if mask_method == "none":
+        return np.ones((h, w), dtype=bool), "none"
+    if mask_method == "motion":
+        return motion_mask(frames), "motion"
+    if mask_method == "hsv":
+        return None, "hsv"
+    mm = motion_mask(frames)            # auto
+    cov = float(mm.mean())
+    if 0.01 <= cov <= 0.60:
+        return mm, "motion"
+    return None, "hsv"
+
+
 def compute_flow_sequence(frames: List[np.ndarray], backend: str = "auto",
-                          mask_method: str = "auto") -> List[dict]:
+                          mask_method: str = "auto",
+                          static_mask: Optional[np.ndarray] = None) -> List[dict]:
+    """Per-pair dense flow + Helmholtz + water mask. If `static_mask` is given
+    (or `mask_method` resolves to a clip-level strategy) the same mask is used
+    for every pair; otherwise a per-frame HSV mask is computed in the loop."""
     if len(frames) < 2:
         return []
+    if static_mask is None and mask_method != "hsv":
+        static_mask, _ = resolve_water_region(frames, mask_method)
     grays = [cv2.cvtColor(f, cv2.COLOR_BGR2GRAY) for f in frames]
     seq: List[dict] = []
     for i in range(1, len(frames)):
         u, v = dense_flow(grays[i - 1], grays[i], backend=backend)
         div, curl = helmholtz(u, v)
         mag = flow_magnitude(u, v)
-        mask, _ = water_mask(frames[i], method=mask_method)
+        mask = static_mask if static_mask is not None else water_mask(frames[i], method="hsv")[0]
         seq.append({"u": u, "v": v, "mask": mask, "div": div, "curl": curl, "mag": mag})
     return seq
 

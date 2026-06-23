@@ -18,7 +18,8 @@ import asyncio, json
 from typing import AsyncGenerator, List, Optional
 
 from tools.video import load_frames
-from tools.fluid import compute_flow_sequence, severity_color, timeseries_figure
+from tools.fluid import (compute_flow_sequence, resize_frames, resolve_water_region,
+                         severity_color, timeseries_figure)
 
 from pipelines.stage3.water_incompressibility import analyze as a_incompress
 from pipelines.stage3.water_mass_conservation import analyze as a_mass
@@ -30,7 +31,7 @@ _SUB = [
     {"key": "incompressibility", "label": "Incompressibility (∇·v)",
      "fn": a_incompress, "uses_flow": True,
      "traces": [("normalized |∇·v|", "#1a54c4")],
-     "thr": ("divergence_threshold", 0.08, "divergence threshold")},
+     "thr": ("divergence_threshold", 0.25, "divergence threshold")},
     {"key": "mass_conservation", "label": "Mass / area conservation",
      "fn": a_mass, "uses_flow": False,
      "traces": [("water area fraction", "#1a54c4"), ("|Δarea| rate", "#E24B4A")],
@@ -77,12 +78,29 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         yield {"type": "error", "text": "Video too short (need ≥ 2 frames)."}
         return
 
+    frames = resize_frames(frames, int(cfg.get("max_height", 480)))
+    h, w = frames[0].shape[:2]
     yield {"type": "log", "level": "info",
-           "text": f"{len(frames)} frames @ {fps:.1f} fps — computing shared flow + running 4 fluid checks…"}
+           "text": f"{len(frames)} frames @ {fps:.1f} fps · working res {w}x{h} — locating water region…"}
     await asyncio.sleep(0)
 
+    mask_method = cfg.get("mask_method", "auto")
+    static_mask, mask_label = resolve_water_region(frames, mask_method)
     flow_seq = compute_flow_sequence(
-        frames, backend=cfg.get("backend", "auto"), mask_method=cfg.get("mask_method", "auto"))
+        frames, backend=cfg.get("backend", "auto"),
+        mask_method=mask_method, static_mask=static_mask)
+
+    coverage = float(flow_seq[0]["mask"].mean()) if flow_seq else 0.0
+    low_conf = coverage < 0.01 or coverage > 0.60
+    yield {"type": "metric", "label": "Water region", "value": f"{coverage * 100:.0f}%",
+           "sub": f"mask: {mask_label}" + (" — low confidence" if low_conf else "")}
+    if low_conf:
+        yield {"type": "log", "level": "warn",
+               "text": (f"Water-region mask covers {coverage * 100:.0f}% of the frame ({mask_label}); "
+                        "results may be unreliable. Try mask_method=motion (static camera) or hsv (blue water).")}
+
+    yield {"type": "log", "level": "info", "text": "Running 4 grounded fluid checks on the shared flow…"}
+    await asyncio.sleep(0)
     result = analyze_all(frames, fps, cfg, flow_seq=flow_seq)
 
     worst = []

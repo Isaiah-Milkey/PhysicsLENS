@@ -24,9 +24,12 @@ def test_incompressibility_low_for_rigid_translation():
 
 
 def test_incompressibility_high_for_expanding_blob():
-    # disk grows each frame: strong positive divergence (mass creation)
+    # disk grows each frame: positive divergence (mass creation). Use an explicit
+    # threshold to exercise the detection mechanism independent of the production
+    # default (0.25, calibrated to suppress real-water false positives).
     frames = [_moving_blob(r=6 + 4 * i) for i in range(6)]
-    res = incompressibility(frames, fps=30.0, cfg={"backend": "cpu"})
+    res = incompressibility(frames, fps=30.0,
+                            cfg={"backend": "cpu", "divergence_threshold": 0.08})
     assert res["severity"] > 25
     assert len(res["signals"]) >= 1
 
@@ -99,10 +102,14 @@ def _textured_blue(n=64, shift=0, seed=0):
     return f
 
 
+# These fixtures are FULL-FRAME translating sheets (no static background), so the
+# whole frame is the region of interest — pin mask_method="none" to test the
+# advection-coherence logic directly rather than the motion-region heuristic
+# (which is designed for a localized, spatially-stable water region).
 def test_surface_coherence_high_correlation_for_advecting_texture():
     # texture translates coherently → flow-warp predicts next frame well
     frames = [_textured_blue(shift=3 * i, seed=1) for i in range(6)]
-    res = surface_coherence(frames, fps=30.0, cfg={"backend": "cpu"})
+    res = surface_coherence(frames, fps=30.0, cfg={"backend": "cpu", "mask_method": "none"})
     assert set(res) >= {"time", "series", "severity", "signals", "metrics", "color"}
     assert res["severity"] < 60
 
@@ -110,7 +117,7 @@ def test_surface_coherence_high_correlation_for_advecting_texture():
 def test_surface_coherence_flags_random_flicker():
     # each frame independent random texture → no advection coherence
     frames = [_textured_blue(seed=i) for i in range(6)]
-    res = surface_coherence(frames, fps=30.0, cfg={"backend": "cpu"})
+    res = surface_coherence(frames, fps=30.0, cfg={"backend": "cpu", "mask_method": "none"})
     assert len(res["signals"]) >= 1
 
 
