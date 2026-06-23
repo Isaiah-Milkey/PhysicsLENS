@@ -48,13 +48,20 @@ physicslens/
 │   │   │   ├── deformation_specialist.py        🔶 stub
 │   │   │   ├── contact_specialist.py            🔶 stub
 │   │   │   ├── fluid_specialist.py              🔶 stub
-│   │   │   └── causality_specialist.py          🔶 stub
+│   │   │   ├── causality_specialist.py          🔶 stub
+│   │   │   ├── water_incompressibility.py       ✅ verified
+│   │   │   ├── water_mass_conservation.py       ✅ verified
+│   │   │   ├── water_vorticity.py               ✅ verified
+│   │   │   ├── water_surface_coherence.py       ✅ verified
+│   │   │   ├── water_vlm_judge.py               🔵 implemented (SOTA comparator)
+│   │   │   └── water_vbench_flow.py             ✅ verified (SOTA comparator)
 │   │   └── stage4/                  # Final diagnosis outputs
 │   │       ├── physics_consistency_scorer.py    🔶 stub
 │   │       ├── severity_assessor.py             🔶 stub
 │   │       ├── physics_breakdown_timer.py       🔶 stub
 │   │       ├── failure_explainer.py             🔶 stub
-│   │       └── diagnostic_report.py             🔶 stub
+│   │       ├── diagnostic_report.py             🔶 stub
+│   │       └── water_benchmark.py               ✅ verified (homemade vs SOTA)
 │   ├── tools/                       # Shared utilities
 │   │   ├── video.py
 │   │   ├── flow.py
