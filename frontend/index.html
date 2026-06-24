@@ -749,14 +749,29 @@ function handleVideoFile(file) {
   const isVideo = (file && file.type && file.type.startsWith("video/")) ||
                   (file && /\.(mp4|mov|m4v|webm|avi|mkv|qt|mpg|mpeg)$/i.test(file.name));
   if (!isVideo) return;
-  videoFile = file;
+  videoFile = file;                                   // original file is what gets analysed
   const vid = document.getElementById("vidEl");
-  vid.src = URL.createObjectURL(file);
-  document.getElementById("vidName").textContent = file.name;
+  const nameEl = document.getElementById("vidName");
+  nameEl.textContent = file.name;
   document.getElementById("vidDrop").style.display = "none";
   document.getElementById("vidPlayer").classList.add("show");
   setupPlayer(vid);
   updateRunBtn();
+
+  // Browsers play mp4/webm/ogg inline; other containers/codecs (e.g. HEVC 10-bit
+  // .mov from iPhones) render black, so fetch a transcoded H.264 preview from the
+  // backend. The ORIGINAL file is still what gets uploaded for analysis.
+  if (/\.(mp4|webm|ogg|ogv)$/i.test(file.name)) {
+    vid.src = URL.createObjectURL(file);
+  } else {
+    vid.src = URL.createObjectURL(file);              // optimistic (works for H.264 .mov)
+    nameEl.textContent = file.name + "  ·  preparing preview…";
+    const fd = new FormData(); fd.append("video", file);
+    fetch(`${API}/preview`, { method: "POST", body: fd })
+      .then(r => r.ok ? r.blob() : Promise.reject(new Error("transcode failed")))
+      .then(blob => { vid.src = URL.createObjectURL(blob); setupPlayer(vid); nameEl.textContent = file.name; })
+      .catch(() => { nameEl.textContent = file.name + "  ·  preview unavailable (analysis still works)"; });
+  }
 }
 
 function setupPlayer(vid) {

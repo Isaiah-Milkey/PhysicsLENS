@@ -22,7 +22,7 @@ from typing import Optional
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 # ── Stage 1 — Screening ───────────────────────────────────────────────────────
@@ -602,6 +602,36 @@ async def run_pipeline(
         for path in paths:
             Path(path).unlink(missing_ok=True)
         return {"error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# Browser-playable preview transcode (for codecs the <video> tag can't decode,
+# e.g. HEVC/10-bit .mov from iPhones). OpenCV still analyses the original.
+# ---------------------------------------------------------------------------
+
+@app.post("/preview")
+async def preview(video: UploadFile = File(...)):
+    import shutil, subprocess
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return Response(status_code=501)  # no transcoder available
+    src = _save_upload(video)
+    out = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False).name
+    try:
+        subprocess.run(
+            [ffmpeg, "-y", "-loglevel", "error", "-i", src,
+             "-vf", "scale=-2:480", "-c:v", "libx264", "-preset", "veryfast",
+             "-crf", "28", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+             "-an", out],
+            check=True, capture_output=True, timeout=180,
+        )
+        data = Path(out).read_bytes()
+        return Response(content=data, media_type="video/mp4")
+    except Exception as exc:
+        return Response(content=str(exc), status_code=500)
+    finally:
+        Path(src).unlink(missing_ok=True)
+        Path(out).unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------
