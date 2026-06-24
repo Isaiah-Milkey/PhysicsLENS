@@ -429,7 +429,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
     <!-- Pinned video player -->
     <div class="vid-section">
       <div class="vid-drop" id="vidDrop">
-        <input type="file" id="videoFile" accept="video/*" />
+        <input type="file" id="videoFile" accept="video/*,.mov,.mp4,.m4v,.webm,.avi,.mkv,.qt" />
         <div class="vid-drop-icon">▶</div>
         <div class="vid-drop-text">Click or drag a video here</div>
       </div>
@@ -743,7 +743,12 @@ function fmtT(s) {
 }
 
 function handleVideoFile(file) {
-  if (!file || !file.type.startsWith("video/")) return;
+  // Accept by MIME type when present, but fall back to the file extension —
+  // some browsers report an empty type for .mov/.m4v, which would otherwise
+  // be rejected even though the backend (OpenCV) decodes them fine.
+  const isVideo = (file && file.type && file.type.startsWith("video/")) ||
+                  (file && /\.(mp4|mov|m4v|webm|avi|mkv|qt|mpg|mpeg)$/i.test(file.name));
+  if (!isVideo) return;
   videoFile = file;
   const vid = document.getElementById("vidEl");
   vid.src = URL.createObjectURL(file);
