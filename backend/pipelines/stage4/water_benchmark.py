@@ -16,6 +16,7 @@ from pipelines.stage3.water_incompressibility import analyze as a_incompress
 from pipelines.stage3.water_mass_conservation import analyze as a_mass
 from pipelines.stage3.water_vorticity import analyze as a_vort
 from pipelines.stage3.water_surface_coherence import analyze as a_surface
+from pipelines.stage3.water_impact_dynamics import analyze as a_impact
 from pipelines.stage3.water_vbench_flow import analyze as a_vbench
 
 GROUNDED = [
@@ -23,6 +24,7 @@ GROUNDED = [
     ("mass_conservation", "Mass conservation", a_mass, False),
     ("vorticity", "Vorticity", a_vort, True),
     ("surface_coherence", "Surface coherence", a_surface, True),
+    ("impact_dynamics", "Impact dynamics", a_impact, True),
 ]
 
 

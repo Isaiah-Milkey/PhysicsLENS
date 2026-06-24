@@ -25,6 +25,7 @@ from pipelines.stage3.water_incompressibility import analyze as a_incompress
 from pipelines.stage3.water_mass_conservation import analyze as a_mass
 from pipelines.stage3.water_vorticity import analyze as a_vort
 from pipelines.stage3.water_surface_coherence import analyze as a_surface
+from pipelines.stage3.water_impact_dynamics import analyze as a_impact
 
 # (key, label, analyze_fn, uses_flow_seq, plot traces [(series-label, colour)], threshold (cfg-key, default, label))
 _SUB = [
@@ -44,6 +45,10 @@ _SUB = [
      "fn": a_surface, "uses_flow": True,
      "traces": [("advection NCC", "#1a7a3c")],
      "thr": ("coherence_floor", 0.35, "coherence floor")},
+    {"key": "impact_dynamics", "label": "Impact / splash dynamics",
+     "fn": a_impact, "uses_flow": True,
+     "traces": [("fluid motion (px/frame)", "#c05621")],
+     "thr": None},   # impulse is a scalar; the flow-magnitude chart needs no hline
 ]
 
 
@@ -108,11 +113,13 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         r = result["subs"][spec["key"]]
         yield {"type": "log", "level": "info", "text": f"— {spec['label']} —"}
         traces = [(lbl, r["series"][lbl], col) for (lbl, col) in spec["traces"] if lbl in r["series"]]
-        thr_key, thr_def, thr_label = spec["thr"]
+        threshold, thr_label = None, ""
+        if spec["thr"] is not None:
+            thr_key, thr_def, thr_label = spec["thr"]
+            threshold = float(cfg.get(thr_key, thr_def))
         yield {"type": "plotly",
                "data": timeseries_figure(r["time"], traces, spec["label"],
-                                         threshold=float(cfg.get(thr_key, thr_def)),
-                                         ythresh_label=thr_label),
+                                         threshold=threshold, ythresh_label=thr_label),
                "caption": r["summary"]}
         for m in r["metrics"]:
             yield {"type": "metric", **m}

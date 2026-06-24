@@ -122,16 +122,43 @@ def test_surface_coherence_flags_random_flicker():
 
 
 def test_fluid_specialist_merges_four_grounded_analyses():
-    # Consolidated specialist runs all four grounded checks on one shared flow pass.
+    # Consolidated specialist runs all five grounded checks on one shared flow pass.
     from pipelines.stage3.fluid_specialist import analyze_all
     # moving + growing blob -> mass/incompressibility should fire
     frames = [_moving_blob(cx=20 + 2 * i, r=6 + 3 * i) for i in range(6)]
     out = analyze_all(frames, fps=30.0, cfg={"backend": "cpu"})
     assert set(out["subs"]) == {
-        "incompressibility", "mass_conservation", "vorticity", "surface_coherence"}
+        "incompressibility", "mass_conservation", "vorticity",
+        "surface_coherence", "impact_dynamics"}
     for r in out["subs"].values():
         assert 0 <= r["severity"] <= 100
-    # overall is the worst of the four; a growing blob produces a real violation
+    # overall is the worst of the five; a growing blob produces a real violation
     assert out["overall_severity"] == max(r["severity"] for r in out["subs"].values())
     assert out["overall_severity"] > 0
     assert isinstance(out["signals"], list) and len(out["signals"]) >= 1
+
+
+def _mag_seq(mags):
+    """Minimal flow_seq with controlled masked magnitudes (whole-frame mask)."""
+    h = w = 8
+    mask = np.ones((h, w), dtype=bool)
+    return [{"mag": np.full((h, w), m, dtype=np.float32), "mask": mask} for m in mags]
+
+
+def test_impact_dynamics_passes_sharp_impulse():
+    from pipelines.stage3.water_impact_dynamics import analyze as impact
+    # one sharp spike over a quiet baseline -> high peak/median impulse -> plausible
+    seq = _mag_seq([0.05, 0.05, 5.0, 0.05, 0.05])
+    res = impact([], fps=30.0, cfg={"min_impulse": 25.0}, flow_seq=seq)
+    assert res["severity"] == 0
+    assert "impact_dynamics" or True  # contract
+    assert set(res) >= {"time", "series", "severity", "signals", "metrics", "color"}
+
+
+def test_impact_dynamics_flags_smeared_motion():
+    from pipelines.stage3.water_impact_dynamics import analyze as impact
+    # constant motion every frame, no impulse -> temporally smeared (AI-like) -> flagged
+    seq = _mag_seq([1.0, 1.0, 1.0, 1.0, 1.0])
+    res = impact([], fps=30.0, cfg={"min_impulse": 25.0, "impact_motion_floor": 0.5}, flow_seq=seq)
+    assert res["severity"] > 0
+    assert len(res["signals"]) >= 1

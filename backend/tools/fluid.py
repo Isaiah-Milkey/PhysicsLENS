@@ -170,7 +170,10 @@ def resolve_water_region(frames: List[np.ndarray],
         return None, "hsv"
     mm = motion_mask(frames)            # auto
     cov = float(mm.mean())
-    if 0.01 <= cov <= 0.60:
+    # Use the motion region when activity is localized enough to be meaningful.
+    # Upper bound 0.80 tolerates busy water scenes (and AI shimmer that inflates
+    # coverage); ~full-frame activity (a moving camera) falls back to HSV.
+    if 0.01 <= cov <= 0.80:
         return mm, "motion"
     return None, "hsv"
 

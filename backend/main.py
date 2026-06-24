@@ -358,7 +358,7 @@ PIPELINES = {
     "s3_fluid": {
         "id":    "s3_fluid",
         "name":  "Fluid Specialist",
-        "desc":  "Grounded water-physics specialist: runs incompressibility (∇·v), mass conservation, vorticity (∇×v) and surface/splash coherence on one shared flow pass, with per-signal charts and an overall severity.",
+        "desc":  "Grounded water-physics specialist: runs incompressibility (∇·v), mass conservation, vorticity (∇×v), surface/splash coherence and impact dynamics on one shared flow pass, with per-signal charts and an overall severity.",
         "badge": "medium",
         "dummy": False,
         "requires_pair": False,
@@ -380,6 +380,8 @@ PIPELINES = {
              "default": 0.80, "min": 0.0, "max": 3.0},
             {"id": "coherence_floor", "label": "Surface coherence — min advection correlation", "type": "number",
              "default": 0.35, "min": 0.0, "max": 1.0},
+            {"id": "min_impulse", "label": "Impact dynamics — min splash impulse (peak/median)", "type": "number",
+             "default": 25.0, "min": 1.0, "max": 200.0},
         ],
         "run": run_s3_fluid,
     },
