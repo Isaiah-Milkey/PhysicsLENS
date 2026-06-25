@@ -157,8 +157,18 @@ def test_impact_dynamics_passes_sharp_impulse():
 
 def test_impact_dynamics_flags_smeared_motion():
     from pipelines.stage3.water_impact_dynamics import analyze as impact
-    # constant motion every frame, no impulse -> temporally smeared (AI-like) -> flagged
-    seq = _mag_seq([1.0, 1.0, 1.0, 1.0, 1.0])
-    res = impact([], fps=30.0, cfg={"min_impulse": 25.0, "impact_motion_floor": 0.5}, flow_seq=seq)
+    # mostly-still water (low median) with weak, smeared peaks and no sharp impulse
+    # -> temporally smeared (AI-like) -> flagged
+    seq = _mag_seq([0.1, 0.1, 1.2, 0.1, 0.1, 1.0, 0.1])
+    res = impact([], fps=30.0, cfg={"min_impulse": 25.0}, flow_seq=seq)
     assert res["severity"] > 0
     assert len(res["signals"]) >= 1
+
+
+def test_impact_dynamics_skips_sustained_motion():
+    from pipelines.stage3.water_impact_dynamics import analyze as impact
+    # high baseline motion (e.g. a hand stirring) -> impulse test not applicable ->
+    # inconclusive, NOT flagged (this is the IMG_7513 false-positive guard)
+    seq = _mag_seq([1.5, 1.4, 1.6, 1.5, 1.4])
+    res = impact([], fps=30.0, cfg={"min_impulse": 25.0, "max_baseline_motion": 0.5}, flow_seq=seq)
+    assert res["severity"] == 0

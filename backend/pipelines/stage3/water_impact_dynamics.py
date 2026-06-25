@@ -28,7 +28,13 @@ def analyze(frames: List[np.ndarray], fps: float, cfg: dict,
     backend = cfg.get("backend", "auto")
     mask_method = cfg.get("mask_method", "auto")
     min_impulse = float(cfg.get("min_impulse", 25.0))     # peak/median floor
-    motion_floor = float(cfg.get("impact_motion_floor", 0.5))  # need a real event
+    motion_floor = float(cfg.get("impact_motion_floor", 0.5))  # need a real event (peak)
+    # The impulse test only applies to mostly-still water punctuated by a discrete
+    # impact. If the baseline (median) motion is high — sustained activity such as a
+    # hand stirring or continuous pouring — a low impulse ratio is innocent, so we
+    # don't judge it. (IMG_7513's gentle duck placement has median ~1.4 and would
+    # otherwise false-alarm; the egg-drop clips sit at ~0.1–0.23.)
+    baseline_floor = float(cfg.get("max_baseline_motion", 0.5))
     if flow_seq is None:
         flow_seq = compute_flow_sequence(frames, backend=backend, mask_method=mask_method)
 
@@ -39,9 +45,10 @@ def analyze(frames: List[np.ndarray], fps: float, cfg: dict,
     median = float(np.median(arr))
     impulse = peak / (median + 1e-6)
     has_event = peak > motion_floor
+    sustained = median > baseline_floor   # too much continuous motion to judge impulse
 
     flagged, signals, severity = [], [], 0
-    if has_event and impulse < min_impulse:
+    if has_event and not sustained and impulse < min_impulse:
         deficit = (min_impulse - impulse) / max(min_impulse, 1e-6)
         severity = min(int(deficit * 200), 100)
         peak_frame = int(arr.argmax()) + 1
@@ -52,6 +59,9 @@ def analyze(frames: List[np.ndarray], fps: float, cfg: dict,
     if severity > 0:
         summary = (f"Fluid motion lacks a sharp impact impulse (peak/median {impulse:.0f} "
                    f"< {min_impulse:.0f}) — motion is temporally smeared (AI-like).")
+    elif sustained:
+        summary = (f"Water has sustained motion (median {median:.2f} px/frame); the impact-impulse "
+                   "test applies only to mostly-still water, so it is inconclusive here.")
     elif has_event:
         summary = f"Sharp impact impulse ({impulse:.0f}) consistent with a real splash/drop."
     else:

@@ -2,22 +2,26 @@
 Stage 3 · Specialist — Fluid Specialist
 -----------------------------------------
 Consolidated grounded water-physics specialist. Computes the shared dense-flow +
-water-mask sequence once, then runs the four grounded analyses on it:
+water-mask sequence once, then runs the five grounded analyses on it:
 
   • Incompressibility   — divergence ∇·v (sources/sinks: water created/destroyed)
   • Mass conservation   — water-region area continuity (water popping in/out)
   • Vorticity           — curl ∇×v plausibility band (implausibly smooth/chaotic)
   • Surface coherence   — foam/texture advection vs the flow (flicker-in-place)
+  • Impact dynamics     — splash-impulse sharpness (real impact vs smeared AI motion)
 
-Emits one combined report: a chart + metrics + severity per sub-signal, an
-aggregate Stage-2 `signal`, and an overall fluid-physics severity (the max of the
-four sub-severities). The individual `water_*.py` modules remain importable and
-are reused here and by the Stage-4 benchmark.
+Emits one combined report: a masked-region video (the water the specialist
+analysed), a chart + metrics + severity per sub-signal, an aggregate Stage-2
+`signal`, and an overall fluid-physics severity (the max of the five
+sub-severities). The individual `water_*.py` modules remain importable and are
+reused here and by the Stage-4 benchmark.
 """
-import asyncio, json
+import asyncio, base64, json
 from typing import AsyncGenerator, List, Optional
 
-from tools.video import load_frames
+import cv2
+
+from tools.video import load_frames, encode_video_browser
 from tools.fluid import (compute_flow_sequence, resize_frames, resolve_water_region,
                          severity_color, timeseries_figure)
 
@@ -50,6 +54,19 @@ _SUB = [
      "traces": [("fluid motion (px/frame)", "#c05621")],
      "thr": None},   # impulse is a scalar; the flow-magnitude chart needs no hline
 ]
+
+
+def _mask_overlay_frames(frames: List, masks: List, caption: str) -> List:
+    """Tint each frame red where its water mask is True + stamp a caption."""
+    out = []
+    for f, m in zip(frames, masks):
+        red = f.copy()
+        red[m] = (0, 0, 255)
+        o = cv2.addWeighted(f, 0.6, red, 0.4, 0)
+        cv2.putText(o, caption, (10, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.65,
+                    (255, 255, 255), 2, cv2.LINE_AA)
+        out.append(o)
+    return out
 
 
 def analyze_all(frames: List, fps: float, cfg: dict, flow_seq: Optional[list] = None) -> dict:
@@ -104,9 +121,29 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                "text": (f"Water-region mask covers {coverage * 100:.0f}% of the frame ({mask_label}); "
                         "results may be unreliable. Try mask_method=motion (static camera) or hsv (blue water).")}
 
-    yield {"type": "log", "level": "info", "text": "Running 4 grounded fluid checks on the shared flow…"}
+    yield {"type": "log", "level": "info", "text": "Running 5 grounded fluid checks on the shared flow…"}
     await asyncio.sleep(0)
     result = analyze_all(frames, fps, cfg, flow_seq=flow_seq)
+    overall = result["overall_severity"]
+
+    # Masked-region video output — shows exactly which pixels were analysed.
+    render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
+    if render_video and flow_seq:
+        yield {"type": "log", "level": "info", "text": "Rendering masked-region video…"}
+        await asyncio.sleep(0)
+        try:
+            masks = ([static_mask] * len(frames) if static_mask is not None
+                     else [flow_seq[0]["mask"]] + [s["mask"] for s in flow_seq])
+            caption = f"mask {mask_label} {coverage * 100:.0f}%   |   overall {overall}"
+            ov = _mask_overlay_frames(frames, masks, caption)
+            loop = asyncio.get_event_loop()
+            data, mime = await loop.run_in_executor(None, encode_video_browser, ov, fps)
+            yield {"type": "video", "data": base64.b64encode(data).decode(), "mime": mime,
+                   "caption": "Red = the water region the Fluid Specialist analysed; the four "
+                              "flow checks and impact dynamics are measured inside it."}
+            yield {"type": "log", "level": "info", "text": f"Masked-region video ready ({len(data) / 1024:.0f} KB)."}
+        except Exception as exc:
+            yield {"type": "log", "level": "warn", "text": f"Mask video skipped: {exc}"}
 
     worst = []
     for spec in _SUB:
