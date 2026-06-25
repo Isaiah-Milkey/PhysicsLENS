@@ -33,3 +33,6 @@ Thumbs.db
 # IDEs
 .vscode/
 .idea/
+
+# Local docs / reports (kept out of the shared repo)
+docs/
