@@ -23,7 +23,7 @@ import cv2
 
 from tools.video import load_frames, encode_video_browser
 from tools.fluid import (compute_flow_sequence, resize_frames, resolve_water_region,
-                         severity_color, timeseries_figure)
+                         sam3_water_masks, severity_color, timeseries_figure)
 
 from pipelines.stage3.water_incompressibility import analyze as a_incompress
 from pipelines.stage3.water_mass_conservation import analyze as a_mass
@@ -107,19 +107,34 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     await asyncio.sleep(0)
 
     mask_method = cfg.get("mask_method", "auto")
-    static_mask, mask_label = resolve_water_region(frames, mask_method)
+    static_mask, frame_masks, mask_label = None, None, mask_method
+    if mask_method == "sam3":
+        yield {"type": "log", "level": "info", "text": "Segmenting water with SAM3 (learned)…"}
+        await asyncio.sleep(0)
+        try:
+            frame_masks = sam3_water_masks(
+                frames, prompt=cfg.get("water_prompt", "water"),
+                max_frames=int(cfg.get("sam3_max_frames", 80)))
+            mask_label = "sam3"
+        except Exception as exc:
+            yield {"type": "log", "level": "warn",
+                   "text": f"SAM3 unavailable ({exc}); falling back to the motion mask."}
+            mask_method = "auto"
+    if frame_masks is None:
+        static_mask, mask_label = resolve_water_region(frames, mask_method)
     flow_seq = compute_flow_sequence(
-        frames, backend=cfg.get("backend", "auto"),
-        mask_method=mask_method, static_mask=static_mask)
+        frames, backend=cfg.get("backend", "auto"), mask_method=mask_method,
+        static_mask=static_mask, frame_masks=frame_masks)
 
     coverage = float(flow_seq[0]["mask"].mean()) if flow_seq else 0.0
-    low_conf = coverage < 0.01 or coverage > 0.60
+    # A learned SAM3 mask is tight by construction, so high coverage isn't a red flag there.
+    low_conf = (coverage < 0.01) or (coverage > 0.60 and mask_label != "sam3")
     yield {"type": "metric", "label": "Water region", "value": f"{coverage * 100:.0f}%",
            "sub": f"mask: {mask_label}" + (" — low confidence" if low_conf else "")}
     if low_conf:
         yield {"type": "log", "level": "warn",
                "text": (f"Water-region mask covers {coverage * 100:.0f}% of the frame ({mask_label}); "
-                        "results may be unreliable. Try mask_method=motion (static camera) or hsv (blue water).")}
+                        "results may be unreliable. Try mask_method=sam3 (learned), motion, or hsv.")}
 
     yield {"type": "log", "level": "info", "text": "Running 5 grounded fluid checks on the shared flow…"}
     await asyncio.sleep(0)
@@ -132,7 +147,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         yield {"type": "log", "level": "info", "text": "Rendering masked-region video…"}
         await asyncio.sleep(0)
         try:
-            masks = ([static_mask] * len(frames) if static_mask is not None
+            masks = (frame_masks if frame_masks is not None
+                     else [static_mask] * len(frames) if static_mask is not None
                      else [flow_seq[0]["mask"]] + [s["mask"] for s in flow_seq])
             caption = f"mask {mask_label} {coverage * 100:.0f}%   |   overall {overall}"
             ov = _mask_overlay_frames(frames, masks, caption)

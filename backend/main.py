@@ -365,8 +365,12 @@ PIPELINES = {
         "settings": [
             {"id": "mask_method", "label": "Water region", "type": "select", "default": "auto",
              "options": [{"value": "auto", "label": "Auto (motion if static cam, else HSV)"},
+                         {"value": "sam3", "label": "SAM3 learned segmentation (GPU + gated)"},
                          {"value": "motion", "label": "Motion / temporal activity"},
                          {"value": "hsv", "label": "HSV colour (blue/foam)"}]},
+            {"id": "water_prompt", "label": "SAM3 water prompt", "type": "text", "default": "water"},
+            {"id": "sam3_max_frames", "label": "SAM3 max frames (subsample cap)", "type": "number",
+             "default": 80, "min": 8, "max": 300},
             {"id": "max_height", "label": "Working resolution (max height px, 0 = full)", "type": "number",
              "default": 480, "min": 0, "max": 2160},
             {"id": "backend", "label": "Flow backend", "type": "select", "default": "auto",

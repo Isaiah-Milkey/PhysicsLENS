@@ -4,6 +4,7 @@ decomposition, and small plotting helpers.
 Hybrid auto-detect: prefer the GPU/high-fidelity backend, fall back to the
 CPU/light one. Backend choice is cached per process.
 """
+import threading
 from typing import List, Optional, Tuple
 
 import cv2
@@ -178,15 +179,87 @@ def resolve_water_region(frames: List[np.ndarray],
     return None, "hsv"
 
 
+# ---------------------------------------------------------------------------
+# SAM3 learned water segmentation (optional; GPU + HF-gated facebook/sam3).
+# Mirrors the loader/segmenter in archive_files/sam_track_compare.py. Falls
+# back gracefully (raises) when torch/CUDA/SAM3 are unavailable, so callers can
+# drop to the motion/HSV mask.
+# ---------------------------------------------------------------------------
+_SAM3: dict = {}
+_SAM3_LOAD_LOCK = threading.Lock()
+_SAM3_GPU_LOCK = threading.Lock()
+SAM3_MODEL_ID = "facebook/sam3"
+
+
+def _load_sam3() -> dict:
+    if _SAM3:
+        return _SAM3
+    with _SAM3_LOAD_LOCK:
+        if _SAM3:
+            return _SAM3
+        import torch
+        from transformers import Sam3VideoModel, Sam3VideoProcessor
+        if not torch.cuda.is_available():
+            raise RuntimeError("SAM3 needs a CUDA GPU — run the backend on the GPU host.")
+        dtype = torch.bfloat16
+        model = Sam3VideoModel.from_pretrained(SAM3_MODEL_ID, dtype=dtype).to("cuda").eval()
+        proc = Sam3VideoProcessor.from_pretrained(SAM3_MODEL_ID)
+        _SAM3.update(torch=torch, model=model, proc=proc, device="cuda", dtype=dtype)
+        return _SAM3
+
+
+def sam3_water_masks(frames: List[np.ndarray], prompt: str = "water",
+                     max_frames: int = 80) -> List[np.ndarray]:
+    """Per-frame boolean water masks via SAM3 promptable video segmentation.
+
+    Returns one mask per input frame (the union of all `prompt` instances in
+    that frame). SAM3 runs on a uniform subsample (≤ max_frames) for memory;
+    each original frame is mapped to its nearest subsampled mask. Requires
+    torch+CUDA and gated `facebook/sam3` access; raises RuntimeError otherwise.
+    """
+    m = _load_sam3()
+    torch, model, proc = m["torch"], m["model"], m["proc"]
+    device, dtype = m["device"], m["dtype"]
+    n = len(frames)
+    h, w = frames[0].shape[:2]
+    idx = np.linspace(0, n - 1, min(n, max_frames)).astype(int)
+    rgb = [cv2.cvtColor(frames[i], cv2.COLOR_BGR2RGB) for i in idx]
+
+    with _SAM3_GPU_LOCK:
+        session = proc.init_video_session(
+            video=rgb, inference_device=device, video_storage_device="cpu", dtype=dtype)
+        session = proc.add_text_prompt(inference_session=session, text=prompt) or session
+        sub: dict = {}
+        with torch.inference_mode():
+            for out in model.propagate_in_video_iterator(
+                    inference_session=session, max_frame_num_to_track=len(rgb)):
+                res = proc.postprocess_outputs(session, out)
+                fidx = int(getattr(out, "frame_idx", len(sub)))
+                masks = res["masks"].cpu().numpy().astype(bool)          # (num_obj, H, W)
+                sub[fidx] = np.any(masks, axis=0) if len(masks) else np.zeros((h, w), bool)
+
+    if not sub or not any(mm.any() for mm in sub.values()):
+        raise RuntimeError(f'SAM3 found no "{prompt}" region (try a different water_prompt).')
+
+    sub_list = []
+    for k in range(len(rgb)):
+        mm = sub.get(k, np.zeros((h, w), bool))
+        if mm.shape != (h, w):
+            mm = cv2.resize(mm.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST) > 0
+        sub_list.append(mm)
+    return [sub_list[int(np.argmin(np.abs(idx - i)))] for i in range(n)]
+
+
 def compute_flow_sequence(frames: List[np.ndarray], backend: str = "auto",
                           mask_method: str = "auto",
-                          static_mask: Optional[np.ndarray] = None) -> List[dict]:
-    """Per-pair dense flow + Helmholtz + water mask. If `static_mask` is given
-    (or `mask_method` resolves to a clip-level strategy) the same mask is used
-    for every pair; otherwise a per-frame HSV mask is computed in the loop."""
+                          static_mask: Optional[np.ndarray] = None,
+                          frame_masks: Optional[List[np.ndarray]] = None) -> List[dict]:
+    """Per-pair dense flow + Helmholtz + water mask. Mask precedence per pair i
+    (the second frame of the pair): `frame_masks[i]` if given (e.g. SAM3),
+    else a clip-level `static_mask` (motion/none), else a per-frame HSV mask."""
     if len(frames) < 2:
         return []
-    if static_mask is None and mask_method != "hsv":
+    if frame_masks is None and static_mask is None and mask_method not in ("hsv", "sam3"):
         static_mask, _ = resolve_water_region(frames, mask_method)
     grays = [cv2.cvtColor(f, cv2.COLOR_BGR2GRAY) for f in frames]
     seq: List[dict] = []
@@ -194,7 +267,12 @@ def compute_flow_sequence(frames: List[np.ndarray], backend: str = "auto",
         u, v = dense_flow(grays[i - 1], grays[i], backend=backend)
         div, curl = helmholtz(u, v)
         mag = flow_magnitude(u, v)
-        mask = static_mask if static_mask is not None else water_mask(frames[i], method="hsv")[0]
+        if frame_masks is not None:
+            mask = frame_masks[i]
+        elif static_mask is not None:
+            mask = static_mask
+        else:
+            mask = water_mask(frames[i], method="hsv")[0]
         seq.append({"u": u, "v": v, "mask": mask, "div": div, "curl": curl, "mag": mag})
     return seq
 
