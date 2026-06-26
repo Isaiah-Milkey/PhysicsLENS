@@ -450,12 +450,13 @@ PIPELINES = {
         "name":  "Diagnostic Report",
         "desc":  "Compile all Stage 4 outputs into a final report: score, severity, PBT, explanation, and recommendations.",
         "badge": "output",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
             {"id": "output_format", "label": "Report format", "type": "select",
-             "default": "json",
+             "default": "json_visual",
              "options": [
+                 {"value": "json_visual", "label": "JSON + Visual Summary"},
                  {"value": "json", "label": "JSON"},
                  {"value": "html", "label": "HTML"},
                  {"value": "pdf",  "label": "PDF"},
