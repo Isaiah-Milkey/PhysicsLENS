@@ -1,10 +1,15 @@
 """
-Stage 1 · Test 4 — VLM Suspicion Scores
------------------------------------------
-Sample keyframes and ask a VLM (via OpenRouter) whether the interaction
-looks physically suspicious.
+Stage 1 · Test 4 — VLM Suspicion Score
+----------------------------------------
+Sample keyframes and ask a VLM (via OpenRouter) whether the MOTION across the
+video looks physically suspicious. All frames are sent in a single multi-frame
+call and the model returns one holistic verdict — physics violations live in how
+things move between frames, not in any single still. This separates AI-generated
+from real video far better than independent per-frame scoring
+(scripts/vlm_failure_mode_eval.py: AUC 0.90 vs 0.58). Decoding is deterministic
+(temperature 0 + fixed seed) so repeated runs on the same video agree.
 
-Without an API key the pipeline runs in demo mode (random placeholder scores).
+Without an API key the pipeline runs in demo mode (random placeholder score).
 Set the key via the settings panel or the OPENROUTER_API_KEY env var.
 """
 import asyncio, json, os
@@ -14,19 +19,23 @@ import numpy as np
 import plotly.graph_objects as go
 
 from tools.video import load_frames, sample_frames
-from tools.vlm   import score_frame, OPENROUTER_MODELS
+from tools.vlm   import score_frames, OPENROUTER_MODELS
+
+
+def _zone_color(score: float) -> str:
+    return "#E24B4A" if score > 0.5 else "#EF9F27" if score > 0.25 else "#4CAF50"
 
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg        = json.loads(settings) if settings else {}
     model_key  = cfg.get("model", "gpt-4o")
-    num_frames = max(1, int(cfg.get("num_frames", 5)))
+    num_frames = max(2, int(cfg.get("num_frames", 8)))
     api_key    = cfg.get("api_key", "").strip() or os.environ.get("OPENROUTER_API_KEY", "")
     demo_mode  = not api_key
 
     if demo_mode:
         yield {"type": "log", "level": "warn",
-               "text": "No API key — running in demo mode (placeholder scores)."}
+               "text": "No API key — running in demo mode (placeholder score)."}
         yield {"type": "log", "level": "info",
                "text": "Set OPENROUTER_API_KEY or enter it in test settings to use a real model."}
     else:
@@ -41,117 +50,89 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         return
 
     keyframes = sample_frames(frames, num_frames)
-    kf_times  = [i / max(len(keyframes) - 1, 1) * (n / fps) for i in range(len(keyframes))]
+    duration  = n / fps if fps else 0.0
 
     yield {"type": "log", "level": "info",
-           "text": f"Scoring {len(keyframes)} keyframes from {n} total…"}
+           "text": f"Scoring {len(keyframes)} frames from {n} total in one multi-frame pass…"}
     await asyncio.sleep(0)
 
-    scores, labels, explanations, confidences = [], [], [], []
+    if demo_mode:
+        await asyncio.sleep(0.4)
+        result = {
+            "suspicion_score":   float(np.random.beta(2, 5)),
+            "suspected_failure": None,
+            "explanation":       "Demo mode — no API key provided.",
+            "confidence":        0.0,
+        }
+    else:
+        try:
+            result = await score_frames(keyframes, model_key=model_key, api_key=api_key)
+        except Exception as exc:
+            yield {"type": "log", "level": "error", "text": f"VLM call failed: {exc}"}
+            result = {"suspicion_score": None, "suspected_failure": None,
+                      "explanation": str(exc), "confidence": 0.0}
 
-    for i, (frame, t) in enumerate(zip(keyframes, kf_times)):
-        yield {"type": "log", "level": "info",
-               "text": f"Scoring keyframe {i+1}/{len(keyframes)}  (t ≈ {t:.1f}s)…"}
-        await asyncio.sleep(0)
+    raw_score   = result.get("suspicion_score")
+    parsed_ok   = isinstance(raw_score, (int, float))
+    score       = min(max(float(raw_score), 0.0), 1.0) if parsed_ok else 0.0
+    label       = (result.get("suspected_failure") or "").strip()
+    if label.lower() in ("", "null", "none"):
+        label = "—"
+    explanation = result.get("explanation", "")
+    confidence  = float(result.get("confidence", 0) or 0)
 
-        if demo_mode:
-            await asyncio.sleep(0.25)
-            result = {
-                "suspicion_score":   float(np.random.beta(2, 5)),
-                "suspected_failure": None,
-                "time_interval":     f"t ≈ {t:.1f}s",
-                "explanation":       "Demo mode — no API key provided.",
-                "confidence":        0.0,
-            }
-        else:
-            try:
-                result = await score_frame(frame, model_key=model_key, api_key=api_key)
-            except Exception as exc:
-                yield {"type": "log", "level": "error", "text": f"Frame {i+1} error: {exc}"}
-                result = {
-                    "suspicion_score": 0.0, "suspected_failure": None,
-                    "explanation": str(exc), "confidence": 0.0,
-                }
+    if not parsed_ok and not demo_mode:
+        yield {"type": "log", "level": "warn",
+               "text": "Model did not return a usable score — reporting 0 (see explanation)."}
 
-        s = float(result.get("suspicion_score", 0))
-        scores.append(s)
-        labels.append(result.get("suspected_failure") or "—")
-        explanations.append(result.get("explanation", ""))
-        confidences.append(float(result.get("confidence", 0)))
+    level = "warn" if score > 0.5 else "info"
+    yield {"type": "log", "level": level,
+           "text": f"Verdict: score={score:.2f}  [{label}]  {explanation}"}
 
-        level = "warn" if s > 0.5 else "info"
-        yield {"type": "log", "level": level,
-               "text": f"  score={s:.2f}  [{labels[-1]}]  {explanations[-1]}"}
-
-    # ── Plotly bar chart ──────────────────────────────────────────────────────
-    bar_colors = [
-        "#E24B4A" if s > 0.5 else "#EF9F27" if s > 0.25 else "#4CAF50"
-        for s in scores
-    ]
-    x_labels = [f"t={t:.1f}s" for t in kf_times]
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=x_labels, y=scores,
-        marker=dict(color=bar_colors, opacity=0.85, line=dict(color="white", width=1.5)),
-        text=[f"{s:.2f}" for s in scores],
-        textposition="outside",
-        customdata=[[lb, ex, f"{cf:.0%}"] for lb, ex, cf in zip(labels, explanations, confidences)],
-        hovertemplate=(
-            "<b>%{x}</b><br>"
-            "Suspicion: <b>%{y:.2f}</b><br>"
-            "Label: %{customdata[0]}<br>"
-            "Explanation: %{customdata[1]}<br>"
-            "Confidence: %{customdata[2]}"
-            "<extra></extra>"
+    # ── Gauge: one holistic suspicion score ─────────────────────────────────────
+    color = _zone_color(score)
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=score,
+        number=dict(valueformat=".2f", font=dict(size=42)),
+        gauge=dict(
+            axis=dict(range=[0, 1], tickwidth=1, tickcolor="#888",
+                      tickvals=[0, 0.25, 0.5, 0.75, 1]),
+            bar=dict(color=color, thickness=0.3),
+            borderwidth=0,
+            steps=[
+                dict(range=[0,    0.25], color="#E8F5E9"),
+                dict(range=[0.25, 0.5 ], color="#FFF3E0"),
+                dict(range=[0.5,  1.0 ], color="#FFEBEE"),
+            ],
+            threshold=dict(line=dict(color="#E24B4A", width=3), thickness=0.85, value=0.5),
         ),
-    ))
-
-    fig.add_hline(y=0.5,  line=dict(color="#E24B4A", dash="dash", width=1.5),
-                  annotation_text="suspicious ≥ 0.5",
-                  annotation_font=dict(color="#E24B4A", size=11),
-                  annotation_position="top right")
-    fig.add_hline(y=0.25, line=dict(color="#EF9F27", dash="dot",  width=1.2),
-                  annotation_text="uncertain ≥ 0.25",
-                  annotation_font=dict(color="#EF9F27", size=11),
-                  annotation_position="bottom right")
-
-    # Shade the suspicious zone
-    fig.add_hrect(y0=0.5, y1=1.05, fillcolor="#E24B4A", opacity=0.05, line_width=0)
-    fig.add_hrect(y0=0.25, y1=0.5, fillcolor="#EF9F27", opacity=0.05, line_width=0)
-
-    fig.update_layout(
         title=dict(
-            text=f"VLM Suspicion Scores — {model_key}" + ("  [DEMO]" if demo_mode else ""),
+            text=f"VLM Suspicion — {model_key}" + ("  [DEMO]" if demo_mode else ""),
             font=dict(size=15),
         ),
-        xaxis=dict(title="Keyframe", showgrid=False),
-        yaxis=dict(title="Suspicion score (0–1)", range=[0, 1.15],
-                   showgrid=True, gridcolor="#ebebeb"),
-        plot_bgcolor="white", paper_bgcolor="white",
-        height=400,
-        margin=dict(l=60, r=40, t=80, b=50),
+    ))
+    fig.update_layout(
+        height=360, paper_bgcolor="white", plot_bgcolor="white",
+        margin=dict(l=40, r=40, t=70, b=20),
         font=dict(family="IBM Plex Sans, sans-serif", size=13),
-        showlegend=False,
     )
-
     yield {
         "type": "plotly", "data": fig.to_json(),
-        "caption": "Per-keyframe suspicion score. Red ≥ 0.5 (suspicious), amber ≥ 0.25 (uncertain), green < 0.25 (plausible).",
+        "caption": (f"Holistic suspicion over {len(keyframes)} frames "
+                    f"({duration:.1f}s of video). "
+                    "Red ≥ 0.5 (suspicious), amber ≥ 0.25 (uncertain), green < 0.25 (plausible)."),
     }
 
-    mean_score = float(np.mean(scores)) if scores else 0.0
-    max_score  = float(max(scores))     if scores else 0.0
-    n_sus      = sum(1 for s in scores if s > 0.5)
-    severity   = min(int(mean_score * 100), 100)
-    color      = "#E24B4A" if severity > 50 else "#EF9F27" if severity > 25 else "#4CAF50"
-
-    yield {"type": "metric", "label": "Mean suspicion",    "value": f"{mean_score:.2f}", "sub": "0–1"}
-    yield {"type": "metric", "label": "Peak suspicion",    "value": f"{max_score:.2f}",  "sub": "0–1"}
-    yield {"type": "metric", "label": "Suspicious frames", "value": str(n_sus),          "sub": f"of {len(keyframes)} sampled (>0.5)"}
+    severity = min(int(score * 100), 100)
+    yield {"type": "metric", "label": "Suspicion score",   "value": f"{score:.2f}",     "sub": "0–1 (whole video)"}
+    yield {"type": "metric", "label": "Suspected failure",  "value": label,              "sub": "VLM label"}
+    yield {"type": "metric", "label": "Model confidence",   "value": f"{confidence:.0%}", "sub": "self-reported"}
     yield {"type": "severity", "label": "VLM suspicion level", "value": severity, "color": color}
 
+    if explanation and not demo_mode:
+        yield {"type": "log", "level": "info", "text": f"Explanation: {explanation}"}
     if demo_mode:
         yield {"type": "log", "level": "warn",
-               "text": "Results are demo placeholders. Provide an OpenRouter API key for real scoring."}
+               "text": "Result is a demo placeholder. Provide an OpenRouter API key for real scoring."}
     yield {"type": "done"}
