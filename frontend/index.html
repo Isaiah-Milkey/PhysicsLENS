@@ -1216,10 +1216,16 @@ function handleEvent(ev, entry) {
     entry.videos.push({data:ev.data, mime:ev.mime, caption:ev.caption});
   } else if (ev.type === "signal") {
     // Stash Stage 1 anomaly signals for the Event Localizer to consume later.
-    stage1SignalStore[ev.source] = {
+    // Keep severity/type_severities — the localizer's significance gate reads them.
+    const sig = {
       source: ev.source, source_name: ev.source_name || ev.source,
       fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [],
+      severity: ev.severity, type_severities: ev.type_severities,
     };
+    stage1SignalStore[ev.source] = sig;
+    // Also attach to this run's entry so dataset-detail re-runs (which read
+    // entry._signals from a video's past runs) forward them too.
+    if (entry) (entry._signals ??= {})[ev.source] = sig;
   } else if (ev.type === "marker_video") {
     document.getElementById("resultsPane").classList.add("show");
     renderMarkerVideo(document.getElementById("imageBlocks"), ev);
@@ -2213,7 +2219,8 @@ async function streamRunById(fileId, p, entry, vSignals) {
       let ev; try { ev = JSON.parse(line); } catch { continue; }
       if (ev.type === "signal") {
         vSignals[ev.source] = { source: ev.source, source_name: ev.source_name || ev.source,
-                                fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [] };
+                                fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [],
+                                severity: ev.severity, type_severities: ev.type_severities };
       }
       applyEventToEntry(ev, entry);
     }
@@ -2231,6 +2238,7 @@ function applyEventToEntry(ev, entry) {
     case "plotly":       entry.plots.push({ data: ev.data, caption: ev.caption }); break;
     case "video":        entry.videos.push({ data: ev.data, mime: ev.mime, caption: ev.caption }); break;
     case "marker_video": entry.markerVideos.push(ev); break;
+    case "signal":       (entry._signals ??= {})[ev.source] = { source: ev.source, source_name: ev.source_name || ev.source, fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [], severity: ev.severity, type_severities: ev.type_severities }; break;
     case "done":         entry.status = "done"; break;
     case "error":        entry.logs.push({ level: "error", text: ev.text, ts: nowTs() }); entry.status = "error"; break;
   }
