@@ -1076,6 +1076,35 @@ async function runPipeline() {
       });
       settingsObj.stage1_signals = Object.values(vSignals);
     }
+    // Final diagnosis: forward this video's prior runs (detail mode sources them
+    // from dsDetailVideo.runs, not the single-video reportData store).
+    if (selectedPipeline.id === "s4_report") {
+      settingsObj.previous_results = (dsDetailVideo.runs || [])
+        .filter(r => !r.excluded && r.pipelineId !== "s4_report")
+        .map(r => ({
+          id: r.id,
+          stageId: r.stageId,
+          stageName: r.stageName,
+          stageNum: r.stageNum,
+          pipelineId: r.pipelineId,
+          pipelineName: r.pipelineName,
+          timestamp: r.timestamp,
+          status: r.status,
+          metrics: r.metrics || [],
+          severities: r.severities || [],
+          logs: r.logs || [],
+          comment: r.comment || "",
+          excluded: r.excluded || false,
+        }));
+      settingsObj.video_name = dsDetailVideo.name || "dataset video";
+      appendLog(
+        settingsObj.previous_results.length ? "info" : "warn",
+        settingsObj.previous_results.length
+          ? `Forwarding ${settingsObj.previous_results.length} previous test result(s) into the final diagnosis.`
+          : "No previous test results found yet — run some earlier tests first.",
+        entry
+      );
+    }
     if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
     try {
       const res = await fetch(`${API}/dataset/run`, { method: "POST", body: form });
