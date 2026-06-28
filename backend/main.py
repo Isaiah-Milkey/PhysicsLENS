@@ -186,7 +186,7 @@ PIPELINES = {
         "requires_pair": False,
         "settings": [
             {"id": "num_keypoints", "label": "Keypoints to detect",    "type": "number",
-             "default": 50, "min": 10, "max": 300},
+             "default": 60, "min": 10, "max": 300},
             {"id": "sample_every",  "label": "Sample every N frames",   "type": "number",
              "default": 1,  "min": 1,  "max": 10},
             {"id": "use_dinov2",    "label": "DINOv2 appearance drift", "type": "select",
@@ -207,15 +207,25 @@ PIPELINES = {
     "s2_trajectory_extractor": {
         "id":    "s2_trajectory_extractor",
         "name":  "Trajectory Extractor",
-        "desc":  "Convert bounding-box tracks into position, velocity, acceleration, and contact-timing profiles.",
+        "desc":  "Convert tracks into position, velocity, acceleration, and contact-timing profiles, then flag statistically anomalous motion.",
         "badge": "medium",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
+            {"id": "num_keypoints", "label": "Keypoints to track", "type": "number",
+             "default": 60, "min": 10, "max": 300},
             {"id": "smoothing_window", "label": "Smoothing window (frames)", "type": "number",
-             "default": 5, "min": 1, "max": 30},
+             "default": 7, "min": 1, "max": 31},
+            {"id": "z_threshold", "label": "Anomaly sensitivity (robust z)", "type": "number",
+             "default": 3.5, "min": 1.5, "max": 8},
             {"id": "fps", "label": "Video FPS override (0 = auto)", "type": "number",
              "default": 0, "min": 0, "max": 240},
+            {"id": "render_video", "label": "Kinematic overlay video", "type": "select",
+             "default": "true",
+             "options": [
+                 {"value": "true",  "label": "Show annotated overlay"},
+                 {"value": "false", "label": "Skip (faster)"},
+             ]},
         ],
         "run": run_s2_trajectory_extractor,
     },
@@ -477,6 +487,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Batch / dataset evaluation (browser upload + HuggingFace) — self-contained.
+from dataset_api import build_dataset_router
+app.include_router(build_dataset_router(PIPELINES))
 
 
 @app.get("/pipelines")

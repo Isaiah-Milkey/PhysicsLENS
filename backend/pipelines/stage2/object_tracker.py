@@ -26,47 +26,9 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from tools.video import load_frames, frame_to_gray, encode_video_browser
-from tools.flow  import detect_keypoints, track_keypoints
-
-_PALETTE = [
-    '#1a54c4', '#c05621', '#7c3aed', '#1a7a3c',
-    '#e24b4a', '#d97706', '#0891b2', '#be185d',
-    '#0f766e', '#7e22ce',
-]
-
-# ── Tunables (adapted from sam_track_compare.py) ──────────────────────────────
-CROP_PAD    = 0.10   # fractional padding around bounding box before DINOv2
-MIN_CROP_PX = 12     # ignore degenerate boxes smaller than this
-
-
-# ── Geometry helpers ──────────────────────────────────────────────────────────
-
-def _box_from_points(pts: np.ndarray, H: int, W: int) -> Optional[tuple]:
-    """Padded XYXY box for a set of (x, y) 2-D points, or None if degenerate."""
-    if len(pts) == 0:
-        return None
-    x0, x1 = int(pts[:, 0].min()), int(pts[:, 0].max())
-    y0, y1 = int(pts[:, 1].min()), int(pts[:, 1].max())
-    bw, bh = x1 - x0, y1 - y0
-    # Expand point-like clusters
-    if bw < MIN_CROP_PX:
-        pad = (MIN_CROP_PX - bw) // 2 + 4
-        x0, x1 = x0 - pad, x1 + pad
-        bw = x1 - x0
-    if bh < MIN_CROP_PX:
-        pad = (MIN_CROP_PX - bh) // 2 + 4
-        y0, y1 = y0 - pad, y1 + pad
-        bh = y1 - y0
-    if bw < MIN_CROP_PX or bh < MIN_CROP_PX:
-        return None
-    px, py = int(bw * CROP_PAD), int(bh * CROP_PAD)
-    return (max(0, x0 - px), max(0, y0 - py), min(W, x1 + px), min(H, y1 + py))
-
-
-def _hex_to_bgr(hex_color: str) -> tuple:
-    h = hex_color.lstrip("#")
-    return (int(h[4:6], 16), int(h[2:4], 16), int(h[0:2], 16))
+from tools.video    import encode_video_browser
+from tools.tracking import get_tracks, _PALETTE, _hex_to_bgr
+from tools.evidence import EVIDENCE, video_id
 
 
 def _render_annotated(
@@ -95,21 +57,6 @@ def _render_annotated(
                         0.55, (255, 255, 255), 2, cv2.LINE_AA)
         out.append(img)
     return out, step
-
-
-def _cluster_points(pts: np.ndarray, dist_thresh: float) -> list[list[int]]:
-    """Greedy single-linkage clustering by pairwise Euclidean distance."""
-    assigned = [False] * len(pts)
-    clusters: list[list[int]] = []
-    for i in range(len(pts)):
-        if assigned[i]:
-            continue
-        grp = [i]; assigned[i] = True
-        for j in range(i + 1, len(pts)):
-            if not assigned[j] and np.linalg.norm(pts[i] - pts[j]) < dist_thresh:
-                grp.append(j); assigned[j] = True
-        clusters.append(grp)
-    return clusters
 
 
 # ── DINOv2 appearance drift (ported from sam_track_compare.py) ───────────────
@@ -145,116 +92,58 @@ def _drift_curve(embeddings: np.ndarray) -> np.ndarray:
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg          = json.loads(settings) if settings else {}
-    num_kp       = max(5,  int(cfg.get("num_keypoints", 50)))
+    num_kp       = max(5,  int(cfg.get("num_keypoints", 60)))
     sample_every = max(1,  int(cfg.get("sample_every",   1)))
     use_dinov2   = str(cfg.get("use_dinov2", "true")).lower() not in ("false", "0", "no")
     render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
 
-    yield {"type": "log", "level": "info", "text": "Loading video…"}
-    frames, fps = load_frames(video_path, step=sample_every)
-    n = len(frames)
+    yield {"type": "log", "level": "info", "text": "Loading video & tracking keypoints…"}
+    await asyncio.sleep(0)
+
+    # ── Phase 1+2: shared, cached LK tracking + clustering ────────────────────
+    loop = asyncio.get_event_loop()
+    tr = await loop.run_in_executor(
+        None, lambda: get_tracks(video_path, num_kp=num_kp,
+                                 sample_every=sample_every, max_objects=8))
+    frames     = tr["frames"]
+    eff_fps    = tr["fps"]
+    meta       = tr["meta"]
+    obj_tracks = tr["tracks"]
+    n  = meta["n_frames"]
+    H, W = meta["H"], meta["W"]
+    nk = meta["nk"]
+    kp_loss_pct = meta["kp_loss_pct"]
+    kp_lost     = int(round(kp_loss_pct * nk))
+
     if n < 3:
         yield {"type": "error", "text": f"Video too short ({n} frames)."}
         return
-
-    H, W = frames[0].shape[:2]
-    eff_fps = fps / sample_every
-
-    yield {"type": "log", "level": "info",
-           "text": f"{n} frames @ {eff_fps:.1f} fps — detecting {num_kp} Shi-Tomasi keypoints…"}
-    await asyncio.sleep(0)
-
-    # ── Phase 1: LK sparse tracking ───────────────────────────────────────────
-    # Some videos open on featureless frames (solid black/white lead-in);
-    # scan forward to the first frame with detectable corners.
-    start = 0
-    pts0  = None
-    while start <= n - 3:
-        gray0 = frame_to_gray(frames[start])
-        pts0  = detect_keypoints(gray0, n=num_kp)
-        if pts0 is not None and len(pts0) > 0:
-            break
-        start += 1
-    if pts0 is None or len(pts0) == 0:
+    if not obj_tracks:
         yield {"type": "error", "text": "No keypoints detected in any frame."}
         return
-    if start > 0:
+    if meta["start"] > 0:
         yield {"type": "log", "level": "warn",
-               "text": f"First {start} frame(s) featureless — tracking starts at frame {start}."}
-        frames = frames[start:]
-        n      = len(frames)
+               "text": f"First {meta['start']} frame(s) featureless — tracking started later."}
 
-    nk       = len(pts0)
-    tracks   = [[pts0[i, 0].tolist()] for i in range(nk)]   # list of [x,y] or None
-    active   = [pts0[i : i + 1] for i in range(nk)]         # current LK input
-
-    prev_gray = gray0
-    for f in range(1, n):
-        curr_gray = frame_to_gray(frames[f])
-        for ki in range(nk):
-            if active[ki] is None:
-                tracks[ki].append(None)
-                continue
-            _, good = track_keypoints(prev_gray, curr_gray, active[ki])
-            if len(good) == 0:
-                active[ki] = None
-                tracks[ki].append(None)
-            else:
-                active[ki] = good.reshape(-1, 1, 2)
-                tracks[ki].append(good.reshape(-1, 2)[0].tolist())
-        prev_gray = curr_gray
-        if f % 30 == 0:
-            yield {"type": "log", "level": "info", "text": f"Tracking… {f}/{n} frames"}
-            await asyncio.sleep(0)
-
-    kp_lost     = sum(1 for ki in range(nk) if active[ki] is None)
-    kp_loss_pct = kp_lost / max(nk, 1)
-
-    # ── Phase 2: Cluster keypoints → object tracks ────────────────────────────
-    yield {"type": "log", "level": "info", "text": "Clustering keypoints into object tracks…"}
-    await asyncio.sleep(0)
-
-    dist_thresh = max(40.0, min(W, H) * 0.08)
-    clusters    = _cluster_points(pts0[:, 0, :], dist_thresh)
-
-    obj_tracks: list[dict] = []
-    for ci, idx_list in enumerate(clusters):
-        frame_idxs, boxes, cx_list, cy_list = [], [], [], []
-        for f in range(n):
-            active_pts = [tracks[ki][f] for ki in idx_list if tracks[ki][f] is not None]
-            if not active_pts:
-                continue
-            arr = np.array(active_pts)
-            box = _box_from_points(arr, H, W)
-            if box is None:
-                continue
-            x0, y0, x1, y1 = box
-            frame_idxs.append(f)
-            boxes.append(box)
-            cx_list.append((x0 + x1) / 2)
-            cy_list.append((y0 + y1) / 2)
-
-        if len(frame_idxs) < 3:
-            continue
-        obj_tracks.append({
-            "id": ci, "frames": frame_idxs, "boxes": boxes,
-            "cx": cx_list, "cy": cy_list, "n_kp": len(idx_list),
-        })
-
-    obj_tracks.sort(key=lambda t: -len(t["frames"]))
-    obj_tracks = obj_tracks[:8]   # cap at 8 objects
-    n_objects  = len(obj_tracks)
-
+    n_objects = len(obj_tracks)
     yield {"type": "log", "level": "info",
-           "text": f"{n_objects} distinct object track(s) found from {nk} keypoints."}
+           "text": f"{n} frames @ {eff_fps:.1f} fps — {n_objects} object track(s) "
+                   f"from {nk} keypoints."}
     await asyncio.sleep(0)
+
+    # Publish canonical tracks to the evidence bus for downstream stages.
+    EVIDENCE.put(video_id(video_path), "s2_object_tracker", {
+        "fps": float(eff_fps), "n_frames": int(n),
+        "tracks": [{"id": ct["id"], "frames": ct["frames"], "boxes": ct["boxes"],
+                    "cx": ct["cx"], "cy": ct["cy"], "n_kp": ct["n_kp"]}
+                   for ct in obj_tracks],
+    })
 
     # ── Phase 2b: Annotated video — show which region each "obj N" is ─────────
     if render_video and n_objects > 0:
         yield {"type": "log", "level": "info", "text": "Rendering labeled object video…"}
         await asyncio.sleep(0)
         try:
-            loop = asyncio.get_event_loop()
             ann_frames, step = _render_annotated(frames, obj_tracks)
             data, mime = await loop.run_in_executor(
                 None, encode_video_browser, ann_frames, eff_fps / step

@@ -411,12 +411,111 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 .modal-close { background: none; border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 14px; cursor: pointer; font-size: 13px; color: var(--muted); font-family: var(--sans); }
 .modal-close:hover { border-color: var(--text); color: var(--text); }
 .modal-body  { overflow-y: auto; flex: 1; }
+
+/* ── Home / breadcrumb button (single unified Dataset view) ── */
+.ds-home-btn {
+  padding: 7px 14px; border: 1.5px solid var(--border); border-radius: var(--radius);
+  background: none; font-family: var(--sans); font-size: 13px; font-weight: 500;
+  color: var(--muted); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.ds-home-btn:hover { color: var(--text); border-color: var(--text); background: var(--bg); }
+.ds-home-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+.ds-crumb { display: none; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; flex-shrink: 1; }
+body.mode-ds-detail .ds-crumb { display: inline-block; }
+/* In detail view the home button reads as a back affordance, not the active tab. */
+body.mode-ds-detail .ds-home-btn { background: none; color: var(--s2); border-color: var(--s2-bd); }
+body.mode-ds-detail .ds-home-btn:hover { background: var(--s2-bg); }
+
+/* ── Dataset / batch view ── */
+.dataset-view { display: none; grid-template-columns: 340px 1fr; height: calc(100vh - 56px); }
+body.mode-dataset .workspace { display: none; }
+body.mode-dataset .dataset-view { display: grid; }
+body.mode-dataset #stageTabs, body.mode-dataset #reportBtn { display: none; }
+
+/* ── Dataset detail (per-video stage view) ── */
+body.mode-ds-detail .dataset-view  { display: none; }
+body.mode-ds-detail .workspace     { display: grid; }
+body.mode-ds-detail #reportBtn     { display: none; }
+body.mode-ds-detail .vid-drop      { display: none !important; }
+body.mode-ds-detail #vidPlayer     { display: none !important; }
+body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: column; }
+
+/* Result indicator on test cards in the detail view */
+.t-result-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; box-shadow: 0 0 0 2px var(--surface); }
+
+.ds-sidebar { background: var(--surface); border-right: 4px solid var(--s2); display: flex; flex-direction: column; overflow-y: auto; }
+.ds-block { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+.ds-step { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+
+.ds-src-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.ds-src-tab { flex: 1; padding: 7px; border: 1px solid var(--border); border-radius: var(--radius); background: none; font-family: var(--sans); font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.ds-src-tab.active { background: var(--s2-bg); border-color: var(--s2-bd); color: var(--s2); font-weight: 500; }
+.ds-src-panel { display: none; }
+.ds-src-panel.active { display: block; }
+
+.ds-drop { position: relative; border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 26px 12px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--bg); }
+.ds-drop:hover, .ds-drop.drag { border-color: var(--s2); background: var(--s2-bg); }
+.ds-drop > input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ds-drop-icon { font-size: 24px; color: var(--muted); }
+.ds-drop-text { font-size: 13px; color: var(--text); margin-top: 6px; }
+.ds-drop-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.ds-folder-link { color: var(--s2); text-decoration: underline; cursor: pointer; position: relative; z-index: 2; }
+
+.ds-fetch-btn { width: 100%; margin-top: 12px; padding: 8px; border: 1.5px solid var(--s2); border-radius: var(--radius); background: var(--s2); color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.ds-fetch-btn:hover { opacity: 0.85; }
+.ds-fetch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ds-hf-status { font-size: 12px; color: var(--muted); margin-top: 8px; min-height: 16px; line-height: 1.4; }
+.ds-hf-status.err { color: var(--red); }
+
+.ds-pipe-actions { display: flex; gap: 6px; margin-bottom: 4px; }
+.ds-mini { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--muted); cursor: pointer; font-family: var(--sans); transition: all 0.15s; }
+.ds-mini:hover { border-color: var(--text); color: var(--text); }
+.ds-pipe-list { display: flex; flex-direction: column; gap: 1px; }
+.ds-pipe-stage { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin: 11px 0 3px; }
+.ds-pipe-row { display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 4px; cursor: pointer; transition: background 0.12s; }
+.ds-pipe-row:hover { background: var(--bg); }
+.ds-pipe-row input { accent-color: var(--s2); cursor: pointer; flex-shrink: 0; }
+.ds-pipe-name { font-size: 13px; flex: 1; }
+.ds-pipe-badge { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+
+.ds-run-wrap { padding: 1rem 1.25rem; margin-top: auto; }
+.ds-progress-wrap { margin-top: 12px; }
+.ds-progress-track { height: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
+.ds-progress-fill { height: 100%; width: 0; background: var(--s2); transition: width 0.3s; }
+.ds-progress-text { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; margin-top: 5px; }
+
+.ds-main { display: flex; flex-direction: column; overflow: hidden; }
+.ds-main-hdr { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+.ds-main-title { font-size: 14px; font-weight: 500; }
+.ds-grid-wrap { flex: 1; overflow-y: auto; position: relative; }
+.ds-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); text-align: center; padding: 2rem; }
+.ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; padding: 1.5rem; }
+
+.ds-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
+.ds-card:hover { border-color: var(--s2); box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+.ds-card-thumb { width: 100%; aspect-ratio: 16/10; object-fit: contain; background: #0d0d0d; display: block; }
+.ds-card-body { padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; }
+.ds-card-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.ds-status { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em; }
+.ds-status.queued  { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.ds-status.running { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--s1-bd); }
+.ds-status.done    { background: var(--green-bg); color: var(--green); border: 1px solid var(--s4-bd); }
+.ds-status.error   { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+.ds-sev-chip { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 3px; color: #fff; }
+.ds-card-dots { display: flex; gap: 3px; flex-wrap: wrap; }
+.ds-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.ds-thumb-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #777; }
+.ds-fb-icon { font-size: 26px; opacity: 0.55; }
+.ds-fb-ext { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: #8a8a8a; }
 </style>
 </head>
-<body>
+<body class="mode-dataset">
 
 <div class="topbar">
   <span class="logo">PhysicsLENS</span>
+  <button class="ds-home-btn active" id="dsHomeBtn">Dataset</button>
+  <span class="ds-crumb" id="dsCrumb"></span>
   <nav class="stage-tabs" id="stageTabs"></nav>
   <button class="report-btn" id="reportBtn">
     Full Report <span class="report-count" id="reportCount">0</span>
@@ -448,6 +547,24 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
           </select>
         </div>
         <div class="vid-name" id="vidName"></div>
+      </div>
+
+      <!-- Dataset detail player (shown in mode-ds-detail) -->
+      <div id="dsDetailPlayer" style="display:none; flex-direction:column;">
+        <video class="vid-el" id="dsDetailVid" preload="metadata"></video>
+        <div class="vid-bar">
+          <button class="vid-play" id="dsBtnPlay">▶</button>
+          <span class="vid-time" id="dsVidTime">0:00 / 0:00</span>
+          <input type="range" class="vid-scrub" id="dsVidScrub" min="0" value="0" step="0.01" />
+          <select class="vid-speed" id="dsVidSpeed">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
+        <div class="vid-name" id="dsDetailName"></div>
       </div>
     </div>
 
@@ -554,6 +671,81 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
   </main>
 </div>
 
+<!-- Dataset / batch view -->
+<div class="dataset-view" id="datasetView">
+  <aside class="ds-sidebar">
+
+    <!-- 1 · Source -->
+    <div class="ds-block">
+      <div class="ds-step">1 · Add videos</div>
+      <div class="ds-src-tabs">
+        <button class="ds-src-tab active" data-src="upload">Upload</button>
+        <button class="ds-src-tab" data-src="hf">HuggingFace</button>
+      </div>
+
+      <div class="ds-src-panel active" data-src="upload">
+        <div class="ds-drop" id="dsDrop">
+          <input type="file" id="dsFiles" accept="video/*,image/gif" multiple />
+          <div class="ds-drop-icon">⬆</div>
+          <div class="ds-drop-text">Click or drag videos here</div>
+          <div class="ds-drop-sub">any format · or <label class="ds-folder-link" for="dsFolder">choose a folder</label></div>
+          <input type="file" id="dsFolder" webkitdirectory directory multiple hidden />
+        </div>
+      </div>
+
+      <div class="ds-src-panel" data-src="hf">
+        <label class="setting-label">Dataset repo id</label>
+        <input class="setting-input" id="hfRepo" placeholder="e.g. user/physics-gifs" />
+        <label class="setting-label" style="margin-top:8px">Subfolder (optional)</label>
+        <input class="setting-input" id="hfSub" placeholder="e.g. data/test" />
+        <label class="setting-label" style="margin-top:8px">Max files (0 = all)</label>
+        <input class="setting-input" id="hfMax" type="number" min="0" value="50" />
+        <label class="setting-label" style="margin-top:8px">HF token (gated/private — optional)</label>
+        <input class="setting-input" id="hfToken" type="password" placeholder="hf_…" />
+        <button class="ds-fetch-btn" id="hfFetchBtn">Download video files</button>
+        <div class="ds-hf-status" id="hfStatus"></div>
+      </div>
+    </div>
+
+    <!-- 2 · Tests -->
+    <div class="ds-block">
+      <div class="ds-step">2 · Select tests</div>
+      <div class="ds-pipe-actions">
+        <button class="ds-mini" id="dsPipeAll">Select all</button>
+        <button class="ds-mini" id="dsPipeNone">Clear</button>
+      </div>
+      <div class="ds-pipe-list" id="dsPipeList"></div>
+    </div>
+
+    <!-- 3 · Run -->
+    <div class="ds-run-wrap">
+      <button class="run-btn" id="dsRunBtn" disabled>
+        <div class="spinner"></div>
+        <span class="btn-text">Run batch</span>
+      </button>
+      <div class="ds-progress-wrap" id="dsProgressWrap" style="display:none">
+        <div class="ds-progress-track"><div class="ds-progress-fill" id="dsProgressFill"></div></div>
+        <div class="ds-progress-text" id="dsProgressText">0 / 0</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+    <div class="ds-main-hdr">
+      <span class="ds-main-title" id="dsMainTitle">No videos loaded</span>
+      <button class="ds-mini" id="dsClearBtn" style="display:none">Clear all</button>
+    </div>
+    <div class="ds-grid-wrap">
+      <div class="ds-empty" id="dsEmpty">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-text">Add videos or a HuggingFace dataset, pick tests, then run the batch.<br>Each video gets its own report.</div>
+      </div>
+      <div class="ds-grid" id="dsGrid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Per-video report modal -->
 <!-- Global Full Report modal -->
 <div class="modal-overlay" id="globalReportModal">
   <div class="modal-box">
@@ -590,6 +782,7 @@ const STAGE_COLORS = { s1: '#1a54c4', s2: '#c05621', s3: '#7c3aed', s4: '#1a7a3c
 
 let allPipelines = {}, selectedStage = null, selectedPipeline = null;
 let videoFile = null, reportData = [], lastEntry = null, showDetails = false;
+let dsDetailVideo = null;  // set when viewing a dataset video in the stage detail view
 // Stage 1 anomaly signals, keyed by source id — forwarded into the Event Localizer.
 let stage1SignalStore = {};
 
@@ -610,6 +803,7 @@ async function loadPipelines() {
     list.forEach(p => { allPipelines[p.id] = p; });
     renderStageTabs();
     selectStage(STAGES[0]);
+    renderDsPipeList();   // build the dataset-mode test checklist too
   } catch {
     document.getElementById("testList").innerHTML = '<div style="font-size:13px;color:var(--red)">Could not reach backend.</div>';
   }
@@ -650,6 +844,7 @@ function selectStage(stage) {
   const list = document.getElementById("testList");
   list.innerHTML = "";
   const pipes = stage.pipelines.map(id => allPipelines[id]).filter(Boolean);
+  let autoSel = null;   // first test in this stage that already has a result (detail view)
   if (!pipes.length) {
     list.innerHTML = '<div style="font-size:13px;color:var(--muted)">No tests available.</div>';
   } else {
@@ -663,6 +858,15 @@ function selectStage(stage) {
           <div class="t-badges">${stubBadge}<span class="t-badge">${p.badge}</span></div>
         </div>
         <div class="t-desc">${p.desc}</div>`;
+      // In the per-video detail view, surface which tests already ran so the user
+      // sees results without hunting — and remember the first to auto-open it.
+      if (dsDetailVideo) {
+        const runs = (dsDetailVideo.runs || []).filter(e => e.pipelineId === p.id);
+        if (runs.length) {
+          markTestCardResult(card, runs[runs.length - 1]);
+          if (!autoSel) autoSel = { card, p };
+        }
+      }
       card.addEventListener("click", () => selectTest(card, p, stage));
       list.appendChild(card);
     });
@@ -671,6 +875,22 @@ function selectStage(stage) {
   document.getElementById("promptSection").classList.remove("show");
   document.getElementById("settingsSection").classList.remove("show");
   updateRunBtn();
+
+  // Auto-load the first completed test's report so opening a video shows results
+  // immediately instead of an empty pane.
+  if (autoSel) selectTest(autoSel.card, autoSel.p, stage);
+}
+
+// Adds (or refreshes) the colored result dot on a test card from its latest run.
+function markTestCardResult(card, entry) {
+  card.classList.add("has-result");
+  const badges = card.querySelector(".t-badges");
+  if (!badges) return;
+  let dot = badges.querySelector(".t-result-dot");
+  if (!dot) { dot = document.createElement("span"); dot.className = "t-result-dot"; badges.prepend(dot); }
+  const sev = entry.severities && entry.severities[0];
+  dot.style.background = sev ? sev.color : "var(--muted)";
+  dot.title = entry.status === "error" ? "Error" : sev ? `${sev.value}%` : "Done";
 }
 
 function selectTest(card, p, stage) {
@@ -779,12 +999,15 @@ document.getElementById("promptInput").addEventListener("input", updateRunBtn);
 function updateRunBtn() {
   const needsPrompt = !!selectedPipeline?.requires_prompt;
   const promptOk    = !needsPrompt || document.getElementById("promptInput").value.trim().length > 0;
-  document.getElementById("runBtn").disabled = !(selectedPipeline && videoFile && promptOk);
+  const hasVideo    = !!videoFile || !!dsDetailVideo;
+  document.getElementById("runBtn").disabled = !(selectedPipeline && hasVideo && promptOk);
 }
 document.getElementById("runBtn").addEventListener("click", runPipeline);
 
 async function runPipeline() {
-  if (!selectedPipeline || !videoFile) return;
+  const isDetail = !!dsDetailVideo;
+  if (!selectedPipeline) return;
+  if (!isDetail && !videoFile) return;
   switchTab("report");
 
   const entry = {
@@ -822,50 +1045,99 @@ async function runPipeline() {
 
   const form = new FormData();
   form.append("pipeline_id", selectedPipeline.id);
-  form.append("video", videoFile);
-  if (selectedPipeline.requires_pair)   form.append("video_ai", videoFile);
-  if (selectedPipeline.requires_prompt) form.append("prompt", document.getElementById("promptInput").value.trim());
 
   // Build settings; the Event Localizer also receives accumulated Stage 1 signals.
   let settingsObj = (selectedPipeline.settings && selectedPipeline.settings.length)
     ? JSON.parse(collectSettings()) : {};
-  if (selectedPipeline.id === "s2_event_localizer") {
-    settingsObj.stage1_signals = Object.values(stage1SignalStore);
-    const totalSig = settingsObj.stage1_signals.reduce((a, g) => a + (g.signals?.length || 0), 0);
-    appendLog(totalSig ? "info" : "warn",
-      totalSig ? `Forwarding ${totalSig} Stage 1 signal(s) from ${settingsObj.stage1_signals.length} screening test(s).`
-               : "No Stage 1 signals stored yet — run a Stage 1 screening test first.", entry);
-  }
-  if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
 
-  try {
-    const res = await fetch(`${API}/run`, { method: "POST", body: form });
-    const reader = res.body.getReader(), dec = new TextDecoder();
-    let buf = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream: true });
-      const lines = buf.split("\n"); buf = lines.pop();
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try { handleEvent(JSON.parse(line), entry); } catch(e) { console.error(e, line.slice(0,200)); }
-      }
+  if (isDetail) {
+    // Dataset detail mode: run against server-side file by id
+    form.append("file_id", dsDetailVideo.id);
+    if (selectedPipeline.id === "s2_event_localizer") {
+      // Collect stage1 signals from the video's existing runs
+      const vSignals = {};
+      (dsDetailVideo.runs || []).forEach(e => {
+        if (e.pipelineId && e.pipelineId.startsWith("s1_") && e._signals) {
+          Object.assign(vSignals, e._signals);
+        }
+      });
+      settingsObj.stage1_signals = Object.values(vSignals);
     }
-  } catch (err) {
-    appendLog("error", "Connection error: " + err.message, entry);
-    setStatus("error", "Error"); entry.status = "error";
-  } finally {
-    btn.classList.remove("loading"); updateRunBtn();
-    document.querySelector(".tab-btn[data-tab='report']").classList.add("has-content");
-    if (entry.status === "running") entry.status = "done";
-    reportData.push(entry);
-    lastEntry = entry;
-    showTestReportFooter(entry);
-    renderPipelineHistory(entry.pipelineId);
-    renderReport();
-    const stageTab = document.querySelector(`.stage-tab[data-stage-id="${selectedStage.id}"]`);
-    if (stageTab) stageTab.classList.add("has-results");
+    if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
+    try {
+      const res = await fetch(`${API}/dataset/run`, { method: "POST", body: form });
+      const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+      while (true) {
+        const { done, value } = await reader.read(); if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n"); buf = lines.pop();
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try { handleEvent(JSON.parse(line), entry); } catch(e) { console.error(e, line.slice(0,200)); }
+        }
+      }
+    } catch (err) {
+      appendLog("error", "Connection error: " + err.message, entry);
+      setStatus("error", "Error"); entry.status = "error";
+    } finally {
+      btn.classList.remove("loading"); updateRunBtn();
+      document.querySelector(".tab-btn[data-tab='report']").classList.add("has-content");
+      if (entry.status === "running") entry.status = "done";
+      dsDetailVideo.runs.push(entry);
+      const sev = entry.severities[0]?.value;
+      if (sev != null) dsDetailVideo.maxSev = Math.max(dsDetailVideo.maxSev ?? 0, sev);
+      dsDetailVideo.status = dsDetailVideo.runs.some(e => e.status === "error") ? "error" : "done";
+      lastEntry = entry;
+      showTestReportFooter(entry);
+      renderPipelineHistory(entry.pipelineId);
+      renderDsGrid();
+      const stageTab = document.querySelector(`.stage-tab[data-stage-id="${selectedStage.id}"]`);
+      if (stageTab) stageTab.classList.add("has-results");
+      const activeCard = document.querySelector(`.t-card[data-id="${entry.pipelineId}"]`);
+      if (activeCard) markTestCardResult(activeCard, entry);
+    }
+  } else {
+    // Single-video mode: upload the file
+    form.append("video", videoFile);
+    if (selectedPipeline.requires_pair)   form.append("video_ai", videoFile);
+    if (selectedPipeline.requires_prompt) form.append("prompt", document.getElementById("promptInput").value.trim());
+    if (selectedPipeline.id === "s2_event_localizer") {
+      settingsObj.stage1_signals = Object.values(stage1SignalStore);
+      const totalSig = settingsObj.stage1_signals.reduce((a, g) => a + (g.signals?.length || 0), 0);
+      appendLog(totalSig ? "info" : "warn",
+        totalSig ? `Forwarding ${totalSig} Stage 1 signal(s) from ${settingsObj.stage1_signals.length} screening test(s).`
+                 : "No Stage 1 signals stored yet — run a Stage 1 screening test first.", entry);
+    }
+    if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
+    try {
+      const res = await fetch(`${API}/run`, { method: "POST", body: form });
+      const reader = res.body.getReader(), dec = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n"); buf = lines.pop();
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try { handleEvent(JSON.parse(line), entry); } catch(e) { console.error(e, line.slice(0,200)); }
+        }
+      }
+    } catch (err) {
+      appendLog("error", "Connection error: " + err.message, entry);
+      setStatus("error", "Error"); entry.status = "error";
+    } finally {
+      btn.classList.remove("loading"); updateRunBtn();
+      document.querySelector(".tab-btn[data-tab='report']").classList.add("has-content");
+      if (entry.status === "running") entry.status = "done";
+      reportData.push(entry);
+      lastEntry = entry;
+      showTestReportFooter(entry);
+      renderPipelineHistory(entry.pipelineId);
+      renderReport();
+      const stageTab = document.querySelector(`.stage-tab[data-stage-id="${selectedStage.id}"]`);
+      if (stageTab) stageTab.classList.add("has-results");
+    }
   }
 }
 
@@ -1477,7 +1749,8 @@ function populateEntryDetail(entry, body) {
 function renderPipelineHistory(pid) {
   const pane  = document.getElementById("histPane");
   const empty = document.getElementById("histEmpty");
-  const entries = reportData.filter(e => e.pipelineId === pid).slice().reverse();
+  const pool  = dsDetailVideo ? (dsDetailVideo.runs || []) : reportData;
+  const entries = pool.filter(e => e.pipelineId === pid).slice().reverse();
 
   if (!entries.length) {
     pane.style.display = "none"; pane.innerHTML = "";
@@ -1518,7 +1791,8 @@ function renderPipelineHistory(pid) {
 }
 
 function restoreLatestOrClear(pid) {
-  const entries = reportData.filter(e => e.pipelineId === pid);
+  const pool    = dsDetailVideo ? (dsDetailVideo.runs || []) : reportData;
+  const entries = pool.filter(e => e.pipelineId === pid);
   if (entries.length) {
     restoreEntryToOutputPane(entries[entries.length - 1]);
   } else {
@@ -1593,6 +1867,328 @@ function restoreEntryToOutputPane(entry) {
 
   lastEntry = entry;
   showTestReportFooter(entry);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  DATASET / BATCH MODE  (self-contained; reuses report rendering helpers)
+// ════════════════════════════════════════════════════════════════════════════
+let dsVideos = [];           // {id, name, status, runs:[entry], maxSev}
+let dsSelected = new Set();   // selected pipeline ids
+let dsBusy = false;
+
+function nowTs() { return new Date().toTimeString().slice(0, 8); }
+function sevColorFor(v) { return v > 50 ? "#E24B4A" : v > 25 ? "#EF9F27" : "#4CAF50"; }
+
+// ── View switch (grid ⇆ per-video detail) ──────────────────────────────────────
+// The single "Dataset" button doubles as the home/back control — clicking it from
+// a per-video report returns to the grid.
+document.getElementById("dsHomeBtn").addEventListener("click", () => setMode("dataset"));
+function setMode(mode) {
+  document.body.classList.toggle("mode-dataset",   mode === "dataset");
+  document.body.classList.toggle("mode-ds-detail", mode === "ds-detail");
+  const home = document.getElementById("dsHomeBtn");
+  home.classList.toggle("active", mode === "dataset");
+  home.textContent = mode === "ds-detail" ? "← Dataset" : "Dataset";
+  if (mode === "dataset") {
+    dsDetailVideo = null;
+    document.getElementById("dsCrumb").textContent = "";
+    renderDsPipeList();
+  }
+}
+
+// ── Source sub-tabs ─────────────────────────────────────────────────────────────
+document.querySelectorAll(".ds-src-tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".ds-src-tab").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll(".ds-src-panel").forEach(p => p.classList.toggle("active", p.dataset.src === t.dataset.src));
+}));
+
+// ── Pipeline checklist (live, non-stub pipelines only) ─────────────────────────
+function renderDsPipeList() {
+  if (!Object.keys(allPipelines).length) return;
+  const host = document.getElementById("dsPipeList");
+  if (host.dataset.built) return;
+  host.innerHTML = "";
+  STAGES.forEach(stage => {
+    const pipes = stage.pipelines.map(id => allPipelines[id]).filter(p => p && !p.dummy);
+    if (!pipes.length) return;
+    const h = document.createElement("div"); h.className = "ds-pipe-stage";
+    h.textContent = `Stage ${stage.num} · ${stage.name}`; h.style.color = stage.color;
+    host.appendChild(h);
+    pipes.forEach(p => {
+      const row = document.createElement("label"); row.className = "ds-pipe-row";
+      row.innerHTML = `<input type="checkbox" data-pid="${p.id}"><span class="ds-pipe-name">${p.name}</span><span class="ds-pipe-badge">${p.badge}</span>`;
+      const cb = row.querySelector("input");
+      cb.addEventListener("change", () => { cb.checked ? dsSelected.add(p.id) : dsSelected.delete(p.id); updateDsRunBtn(); });
+      host.appendChild(row);
+    });
+  });
+  host.dataset.built = "1";
+}
+document.getElementById("dsPipeAll").addEventListener("click", () => {
+  document.querySelectorAll("#dsPipeList input").forEach(cb => { cb.checked = true; dsSelected.add(cb.dataset.pid); });
+  updateDsRunBtn();
+});
+document.getElementById("dsPipeNone").addEventListener("click", () => {
+  document.querySelectorAll("#dsPipeList input").forEach(cb => cb.checked = false);
+  dsSelected.clear(); updateDsRunBtn();
+});
+
+// ── Upload source ───────────────────────────────────────────────────────────────
+const dsDrop = document.getElementById("dsDrop");
+document.getElementById("dsFiles").addEventListener("change", e => addUploadFiles(e.target.files));
+document.getElementById("dsFolder").addEventListener("change", e => addUploadFiles(e.target.files));
+dsDrop.addEventListener("dragover",  e => { e.preventDefault(); dsDrop.classList.add("drag"); });
+dsDrop.addEventListener("dragleave", () => dsDrop.classList.remove("drag"));
+dsDrop.addEventListener("drop",      e => { e.preventDefault(); dsDrop.classList.remove("drag"); addUploadFiles(e.dataTransfer.files); });
+
+const DS_EXTS = [".gif", ".mp4", ".m4v", ".webm", ".mov", ".avi", ".mkv",
+                ".mpg", ".mpeg", ".ogv", ".wmv", ".flv", ".3gp", ".ts", ".mts", ".m2ts"];
+async function addUploadFiles(fileList) {
+  const files = Array.from(fileList).filter(f => DS_EXTS.some(x => f.name.toLowerCase().endsWith(x)));
+  if (!files.length) return;
+  const form = new FormData();
+  files.forEach(f => form.append("files", f, f.name));
+  setDsMainTitle("Uploading…");
+  try {
+    const res = await fetch(`${API}/dataset/upload`, { method: "POST", body: form });
+    const json = await res.json();
+    (json.files || []).forEach(rec => addVideo(rec.id, rec.name));
+    renderDsGrid();
+  } catch (err) { setDsMainTitle("Upload failed: " + err.message); }
+}
+
+// ── HuggingFace source (streaming progress) ────────────────────────────────────
+document.getElementById("hfFetchBtn").addEventListener("click", hfDownload);
+async function hfDownload() {
+  const repo = document.getElementById("hfRepo").value.trim();
+  const status = document.getElementById("hfStatus");
+  status.classList.remove("err");
+  if (!repo) { status.textContent = "Enter a dataset repo id first."; return; }
+  const btn = document.getElementById("hfFetchBtn");
+  btn.disabled = true; status.textContent = "Connecting…";
+  const form = new FormData();
+  form.append("repo_id",   repo);
+  form.append("subfolder", document.getElementById("hfSub").value.trim());
+  form.append("max_files", document.getElementById("hfMax").value || "0");
+  form.append("token",     document.getElementById("hfToken").value.trim());
+  try {
+    const res = await fetch(`${API}/dataset/hf_download`, { method: "POST", body: form });
+    const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+    while (true) {
+      const { done, value } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split("\n"); buf = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let ev; try { ev = JSON.parse(line); } catch { continue; }
+        if (ev.type === "file")          { addVideo(ev.id, ev.name); renderDsGrid(); status.textContent = `Downloaded ${ev.index}/${ev.total}…`; }
+        else if (ev.type === "progress") { status.textContent = `Downloaded ${ev.done}/${ev.total}…`; }
+        else if (ev.type === "log")      { status.textContent = ev.text; }
+        else if (ev.type === "error")    { status.textContent = ev.text; status.classList.add("err"); }
+        else if (ev.type === "done")     { status.textContent = `Done — ${ev.total} file(s) loaded.`; }
+      }
+    }
+  } catch (err) { status.textContent = "Download failed: " + err.message; status.classList.add("err"); }
+  finally { btn.disabled = false; }
+}
+
+// ── Video registry + grid ───────────────────────────────────────────────────────
+function addVideo(id, name) {
+  if (dsVideos.some(v => v.id === id)) return;
+  dsVideos.push({ id, name, status: "queued", runs: [], maxSev: null });
+  updateDsRunBtn();
+}
+function setDsMainTitle(txt) { document.getElementById("dsMainTitle").textContent = txt; }
+function updateDsRunBtn() {
+  document.getElementById("dsRunBtn").disabled = dsBusy || !dsVideos.length || !dsSelected.size;
+  document.getElementById("dsClearBtn").style.display = dsVideos.length ? "inline-block" : "none";
+}
+document.getElementById("dsClearBtn").addEventListener("click", () => {
+  if (dsBusy) return;
+  dsVideos = []; renderDsGrid(); updateDsRunBtn();
+  fetch(`${API}/dataset/clear`, { method: "POST" }).catch(() => {});
+});
+
+function renderDsGrid() {
+  const grid = document.getElementById("dsGrid");
+  const empty = document.getElementById("dsEmpty");
+  empty.style.display = dsVideos.length ? "none" : "flex";
+  setDsMainTitle(dsVideos.length ? `${dsVideos.length} video${dsVideos.length !== 1 ? "s" : ""}` : "No videos loaded");
+  grid.innerHTML = "";
+  dsVideos.forEach(v => {
+    const hasReport = v.runs.length > 0;
+    const card = document.createElement("div");
+    card.className = "ds-card" + (hasReport ? "" : " no-report");
+    const sevColor = v.maxSev != null ? sevColorFor(v.maxSev) : null;
+    const dots = hasReport
+      ? `<div class="ds-card-dots">${v.runs.map(e => `<span class="ds-dot" style="background:${e.severities[0] ? e.severities[0].color : "var(--border)"}" title="${e.pipelineName}"></span>`).join("")}</div>`
+      : "";
+    card.innerHTML =
+      dsThumbHtml(v) +
+      `<div class="ds-card-body">` +
+        `<div class="ds-card-name" title="${v.name}">${v.name}</div>` +
+        `<div class="ds-card-foot">` +
+          `<span class="ds-status ${v.status}">${v.status}</span>` +
+          (v.maxSev != null ? `<span class="ds-sev-chip" style="background:${sevColor}">${v.maxSev}%</span>` : "") +
+        `</div>` + dots +
+      `</div>`;
+
+    // Wire up the thumbnail: hover-to-play for <video>, graceful fallback if the
+    // browser can't decode the format (e.g. AVI / MKV / WMV).
+    const media = card.querySelector(".ds-card-thumb");
+    if (media) {
+      media.addEventListener("error", () => dsThumbFallback(card, v), { once: true });
+      if (media.tagName === "VIDEO") {
+        card.addEventListener("mouseenter", () => { media.play().catch(() => {}); });
+        card.addEventListener("mouseleave", () => { try { media.pause(); media.currentTime = 0; } catch {} });
+      }
+    }
+    // Any card opens its detail report — even with no batch results yet, so the
+    // user can run individual tests on a single uploaded video.
+    card.addEventListener("click", () => openVideoReport(v));
+    grid.appendChild(card);
+  });
+}
+
+// GIFs animate in an <img>; real videos use a <video> (first frame via #t=0.1,
+// playing on hover). Anything the browser can't decode falls back to an icon.
+function dsThumbHtml(v) {
+  const url = `${API}/dataset/file/${v.id}`;
+  if (/\.gif$/i.test(v.name)) return `<img class="ds-card-thumb" loading="lazy" src="${url}" alt="">`;
+  return `<video class="ds-card-thumb" muted loop playsinline preload="metadata" src="${url}#t=0.1"></video>`;
+}
+function dsThumbFallback(card, v) {
+  const m = card.querySelector(".ds-card-thumb");
+  if (!m) return;
+  const ext = (v.name.split(".").pop() || "vid").toUpperCase().slice(0, 5);
+  const fb = document.createElement("div");
+  fb.className = "ds-card-thumb ds-thumb-fallback";
+  fb.innerHTML = `<span class="ds-fb-icon">🎞</span><span class="ds-fb-ext">${ext}</span>`;
+  m.replaceWith(fb);
+}
+
+// ── Batch run (sequential: video × selected pipelines) ─────────────────────────
+document.getElementById("dsRunBtn").addEventListener("click", runDatasetBatch);
+async function runDatasetBatch() {
+  if (dsBusy) return;
+  const pipes = [...dsSelected].map(id => allPipelines[id]).filter(Boolean);
+  if (!pipes.length || !dsVideos.length) return;
+  dsBusy = true;
+  const btn = document.getElementById("dsRunBtn"); btn.classList.add("loading"); btn.disabled = true;
+  document.getElementById("dsProgressWrap").style.display = "block";
+  const total = dsVideos.length * pipes.length; let done = 0;
+  setDsProgress(0, total);
+
+  for (const v of dsVideos) {
+    v.status = "running"; v.runs = []; v.maxSev = null; renderDsGrid();
+    const vSignals = {};   // per-video Stage 1 signals → Event Localizer
+    for (const p of pipes) {
+      const entry = makeDsEntry(p);
+      v.runs.push(entry);
+      try { await streamRunById(v.id, p, entry, vSignals); }
+      catch (err) { entry.status = "error"; entry.logs.push({ level: "error", text: String(err), ts: nowTs() }); }
+      const sev = entry.severities[0]?.value;
+      if (sev != null) v.maxSev = Math.max(v.maxSev ?? 0, sev);
+      done++; setDsProgress(done, total); renderDsGrid();
+    }
+    v.status = v.runs.some(e => e.status === "error") ? "error" : "done";
+    renderDsGrid();
+  }
+  dsBusy = false; btn.classList.remove("loading"); updateDsRunBtn();
+}
+function setDsProgress(done, total) {
+  document.getElementById("dsProgressFill").style.width = total ? (done / total * 100) + "%" : "0";
+  document.getElementById("dsProgressText").textContent = `${done} / ${total}`;
+}
+
+function makeDsEntry(p) {
+  const stage = STAGES.find(s => s.pipelines.includes(p.id)) || {};
+  return {
+    id: "ds" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    stageId: stage.id, stageCls: stage.cls, stageNum: stage.num, stageName: stage.name, stageSubtitle: stage.subtitle,
+    pipelineId: p.id, pipelineName: p.name, timestamp: nowTs(), status: "running",
+    logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [], excluded: false, comment: "",
+  };
+}
+function dsDefaultSettings(p) {
+  const out = {}; (p.settings || []).forEach(s => { out[s.id] = s.default; }); return out;
+}
+
+async function streamRunById(fileId, p, entry, vSignals) {
+  const form = new FormData();
+  form.append("pipeline_id", p.id);
+  form.append("file_id", fileId);
+  let settingsObj = dsDefaultSettings(p);
+  if (p.id === "s2_event_localizer") settingsObj.stage1_signals = Object.values(vSignals || {});
+  if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
+
+  const res = await fetch(`${API}/dataset/run`, { method: "POST", body: form });
+  const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+  while (true) {
+    const { done, value } = await reader.read(); if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n"); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      let ev; try { ev = JSON.parse(line); } catch { continue; }
+      if (ev.type === "signal") {
+        vSignals[ev.source] = { source: ev.source, source_name: ev.source_name || ev.source,
+                                fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [] };
+      }
+      applyEventToEntry(ev, entry);
+    }
+  }
+  if (entry.status === "running") entry.status = "done";
+}
+
+// Mutates only the entry object (no single-video DOM side effects).
+function applyEventToEntry(ev, entry) {
+  switch (ev.type) {
+    case "log":          entry.logs.push({ level: ev.level, text: ev.text, ts: nowTs() }); break;
+    case "metric":       entry.metrics.push({ label: ev.label, value: ev.value, sub: ev.sub }); break;
+    case "severity":     entry.severities.push({ label: ev.label, value: ev.value, color: ev.color }); break;
+    case "image":        entry.images.push({ data: ev.data, mime: ev.mime, caption: ev.caption }); break;
+    case "plotly":       entry.plots.push({ data: ev.data, caption: ev.caption }); break;
+    case "video":        entry.videos.push({ data: ev.data, mime: ev.mime, caption: ev.caption }); break;
+    case "marker_video": entry.markerVideos.push(ev); break;
+    case "done":         entry.status = "done"; break;
+    case "error":        entry.logs.push({ level: "error", text: ev.text, ts: nowTs() }); entry.status = "error"; break;
+  }
+}
+
+// ── Per-video report modal (reuses populateEntryDetail / renderMarkerVideo) ─────
+function openVideoReport(v) {
+  dsDetailVideo = v;
+  setMode("ds-detail");
+  document.getElementById("dsCrumb").textContent = "› " + v.name;
+
+  // Load video into the detail player
+  const vid = document.getElementById("dsDetailVid");
+  vid.src = `${API}/dataset/file/${v.id}`;
+  document.getElementById("dsDetailName").textContent = v.name;
+  // Wire controls for the detail player
+  const btnPlay = document.getElementById("dsBtnPlay");
+  const scrub   = document.getElementById("dsVidScrub");
+  const timeEl  = document.getElementById("dsVidTime");
+  const speedEl = document.getElementById("dsVidSpeed");
+  vid.onloadedmetadata = () => { scrub.max = vid.duration; timeEl.textContent = `0:00 / ${fmt(vid.duration)}`; };
+  vid.ontimeupdate = () => { scrub.value = vid.currentTime; timeEl.textContent = `${fmt(vid.currentTime)} / ${fmt(vid.duration)}`; };
+  vid.onended = () => { btnPlay.textContent = "▶"; };
+  btnPlay.onclick  = () => { if (vid.paused) { vid.play(); btnPlay.textContent = "⏸"; } else { vid.pause(); btnPlay.textContent = "▶"; } };
+  scrub.oninput    = () => { vid.currentTime = scrub.value; };
+  speedEl.onchange = () => { vid.playbackRate = parseFloat(speedEl.value); };
+
+  // Mark stages that have run results so the dot appears on the tab
+  STAGES.forEach(stage => {
+    const tab = document.querySelector(`.stage-tab[data-stage-id="${stage.id}"]`);
+    if (tab) tab.classList.toggle("has-results", v.runs.some(e => e.stageId === stage.id));
+  });
+
+  // Open the first stage that has results (so the report shows straight away);
+  // selectStage then auto-selects the first completed test within it.
+  const firstStage = STAGES.find(s => (v.runs || []).some(e => e.stageId === s.id)) || STAGES[0];
+  selectStage(firstStage);
+  updateRunBtn();
 }
 
 loadPipelines();

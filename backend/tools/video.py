@@ -11,7 +11,15 @@ def load_frames(
     max_frames: Optional[int] = None,
     step: int = 1,
 ) -> Tuple[List[np.ndarray], float]:
-    """Return (frames, fps). `step` keeps every Nth frame."""
+    """Return (frames, fps). `step` keeps every Nth frame.
+
+    Animated GIFs are decoded via Pillow — OpenCV's VideoCapture is unreliable
+    on GIFs across platforms (often only the first frame, or none, on Windows).
+    The returned fps is always the *source* fps (callers divide by `step`).
+    """
+    if str(video_path).lower().endswith(".gif"):
+        return _load_gif_frames(video_path, max_frames, step)
+
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     frames: List[np.ndarray] = []
@@ -26,6 +34,31 @@ def load_frames(
                 break
         i += 1
     cap.release()
+    return frames, fps
+
+
+def _load_gif_frames(
+    gif_path: str,
+    max_frames: Optional[int],
+    step: int,
+) -> Tuple[List[np.ndarray], float]:
+    """Decode an animated GIF to a list of BGR uint8 frames + its source fps."""
+    from PIL import Image, ImageSequence
+
+    im = Image.open(gif_path)
+    frames: List[np.ndarray] = []
+    durations: List[float] = []        # ms per ORIGINAL frame (for fps)
+    for i, fr in enumerate(ImageSequence.Iterator(im)):
+        durations.append(float(fr.info.get("duration", 0) or 0))
+        if i % step == 0:
+            rgb = np.asarray(fr.convert("RGB"))         # (H, W, 3) RGB
+            frames.append(np.ascontiguousarray(rgb[:, :, ::-1]))  # → BGR
+            if max_frames and len(frames) >= max_frames:
+                break
+
+    valid = [d for d in durations if d > 0]
+    fps = (1000.0 / (sum(valid) / len(valid))) if valid else 10.0
+    fps = max(1.0, min(60.0, fps))
     return frames, fps
 
 
