@@ -3,6 +3,19 @@
 Web interface for evaluating physics accuracy in AI-generated video.  
 Structured as a four-stage medical diagnostic workflow.
 
+## Internal Hosting URL
+
+Live internal instance — auto-deployed from `main`:
+
+```
+https://10.218.107.89:8000
+```
+
+> [!IMPORTANT]
+> - On first visit your browser shows **"Your connection is not private"** because the TLS certificate is **self-signed**. Click **Advanced → Proceed to 10.218.107.89** — the traffic is still encrypted; the warning only means the cert isn't issued by a public authority. One click per machine.
+> - You must be on the **ASU network / VPN** to reach this internal IP.
+> - This site **auto-updates from `main`** — it checks GitHub every 5 minutes, so any pushed commit goes live automatically within ~5 minutes. No manual redeploy needed.
+
 ---
 
 ## Architecture
@@ -26,19 +39,19 @@ physicslens/
 ├── backend/
 │   ├── main.py                      # FastAPI server + pipeline registry
 │   ├── dataset_api.py               # Batch eval router: upload / HF download / run-by-id
-│   ├── requirements.txt
+│   ├── requirements.txt             # base / CPU-only deps (no torch)
 │   ├── requirements-gpu.txt         # torch, transformers, SAM3, etc.
 │   ├── pipelines/
 │   │   ├── stage1/                  # Screening
 │   │   │   ├── temporal_smoothness.py           ✅ verified
 │   │   │   ├── optical_flow_irregularities.py   ✅ verified
 │   │   │   ├── camera_motion.py                 🔵 implemented
-│   │   │   ├── embedding_biomarkers.py           🔵 implemented
-│   │   │   └── vlm_suspicion.py                 🔵 implemented
+│   │   │   ├── embedding_biomarkers.py          ✅ verified
+│   │   │   └── vlm_suspicion.py                 ✅ verified
 │   │   ├── stage2/                  # Failure localisation & hypothesis testing
 │   │   │   ├── object_tracker.py                🔵 implemented
-│   │   │   ├── trajectory_extractor.py          🔵 implemented
 │   │   │   ├── event_localizer.py               🔵 implemented
+│   │   │   ├── trajectory_extractor.py          🔵 implemented
 │   │   │   ├── physics_hypothesis_generator.py  🔶 stub
 │   │   │   └── hypothesis_ranker.py             🔶 stub
 │   │   ├── stage3/                  # Specialist evaluation (one file per failure type)
@@ -51,24 +64,34 @@ physicslens/
 │   │   │   ├── fluid_specialist.py              🔶 stub
 │   │   │   └── causality_specialist.py          🔶 stub
 │   │   └── stage4/                  # Final diagnosis outputs
+│   │       ├── diagnostic_report.py             🔵 implemented
+│   │       ├── diagnostic_report_old.py         (previous version, kept for reference)
 │   │       ├── physics_consistency_scorer.py    🔶 stub
 │   │       ├── severity_assessor.py             🔶 stub
 │   │       ├── physics_breakdown_timer.py       🔶 stub
-│   │       ├── failure_explainer.py             🔶 stub
-│   │       └── diagnostic_report.py             🔶 stub
+│   │       └── failure_explainer.py             🔶 stub
 │   ├── tools/                       # Shared utilities
 │   │   ├── video.py
 │   │   ├── flow.py
 │   │   ├── tracking.py              # Cached Shi-Tomasi+LK tracks (one canonical set per video)
 │   │   ├── evidence.py             # Cross-stage evidence bus (Stage 2→3→4 data passing)
-│   │   ├── embeddings.py
-│   │   └── vlm.py
+│   │   ├── embeddings.py            # DINOv2 / CLIP / SigLIP — L2-normalised, batched, cached
+│   │   └── vlm.py                   # OpenRouter multi-frame suspicion scoring
 │   ├── scripts/
-│   │   └── check_models.py          # Sanity-check ML model availability
+│   │   ├── check_models.py          # Sanity-check ML model availability
+│   │   ├── test_vlm_scoring.py      # Unit tests — VLM JSON parsing + payload build
+│   │   ├── test_vlm_pipeline.py     # Integration test — VLM suspicion pipeline
+│   │   ├── test_object_tracker.py   # Object-tracker smoke test
+│   │   └── vlm_failure_mode_eval.py # multi-frame vs single-frame AUC eval (+ .json results)
 │   └── archive_files/               # Old flat pipelines, kept for reference
 ├── frontend/
 │   └── index.html                   # Self-contained UI — no build step
-└── test_videos/
+└── test_videos/                     # Real vs AI-generated clips (note: *.mp4 is gitignored)
+    ├── README.md                    # describes the set + the matched real/AI demo pair
+    ├── real/
+    │   ├── physics_iq/              # real Physics-IQ benchmark footage
+    │   └── wikimedia/               # short real clips
+    └── ai_generated/               # text/image-to-video model output
 ```
 
 | Status | Meaning |

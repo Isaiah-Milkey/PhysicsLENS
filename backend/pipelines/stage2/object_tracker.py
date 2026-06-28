@@ -63,9 +63,11 @@ def _render_annotated(
 
 def _embed_crops_dinov2(crops: list[np.ndarray], model=None) -> np.ndarray:
     """
-    L2-normalised DINOv2 (ViT-S/14) CLS-token embeddings for a list of
-    BGR/RGB uint8 crop arrays.  Ported from sam_track_compare._embed_track.
-    Returns (K, D) float32.
+    L2-normalised DINOv2 (facebook/dinov2-base) descriptors for a list of
+    BGR uint8 crop arrays.  Ported from sam_track_compare._embed_track —
+    same checkpoint, so the 0.35 drift threshold keeps its original meaning.
+    Returns (K, 768) float32.  The loader is cached, so per-track calls
+    reuse one model instance.
     """
     from tools.embeddings import load_dinov2, embed_frames_dinov2
     if model is None:

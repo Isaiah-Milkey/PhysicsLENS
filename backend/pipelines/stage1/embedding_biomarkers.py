@@ -1,9 +1,13 @@
 """
 Stage 1 · Test 3 — Embedding Biomarkers
 -----------------------------------------
-Encode each sampled frame with DINOv2 / CLIP / SigLIP (whole-frame embedding).
-Compute latent velocity (‖Δz‖) and acceleration (‖Δ²z‖).
-Spikes reveal hidden visual or physics discontinuities.
+Encode each sampled frame with DINOv2 (facebook/dinov2-base) / CLIP / SigLIP
+(whole-frame embedding, L2-normalised). Compute latent velocity (‖Δz‖) and
+acceleration (‖Δ²z‖). Spikes reveal hidden visual or physics discontinuities.
+
+Default stride is 2 to match the world_models_evaluation notebooks and the
+Physics-IQ baseline statistics, which were computed in this exact embedding
+space (dinov2-base pooler/CLS, L2-normalised, stride 2).
 """
 import asyncio, json
 from typing import AsyncGenerator
@@ -18,7 +22,7 @@ from tools.video import load_frames
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg          = json.loads(settings) if settings else {}
     model_key    = cfg.get("model", "dinov2")
-    sample_every = max(1, int(cfg.get("sample_every", 5)))
+    sample_every = max(1, int(cfg.get("sample_every", 2)))
     acc_thresh   = float(cfg.get("accel_threshold", 0.5))
 
     yield {"type": "log", "level": "info", "text": "Loading video…"}
@@ -34,24 +38,28 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     await asyncio.sleep(0)
 
     try:
+        from tools.embeddings import device
         if model_key == "dinov2":
             from tools.embeddings import load_dinov2, embed_frames_dinov2
-            model = load_dinov2()
-            yield {"type": "log", "level": "info", "text": "Encoding whole-frame embeddings with DINOv2…"}
+            bundle = load_dinov2()
+            yield {"type": "log", "level": "info",
+                   "text": f"Encoding whole-frame embeddings with DINOv2 (dinov2-base, {device()}, batched)…"}
             await asyncio.sleep(0)
-            embs = embed_frames_dinov2(frames, model)
+            embs = embed_frames_dinov2(frames, bundle)
         elif model_key == "clip":
             from tools.embeddings import load_clip, embed_frames_clip
-            model, preprocess = load_clip()
-            yield {"type": "log", "level": "info", "text": "Encoding whole-frame embeddings with CLIP…"}
+            bundle = load_clip()
+            yield {"type": "log", "level": "info",
+                   "text": f"Encoding whole-frame embeddings with CLIP ({device()}, batched)…"}
             await asyncio.sleep(0)
-            embs = embed_frames_clip(frames, model, preprocess)
+            embs = embed_frames_clip(frames, bundle)
         elif model_key == "siglip":
             from tools.embeddings import load_siglip, embed_frames_siglip
-            model, processor = load_siglip()
-            yield {"type": "log", "level": "info", "text": "Encoding whole-frame embeddings with SigLIP…"}
+            bundle = load_siglip()
+            yield {"type": "log", "level": "info",
+                   "text": f"Encoding whole-frame embeddings with SigLIP ({device()}, batched)…"}
             await asyncio.sleep(0)
-            embs = embed_frames_siglip(frames, model, processor)
+            embs = embed_frames_siglip(frames, bundle)
         else:
             yield {"type": "error", "text": f"Unknown model '{model_key}'."}
             return
