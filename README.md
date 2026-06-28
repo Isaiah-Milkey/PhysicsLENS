@@ -38,6 +38,7 @@ analogous to a clinical pathway:
 physicslens/
 ├── backend/
 │   ├── main.py                      # FastAPI server + pipeline registry
+│   ├── dataset_api.py               # Batch eval router: upload / HF download / run-by-id
 │   ├── requirements.txt             # base / CPU-only deps (no torch)
 │   ├── requirements-gpu.txt         # torch, transformers, SAM3, etc.
 │   ├── pipelines/
@@ -50,7 +51,7 @@ physicslens/
 │   │   ├── stage2/                  # Failure localisation & hypothesis testing
 │   │   │   ├── object_tracker.py                🔵 implemented
 │   │   │   ├── event_localizer.py               🔵 implemented
-│   │   │   ├── trajectory_extractor.py          🔶 stub
+│   │   │   ├── trajectory_extractor.py          🔵 implemented
 │   │   │   ├── physics_hypothesis_generator.py  🔶 stub
 │   │   │   └── hypothesis_ranker.py             🔶 stub
 │   │   ├── stage3/                  # Specialist evaluation (one file per failure type)
@@ -72,6 +73,8 @@ physicslens/
 │   ├── tools/                       # Shared utilities
 │   │   ├── video.py
 │   │   ├── flow.py
+│   │   ├── tracking.py              # Cached Shi-Tomasi+LK tracks (one canonical set per video)
+│   │   ├── evidence.py             # Cross-stage evidence bus (Stage 2→3→4 data passing)
 │   │   ├── embeddings.py            # DINOv2 / CLIP / SigLIP — L2-normalised, batched, cached
 │   │   └── vlm.py                   # OpenRouter multi-frame suspicion scoring
 │   ├── scripts/
@@ -229,7 +232,38 @@ The UI auto-loads the pipeline list from `GET /pipelines` on startup.
 
 ## UI overview
 
-- **Left pane** — stage selector, test list, settings, run button
-- **Right pane → Report tab** — live output for the selected test; restores the last result when you switch between tests
-- **Right pane → Previous Reports tab** — full run history for the selected test, collapsible per-run detail
-- **Full Report button** (top right) — modal with a cross-test diagnostic report grouped by stage
+The tool has a single unified **Dataset** view — there's no separate single-video
+mode. You load **one or many** videos the same way; one video is just a batch of
+one. The top-bar **Dataset** button is the home/back control: from a per-video
+report it returns to the grid.
+
+**Grid view** (home)
+
+1. **Add videos** — either:
+   - **Upload** — drag-drop videos of any format (mp4, webm, mov, gif, …), or click
+     *choose a folder* to add a whole directory (non-video files are ignored).
+   - **HuggingFace** — enter a dataset repo id (+ optional subfolder, max count, and a
+     token for gated/private repos). The backend lists and downloads every video file
+     in the repo, streaming progress as it goes.
+2. **Select tests** — a multi-select checklist of the live (non-stub) pipelines, grouped by stage.
+3. **Run batch** — each video runs the selected pipelines sequentially. A progress
+   bar tracks `done / total` jobs. (Optional — you can also open a single video and
+   run individual tests from its report without running a batch first.)
+
+**Per-video report** (click any card)
+
+Opens a full-screen stage view for that video — the same stage tabs, test list,
+settings, run button, metrics, plots, overlay videos, and marker viewers used
+throughout the tool. On open it **auto-loads every test that already ran**: result
+dots mark which tests have data, the first completed stage/test is selected, and
+its report is shown immediately. Any test can be re-run individually from here.
+
+Each video card shows status and the worst severity across its tests. Because every
+pipeline runs against the *same* on-disk file, the per-video track cache and evidence
+bus are shared across the batch automatically. All of this is backed by the
+`/dataset/*` API in `dataset_api.py`.
+
+> **Any video format.** `tools/video.load_frames` decodes standard containers
+> (mp4, webm, mov, avi, mkv, …) through OpenCV/ffmpeg, and animated GIFs through
+> Pillow (OpenCV's `VideoCapture` is unreliable on GIFs, especially on Windows).
+> Every pipeline accepts any of these.
