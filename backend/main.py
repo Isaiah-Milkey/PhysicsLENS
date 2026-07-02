@@ -48,6 +48,7 @@ from pipelines.stage3.deformation_specialist  import run as run_s3_deformation
 from pipelines.stage3.contact_specialist      import run as run_s3_contact
 from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
 from pipelines.stage3.causality_specialist    import run as run_s3_causality
+from pipelines.stage3.consistency_specialist  import run as run_s3_consistency
 
 # ── Stage 4 — Final Diagnosis & Treatment Plan ────────────────────────────────
 from pipelines.stage4.physics_consistency_scorer import run as run_s4_scorer
@@ -182,12 +183,28 @@ PIPELINES = {
     "s2_object_tracker": {
         "id":    "s2_object_tracker",
         "name":  "Object Tracker",
-        "desc":  "Track salient objects with Shi-Tomasi + LK flow; measure appearance drift with DINOv2 (ported from SAM3 pipeline).",
+        "desc":  "Segment, mask-track, and label the primary subjects (Gemini names them, SAM3 masks them); publishes masks to the evidence bus for the Stage 3 Consistency Specialist. Falls back to Shi-Tomasi + LK keypoints on CPU.",
         "badge": "medium",
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "num_keypoints", "label": "Keypoints to detect",    "type": "number",
+            {"id": "tracker_mode", "label": "Tracking mode", "type": "select",
+             "default": "auto",
+             "options": [
+                 {"value": "auto", "label": "Auto (SAM3 masks, LK fallback)"},
+                 {"value": "sam3", "label": "SAM3 masks only (error if unavailable)"},
+                 {"value": "lk",   "label": "LK keypoints only (CPU)"},
+             ]},
+            {"id": "max_subjects", "label": "Max subjects to mask", "type": "number",
+             "default": 3, "min": 1, "max": 6},
+            {"id": "naming_model", "label": "Subject naming model (CreateAI)", "type": "select",
+             "default": "geminiflash2_5",
+             "options": [
+                 {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5"},
+                 {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite"},
+                 {"value": "gpt4o",               "label": "GPT-4o"},
+             ]},
+            {"id": "num_keypoints", "label": "Keypoints to detect (LK mode)",    "type": "number",
              "default": 60, "min": 10, "max": 300},
             {"id": "sample_every",  "label": "Sample every N frames",   "type": "number",
              "default": 1,  "min": 1,  "max": 10},
@@ -195,6 +212,12 @@ PIPELINES = {
              "default": "true",
              "options": [
                  {"value": "true",  "label": "Enabled (requires torch)"},
+                 {"value": "false", "label": "Disabled (faster)"},
+             ]},
+            {"id": "use_locate_anything", "label": "Semantic object labels (LocateAnything-3B)", "type": "select",
+             "default": "true",
+             "options": [
+                 {"value": "true",  "label": "Enabled (requires GPU)"},
                  {"value": "false", "label": "Disabled (faster)"},
              ]},
             {"id": "render_video",  "label": "Labeled object video",    "type": "select",
@@ -280,6 +303,34 @@ PIPELINES = {
     },
 
     # ── Stage 3: Specialist Evaluation ───────────────────────────────────────
+    "s3_consistency": {
+        "id":    "s3_consistency",
+        "name":  "Object Consistency Specialist",
+        "desc":  "DINOv2 drift detects appearance change-points per masked subject (fixed viewport); the VLM verifies and explains each one. Vanish/reappear from mask presence gaps.",
+        "badge": "expensive",
+        "dummy": False,
+        "requires_pair": False,
+        "settings": [
+            {"id": "model", "label": "CreateAI vision model", "type": "select",
+             "default": "geminiflash2_5",
+             "options": [
+                 {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5"},
+                 {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite"},
+                 {"value": "gpt4o",               "label": "GPT-4o"},
+             ]},
+            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
+             "default": 3, "min": 1, "max": 6},
+            {"id": "max_checks", "label": "Max VLM checks per subject", "type": "number",
+             "default": 4, "min": 1, "max": 12},
+            {"id": "drift_threshold", "label": "Drift threshold (cosine dist)", "type": "number",
+             "default": 0.30, "min": 0.05, "max": 1.0},
+            {"id": "strip_tiles", "label": "Tiles in overview strip", "type": "number",
+             "default": 6, "min": 3, "max": 10},
+            {"id": "min_vanish_gap_s", "label": "Min vanish gap (s)", "type": "number",
+             "default": 0.3, "min": 0.05, "max": 3.0},
+        ],
+        "run": run_s3_consistency,
+    },
     "s3_collision": {
         "id":    "s3_collision",
         "name":  "Collision Specialist",

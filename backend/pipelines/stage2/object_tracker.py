@@ -34,22 +34,23 @@ from tools.evidence import EVIDENCE, video_id
 def _render_annotated(
     frames: list, obj_tracks: list[dict], max_frames: int = 240
 ) -> tuple[list, int]:
-    """Draw each track's box + 'obj N' label (legend colors) on every frame.
+    """Draw each track's box + label (legend colors) on every frame.
+    Uses the track's semantic label (LocateAnything) if present, else 'obj N'.
     Returns (annotated frames, subsample step)."""
     by_frame: dict[int, list] = {}
     for ct in obj_tracks:
         for f, box in zip(ct["frames"], ct["boxes"]):
-            by_frame.setdefault(f, []).append((ct["id"], box))
+            by_frame.setdefault(f, []).append((ct["id"], ct.get("label"), box))
 
     n    = len(frames)
     step = max(1, -(-n // max_frames))   # ceil division
     out  = []
     for f in range(0, n, step):
         img = frames[f].copy()
-        for tid, (x0, y0, x1, y1) in by_frame.get(f, []):
+        for tid, tlabel, (x0, y0, x1, y1) in by_frame.get(f, []):
             color = _hex_to_bgr(_PALETTE[tid % len(_PALETTE)])
             cv2.rectangle(img, (x0, y0), (x1, y1), color, 2)
-            label = f"obj {tid}"
+            label = f"obj {tid} ({tlabel})" if tlabel else f"obj {tid}"
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
             ty = y0 - 6 if y0 - th - 10 >= 0 else min(y1 + th + 6, img.shape[0] - 4)
             cv2.rectangle(img, (x0, ty - th - 4), (x0 + tw + 6, ty + 4), color, -1)
@@ -98,46 +99,191 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     sample_every = max(1,  int(cfg.get("sample_every",   1)))
     use_dinov2   = str(cfg.get("use_dinov2", "true")).lower() not in ("false", "0", "no")
     render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
+    use_locate_anything = str(cfg.get("use_locate_anything", "true")).lower() not in ("false", "0", "no")
+    tracker_mode = str(cfg.get("tracker_mode", "auto")).lower()          # auto | sam3 | lk
+    max_subjects = max(1, int(cfg.get("max_subjects", 3)))
+    naming_model = str(cfg.get("naming_model", "geminiflash2_5"))
 
-    yield {"type": "log", "level": "info", "text": "Loading video & tracking keypoints…"}
-    await asyncio.sleep(0)
-
-    # ── Phase 1+2: shared, cached LK tracking + clustering ────────────────────
     loop = asyncio.get_event_loop()
-    tr = await loop.run_in_executor(
-        None, lambda: get_tracks(video_path, num_kp=num_kp,
-                                 sample_every=sample_every, max_objects=8))
-    frames     = tr["frames"]
-    eff_fps    = tr["fps"]
-    meta       = tr["meta"]
-    obj_tracks = tr["tracks"]
-    n  = meta["n_frames"]
-    H, W = meta["H"], meta["W"]
-    nk = meta["nk"]
-    kp_loss_pct = meta["kp_loss_pct"]
-    kp_lost     = int(round(kp_loss_pct * nk))
 
-    if n < 3:
-        yield {"type": "error", "text": f"Video too short ({n} frames)."}
-        return
-    if not obj_tracks:
-        yield {"type": "error", "text": "No keypoints detected in any frame."}
-        return
-    if meta["start"] > 0:
-        yield {"type": "log", "level": "warn",
-               "text": f"First {meta['start']} frame(s) featureless — tracking started later."}
+    # ── Phase 1 (primary): segmentation-first subject tracking ────────────────
+    # Gemini names the primary subjects from the first frame; SAM3 mask-tracks
+    # each named subject. Tracks come out in the same schema as the LK path so
+    # every downstream consumer (drift, plots, evidence bus) works unchanged.
+    obj_tracks: list[dict] = []
+    masks_by_track: dict[int, dict[int, np.ndarray]] = {}   # track id → {frame: mask}
+    mask_scale = 1.0
+    seg_mode = False
+
+    if tracker_mode in ("auto", "sam3"):
+        try:
+            from tools.video import load_frames
+            from tools.createai import name_subjects, credentials
+            from tools.sam3 import segment_concepts, mask_box
+
+            if not all(credentials()):
+                raise RuntimeError("CreateAI credentials missing (needed to name subjects)")
+
+            yield {"type": "log", "level": "info", "text": "Loading video…"}
+            await asyncio.sleep(0)
+            frames, raw_fps = await loop.run_in_executor(
+                None, lambda: load_frames(video_path, step=sample_every))
+            eff_fps = (raw_fps or 30.0) / sample_every
+            n = len(frames)
+            if n < 3:
+                yield {"type": "error", "text": f"Video too short ({n} frames)."}
+                return
+            H, W = frames[0].shape[:2]
+
+            yield {"type": "log", "level": "info",
+                   "text": "Naming primary subjects (Gemini via CreateAI, first + middle frame)…"}
+            subjects = await name_subjects([frames[0], frames[n // 2]],
+                                           max_subjects=max_subjects,
+                                           model=naming_model)
+            if not subjects:
+                raise RuntimeError("VLM returned no subject names")
+            yield {"type": "log", "level": "info",
+                   "text": "Primary subjects: " + ", ".join(f"“{s}”" for s in subjects)}
+            await asyncio.sleep(0)
+
+            yield {"type": "log", "level": "info",
+                   "text": f"SAM3 mask-tracking {len(subjects)} subject(s) through the clip…"}
+            await asyncio.sleep(0)
+            seg = await loop.run_in_executor(
+                None, lambda: segment_concepts(frames, subjects))
+            mask_scale = seg["scale"]
+            sampled_frames = seg["sampled_frames"]      # SAM3's uniform subsample grid
+            n_sampled = len(sampled_frames)
+            if not seg["subjects"]:
+                raise RuntimeError("SAM3 matched none of the named subjects")
+
+            inv = 1.0 / mask_scale
+            tid = 0
+            for name, masks in seg["subjects"].items():
+                f_idxs, boxes, cx, cy = [], [], [], []
+                for fi in sorted(masks):
+                    b = mask_box(masks[fi], pad_frac=0.0)
+                    if b is None:
+                        continue
+                    x0, y0, x1, y1 = (int(v * inv) for v in b)
+                    f_idxs.append(fi)
+                    boxes.append((x0, y0, x1, y1))
+                    cx.append((x0 + x1) / 2.0)
+                    cy.append((y0 + y1) / 2.0)
+                if len(f_idxs) < 3:
+                    continue
+                obj_tracks.append({"id": tid, "frames": f_idxs, "boxes": boxes,
+                                   "cx": cx, "cy": cy, "n_kp": 0, "label": name})
+                masks_by_track[tid] = masks
+                tid += 1
+            if not obj_tracks:
+                raise RuntimeError("no subject produced a usable mask track")
+
+            seg_mode = True
+            meta = {"n_frames": n, "H": H, "W": W, "start": 0,
+                    "nk": 0, "kp_loss_pct": 0.0}
+            nk, kp_loss_pct, kp_lost = 0, 0.0, 0
+            for ct in obj_tracks:
+                yield {"type": "log", "level": "info",
+                       "text": f"“{ct['label']}” masked on {len(ct['frames'])}/{n_sampled} "
+                               "sampled frame(s)."}
+        except Exception as exc:                                    # noqa: BLE001
+            if tracker_mode == "sam3":
+                yield {"type": "error",
+                       "text": f"Segmentation mode failed: {str(exc)[:300]}"}
+                return
+            yield {"type": "log", "level": "warn",
+                   "text": f"Segmentation path unavailable ({str(exc)[:160]}) — "
+                           "falling back to LK keypoint tracking."}
+            obj_tracks, masks_by_track, seg_mode = [], {}, False
+
+    # ── Phase 1 (fallback): shared, cached LK tracking + clustering ───────────
+    if not seg_mode:
+        yield {"type": "log", "level": "info", "text": "Loading video & tracking keypoints…"}
+        await asyncio.sleep(0)
+        tr = await loop.run_in_executor(
+            None, lambda: get_tracks(video_path, num_kp=num_kp,
+                                     sample_every=sample_every, max_objects=8))
+        frames     = tr["frames"]
+        eff_fps    = tr["fps"]
+        meta       = tr["meta"]
+        obj_tracks = tr["tracks"]
+        n  = meta["n_frames"]
+        H, W = meta["H"], meta["W"]
+        nk = meta["nk"]
+        kp_loss_pct = meta["kp_loss_pct"]
+        kp_lost     = int(round(kp_loss_pct * nk))
+
+        if n < 3:
+            yield {"type": "error", "text": f"Video too short ({n} frames)."}
+            return
+        if not obj_tracks:
+            yield {"type": "error", "text": "No keypoints detected in any frame."}
+            return
+        if meta["start"] > 0:
+            yield {"type": "log", "level": "warn",
+                   "text": f"First {meta['start']} frame(s) featureless — tracking started later."}
 
     n_objects = len(obj_tracks)
     yield {"type": "log", "level": "info",
            "text": f"{n} frames @ {eff_fps:.1f} fps — {n_objects} object track(s) "
-                   f"from {nk} keypoints."}
+                   + ("via SAM3 subject masks." if seg_mode else f"from {nk} keypoints.")}
     await asyncio.sleep(0)
 
-    # Publish canonical tracks to the evidence bus for downstream stages.
+    # ── Phase 1b: Semantic labeling (NVIDIA LocateAnything-3B, one-shot) ──────
+    # LK-fallback mode only — in segmentation mode subjects are already named.
+    # Single-image open-set detector — run once on the first tracked frame and
+    # match its grounded boxes onto the LK tracks by IOU. Doesn't change what
+    # gets tracked, only what it's called. Degrades gracefully (no GPU/model).
+    if use_locate_anything and not seg_mode:
+        yield {"type": "log", "level": "info",
+               "text": "Running LocateAnything-3B for semantic object labels…"}
+        await asyncio.sleep(0)
+        try:
+            from tools.locate_anything import detect, match_label
+            det_frame_idx = meta["start"]
+            detections = await loop.run_in_executor(
+                None, lambda: detect(frames[det_frame_idx]))
+            labeled = 0
+            for ct in obj_tracks:
+                if det_frame_idx in ct["frames"]:
+                    fi = ct["frames"].index(det_frame_idx)
+                    box = ct["boxes"][fi]
+                else:
+                    box = ct["boxes"][0]                # nearest available box
+                label = match_label(box, detections)
+                if label:
+                    ct["label"] = label
+                    labeled += 1
+            yield {"type": "log", "level": "info",
+                   "text": f"{len(detections)} object(s) detected; "
+                           f"{labeled}/{n_objects} track(s) labeled."}
+        except Exception as exc:                                    # noqa: BLE001
+            yield {"type": "log", "level": "warn",
+                   "text": f"LocateAnything-3B unavailable ({str(exc)[:180]}) — "
+                           "tracks stay unlabeled (obj N)."}
+        await asyncio.sleep(0)
+
+    # Publish canonical tracks — plus, in segmentation mode, the per-subject
+    # masks (PNG-compressed, a few KB each) — to the evidence bus. Stage 3's
+    # Consistency Specialist consumes the masks for its VLM judgment; the
+    # tracker itself only segments, tracks, and labels.
+    masks_png: dict = {}
+    if seg_mode:
+        from tools.sam3 import encode_mask_png
+        for ct in obj_tracks:
+            masks_png[ct["label"]] = {
+                int(fi): encode_mask_png(mk)
+                for fi, mk in masks_by_track[ct["id"]].items()}
     EVIDENCE.put(video_id(video_path), "s2_object_tracker", {
         "fps": float(eff_fps), "n_frames": int(n),
+        "mode": "sam3" if seg_mode else "lk",
+        "mask_scale": mask_scale,
+        "sampled_frames": (sampled_frames if seg_mode else None),
+        "masks_png": masks_png,
         "tracks": [{"id": ct["id"], "frames": ct["frames"], "boxes": ct["boxes"],
-                    "cx": ct["cx"], "cy": ct["cy"], "n_kp": ct["n_kp"]}
+                    "cx": ct["cx"], "cy": ct["cy"], "n_kp": ct["n_kp"],
+                    "label": ct.get("label")}
                    for ct in obj_tracks],
     })
 
@@ -223,7 +369,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             mode="lines+markers",
             marker=dict(size=4, color=color),
             line=dict(color=color, width=1.6),
-            name=f"obj {ct['id']}  ({ct['n_kp']} kp)",
+            name=(f"obj {ct['id']} — {ct['label']}" if ct.get("label")
+                  else f"obj {ct['id']}  ({ct['n_kp']} kp)"),
             hovertemplate=(
                 "<b>t = %{x:.2f}s</b><br>"
                 "y-centroid = %{y:.0f}px<br>"
@@ -301,7 +448,9 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     # ── Metrics ───────────────────────────────────────────────────────────────
     durations  = [len(ct["frames"]) for ct in obj_tracks]
     mean_dur   = float(np.mean(durations))  if durations  else 0.0
-    persistent = sum(1 for d in durations if d >= n * 0.5)
+    # Seg-mode tracks live on SAM3's sampling grid, not the full frame count.
+    persist_base = n_sampled if seg_mode else n
+    persistent = sum(1 for d in durations if d >= persist_base * 0.5)
 
     if dino_drifts:
         all_drift  = np.concatenate(list(dino_drifts.values()))
@@ -310,10 +459,18 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     else:
         mean_drift = peak_drift = float("nan")
 
+    labeled_names = [ct["label"] for ct in obj_tracks if ct.get("label")]
     yield {"type": "metric", "label": "Objects tracked",   "value": str(n_objects),
-           "sub": f"{persistent} persistent (≥50% of video)"}
-    yield {"type": "metric", "label": "Keypoint loss",     "value": f"{kp_loss_pct:.0%}",
-           "sub": f"{kp_lost} of {nk} keypoints lost"}
+           "sub": (f"{persistent} persistent · " + ", ".join(labeled_names)) if labeled_names
+                  else f"{persistent} persistent (≥50% of video)"}
+    if seg_mode:
+        coverage = float(np.mean([len(ct["frames"]) / max(n_sampled, 1)
+                                  for ct in obj_tracks]))
+        yield {"type": "metric", "label": "Mask coverage", "value": f"{coverage:.0%}",
+               "sub": f"mean fraction of {n_sampled} sampled frames each subject is masked on"}
+    else:
+        yield {"type": "metric", "label": "Keypoint loss",     "value": f"{kp_loss_pct:.0%}",
+               "sub": f"{kp_lost} of {nk} keypoints lost"}
     yield {"type": "metric", "label": "Mean track length", "value": f"{mean_dur:.0f}",
            "sub": f"frames (video = {n})"}
 
@@ -323,9 +480,15 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         yield {"type": "metric", "label": "Peak drift",            "value": f"{peak_drift:.3f}",
                "sub": "max identity deviation across all tracks"}
 
-    # Instability score: weight keypoint loss + appearance drift
+    # Instability score.
+    # Seg mode: mask coverage gaps + appearance drift (consistency judgment
+    #           itself is Stage 3's job — see the Consistency Specialist).
+    # LK mode:  keypoint loss + appearance drift (as before).
     drift_contrib = (min(mean_drift, 0.6) / 0.6 * 60) if not np.isnan(mean_drift) else 30
-    loss_contrib  = kp_loss_pct * 40
+    if seg_mode:
+        loss_contrib = (1.0 - coverage) * 40
+    else:
+        loss_contrib = kp_loss_pct * 40
     instability   = min(int(drift_contrib + loss_contrib), 100)
     sev_color     = "#E24B4A" if instability > 50 else "#EF9F27" if instability > 25 else "#4CAF50"
     yield {"type": "severity", "label": "Tracking instability score",
@@ -333,7 +496,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
 
     msg = (
         f"{n_objects} track(s), {persistent} persistent, "
-        f"{kp_loss_pct:.0%} keypoint loss"
+        + (f"{1 - coverage:.0%} mask gaps" if seg_mode else f"{kp_loss_pct:.0%} keypoint loss")
         + (f", mean drift {mean_drift:.3f}" if not np.isnan(mean_drift) else "") + "."
     )
     yield {"type": "log", "level": "success" if instability < 30 else "warn", "text": msg}

@@ -8,6 +8,9 @@
 #   * SAM 3   — facebook/sam3        (GATED: run `hf auth login` with an approved
 #                                      account before first use; ~3.4 GB)
 #   * DINOv2  — facebook/dinov2-base (Apache-2.0, non-gated, 768-d descriptor)
+#   * LocateAnything — nvidia/LocateAnything-3B (non-commercial research license,
+#                      trust_remote_code, ~6 GB; semantic track labels in the
+#                      Stage 2 Object Tracker via tools/locate_anything.py)
 #
 # SAM 3 requires transformers >= 5.1 (5.9 verified on this host).
 torch>=2.7
@@ -17,3 +20,4 @@ accelerate>=1.0
 safetensors>=0.4
 huggingface_hub>=0.34
 pillow>=10.0.0
+peft>=0.19           # required by LocateAnything-3B's remote modeling code
