@@ -473,6 +473,12 @@ PIPELINES = {
                  {"value": "html", "label": "HTML"},
                  {"value": "pdf",  "label": "PDF"},
              ]},
+             {"id": "use_llm_summary", "label": "Generate LLM summary", "type": "select",
+              "default": "true",
+              "options": [
+                  {"value": "true", "label": "True"},
+                  {"value": "false", "label": "False"},
+             ]},
         ],
         "run": run_s4_report,
     },
