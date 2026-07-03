@@ -26,11 +26,20 @@ import cv2
 import numpy as np
 
 # key → registry entry. `auc` is the measured AI-vs-real rank AUC from
-# scripts/vlm_multimodel_eval.py; `vram_gb` is approximate bf16 footprint.
+# scripts/vlm_multimodel_eval.py (None = not yet measured); `vram_gb` is the
+# approximate bf16 footprint.
 LOCAL_VLMS = {
     "qwen2.5-vl-7b": {
         "hf_id": "Qwen/Qwen2.5-VL-7B-Instruct",
         "label": "Qwen2.5-VL 7B", "vram_gb": 17, "auc": 0.92,
+    },
+    "qwen2.5-vl-32b": {
+        "hf_id": "Qwen/Qwen2.5-VL-32B-Instruct",
+        "label": "Qwen2.5-VL 32B", "vram_gb": 64, "auc": None,
+    },
+    "internvl3-14b": {
+        "hf_id": "OpenGVLab/InternVL3-14B-hf",
+        "label": "InternVL3 14B", "vram_gb": 30, "auc": None,
     },
     "internvl3-8b": {
         "hf_id": "OpenGVLab/InternVL3-8B-hf",
@@ -87,23 +96,76 @@ def _to_pil(frame_rgb: np.ndarray, max_side: int = 640):
     return Image.fromarray(frame_rgb)
 
 
-def _generate(images: list, prompt: str, max_new_tokens: int = 256,
-              model_key: str = DEFAULT_VLM) -> str:
-    m = load_local_vlm(model_key)
-    torch, model, proc = m["torch"], m["model"], m["proc"]
+def _prep_inputs(m: dict, images: list, prompt: str):
+    model, proc = m["model"], m["proc"]
     content = [{"type": "image", "image": im} for im in images]
     content.append({"type": "text", "text": prompt})
     messages = [{"role": "user", "content": content}]
+    return proc.apply_chat_template(
+        messages, add_generation_prompt=True, tokenize=True,
+        return_dict=True, return_tensors="pt",
+    ).to(model.device)
+
+
+def _generate(images: list, prompt: str, max_new_tokens: int = 256,
+              model_key: str = DEFAULT_VLM, temperature: float = 0.0) -> str:
+    m = load_local_vlm(model_key)
+    torch, model, proc = m["torch"], m["model"], m["proc"]
     with _GPU_LOCK:
-        inputs = proc.apply_chat_template(
-            messages, add_generation_prompt=True, tokenize=True,
-            return_dict=True, return_tensors="pt",
-        ).to(model.device)
+        inputs = _prep_inputs(m, images, prompt)
+        gen_kwargs = dict(max_new_tokens=max_new_tokens, do_sample=False)
+        if temperature > 0:
+            gen_kwargs.update(do_sample=True, temperature=temperature, top_p=0.9)
         with torch.no_grad():
-            out = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+            out = model.generate(**inputs, **gen_kwargs)
         return proc.batch_decode(
             out[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True
         )[0]
+
+
+_YESNO_PROMPT = (
+    "You are a physics expert. These {n} frames are sampled in temporal order from "
+    "one video. AI-generated videos often show objects that morph, appear/disappear, "
+    "float, pass through each other, or move without forces. Judging the MOTION and "
+    "INTERACTIONS across frames: does this video violate real-world physics?\n"
+    "Answer with exactly one word: Yes or No."
+)
+
+
+def plausibility_logprob(frames_rgb: list[np.ndarray], n_sample: int = 8,
+                         model_key: str = DEFAULT_VLM) -> Optional[float]:
+    """
+    Token-probability suspicion score: ask a Yes/No question and read the model's
+    next-token distribution instead of a self-written float. Returns
+    P(Yes) / (P(Yes) + P(No)) ∈ [0, 1] — continuous and deterministic, unlike the
+    quantized scores models write in JSON — or None if the Yes/No mass is
+    negligible (model tried to answer something else).
+    """
+    m = load_local_vlm(model_key)
+    torch, model, proc = m["torch"], m["model"], m["proc"]
+    idx = np.linspace(0, len(frames_rgb) - 1, min(n_sample, len(frames_rgb))).astype(int)
+    imgs = [_to_pil(frames_rgb[i]) for i in idx]
+    with _GPU_LOCK:
+        inputs = _prep_inputs(m, imgs, _YESNO_PROMPT.format(n=len(imgs)))
+        with torch.no_grad():
+            out = model.generate(**inputs, max_new_tokens=1, do_sample=False,
+                                 output_scores=True, return_dict_in_generate=True)
+        probs = torch.softmax(out.scores[0][0].float(), dim=-1)
+
+        tok = getattr(proc, "tokenizer", proc)
+
+        def _mass(word: str) -> float:
+            ids = set()
+            for v in (word, " " + word, word.lower(), " " + word.lower(), word.upper()):
+                enc = tok.encode(v, add_special_tokens=False)
+                if enc:
+                    ids.add(enc[0])
+            return float(sum(probs[i].item() for i in ids))
+
+        p_yes, p_no = _mass("Yes"), _mass("No")
+    if p_yes + p_no < 1e-4:   # model answered neither Yes nor No
+        return None
+    return p_yes / (p_yes + p_no)
 
 
 def _parse_json(raw: str) -> Optional[dict | list]:
@@ -202,20 +264,45 @@ _ANALYZE_PROMPT = (
 
 
 def analyze_physics(frames_rgb: list[np.ndarray], n_sample: int = 8,
-                    model_key: str = DEFAULT_VLM) -> dict:
+                    model_key: str = DEFAULT_VLM, samples: int = 1) -> dict:
     """
     Multi-frame physics-anomaly extraction: a holistic suspicion score plus a list
     of concrete violations, each naming the broken law, the observation, and why
     it is physically impossible.
+
+    samples > 1 enables self-consistency: the judgement is generated `samples`
+    times at temperature 0.7, the median score is used, and a MEASURED
+    `consistency` ∈ [0,1] (1 − 2·std of the sampled scores, clamped) is added —
+    a real agreement statistic, unlike the model's self-reported confidence.
+    Violations come from the sample whose score is closest to the median.
     """
     idx = np.linspace(0, len(frames_rgb) - 1, min(n_sample, len(frames_rgb))).astype(int)
     imgs = [_to_pil(frames_rgb[i]) for i in idx]
-    raw = _generate(imgs, _ANALYZE_PROMPT.format(n=len(imgs)), max_new_tokens=768,
-                    model_key=model_key)
-    parsed = _parse_json(raw)
+    prompt = _ANALYZE_PROMPT.format(n=len(imgs))
+
+    if samples > 1:
+        results, scores = [], []
+        for _ in range(samples):
+            p = _parse_json(_generate(imgs, prompt, max_new_tokens=768,
+                                      model_key=model_key, temperature=0.7))
+            if isinstance(p, dict) and isinstance(p.get("suspicion_score"), (int, float)):
+                results.append(p)
+                scores.append(min(max(float(p["suspicion_score"]), 0.0), 1.0))
+        if scores:
+            med = float(np.median(scores))
+            parsed = dict(results[int(np.argmin([abs(s - med) for s in scores]))])
+            parsed["suspicion_score"] = med
+            parsed["consistency"] = round(max(0.0, 1.0 - 2.0 * float(np.std(scores))), 3)
+            parsed["score_samples"] = [round(s, 3) for s in scores]
+        else:
+            parsed = None
+    else:
+        parsed = _parse_json(_generate(imgs, prompt, max_new_tokens=768,
+                                       model_key=model_key))
+
     if not isinstance(parsed, dict):
         return {"suspicion_score": None, "confidence": 0.0,
-                "overall_assessment": f"unparseable: {raw[:150]}", "violations": []}
+                "overall_assessment": "no parseable judgement", "violations": []}
 
     # Normalise violations so the pipeline can render them without re-validating.
     violations = []

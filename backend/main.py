@@ -61,6 +61,8 @@ from tools.vlm_router import model_options as _vlm_options, DEFAULT_MODEL_KEY as
 _LOCAL_VLM_OPTIONS = [
     {"value": "qwen2.5-vl-7b", "label": "Qwen2.5-VL 7B — local, no key, AUC 0.92 (recommended)"},
     {"value": "internvl3-8b",  "label": "InternVL3 8B — local, no key, AUC 0.70"},
+    {"value": "internvl3-14b", "label": "InternVL3 14B — local, no key, AUC 0.60, ~30 GB"},
+    {"value": "qwen2.5-vl-32b", "label": "Qwen2.5-VL 32B — local, no key, AUC 0.58, ~64 GB (bigger ≠ better)"},
     {"value": "smolvlm2-2.2b", "label": "SmolVLM2 2.2B — local, no key, AUC 0.50 (fast)"},
 ]
 
@@ -196,6 +198,14 @@ PIPELINES = {
             _vlm_model_setting("Model", include_local=True, default="qwen2.5-vl-7b"),
             {"id": "num_frames", "label": "Keyframes to sample", "type": "number",
              "default": 8, "min": 2, "max": 20},
+            {"id": "token_prob_score", "label": "Token-probability score (local models)", "type": "select",
+             "default": "true",
+             "options": [
+                 {"value": "true",  "label": "Enabled — read P(violates) from Yes/No logits"},
+                 {"value": "false", "label": "Disabled"},
+             ]},
+            {"id": "consistency_samples", "label": "Self-consistency samples (1 = off; local models)", "type": "number",
+             "default": 1, "min": 1, "max": 5},
             _vlm_key_setting(),
         ],
         "run": run_s1_vlm,

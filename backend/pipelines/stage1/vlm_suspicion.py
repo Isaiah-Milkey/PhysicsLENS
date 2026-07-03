@@ -56,6 +56,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     cfg        = json.loads(settings) if settings else {}
     model_key  = cfg.get("model", "qwen2.5-vl-7b")
     num_frames = max(2, int(cfg.get("num_frames", 8)))
+    n_consist  = min(5, max(1, int(cfg.get("consistency_samples", 1))))
+    use_logprob = str(cfg.get("token_prob_score", "true")).lower() not in ("false", "0", "no")
     api_key    = str(cfg.get("api_key", "")).strip()
 
     is_local  = model_key in LOCAL_VLMS
@@ -65,10 +67,10 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
 
     if is_local:
         info = LOCAL_VLMS[model_key]
+        auc_txt = f"measured AUC {info['auc']:.2f}" if info.get("auc") else "AUC not yet measured"
         yield {"type": "log", "level": "info",
                "text": (f"Local model: {info['label']} ({info['hf_id']}) — "
-                        f"~{info['vram_gb']} GB VRAM, measured AUC {info['auc']:.2f}, "
-                        "no API key needed.")}
+                        f"~{info['vram_gb']} GB VRAM, {auc_txt}, no API key needed.")}
     elif demo_mode:
         yield {"type": "log", "level": "warn",
                "text": "No API key — running in demo mode (placeholder score)."}
@@ -104,14 +106,28 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         }
     elif is_local:
         try:
-            from tools.vlm_local import analyze_physics
+            from tools.vlm_local import analyze_physics, plausibility_logprob
             loop = asyncio.get_event_loop()
             rgb = [cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in keyframes]
             yield {"type": "log", "level": "info",
                    "text": "Loading model (first run downloads/loads weights — may take a minute)…"}
             await asyncio.sleep(0)
+            if n_consist > 1:
+                yield {"type": "log", "level": "info",
+                       "text": f"Self-consistency: sampling the judgement {n_consist}× "
+                               "to MEASURE agreement (median score, spread → consistency)."}
+                await asyncio.sleep(0)
             result = await loop.run_in_executor(
-                None, lambda: analyze_physics(rgb, n_sample=len(rgb), model_key=model_key))
+                None, lambda: analyze_physics(rgb, n_sample=len(rgb),
+                                              model_key=model_key, samples=n_consist))
+            if use_logprob:
+                try:
+                    result["logprob_score"] = await loop.run_in_executor(
+                        None, lambda: plausibility_logprob(rgb, n_sample=len(rgb),
+                                                           model_key=model_key))
+                except Exception as exc:  # noqa: BLE001
+                    yield {"type": "log", "level": "warn",
+                           "text": f"Token-probability score failed ({exc}) — skipping."}
         except Exception as exc:  # noqa: BLE001
             yield {"type": "log", "level": "error", "text": f"Local VLM failed: {exc}"}
             result = {"suspicion_score": None, "overall_assessment": str(exc),
@@ -155,6 +171,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     score      = min(max(float(raw_score), 0.0), 1.0) if parsed_ok else 0.0
     assessment = (result.get("overall_assessment") or result.get("explanation") or "").strip()
     confidence = float(result.get("confidence", 0) or 0)
+    logprob    = result.get("logprob_score")          # measured P(Yes|violation?)
+    consist    = result.get("consistency")            # measured sample agreement
     violations = _normalize_violations(result)
     fail_label = (result.get("suspected_failure") or "").strip()
     if fail_label and fail_label.lower() not in ("null", "none") and not violations:
@@ -242,14 +260,50 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                "caption": "Each row: the physical law the model believes is broken, "
                           "the visual evidence, and the reasoning."}
 
+    # ── Score comparison: self-reported vs measured signals ─────────────────────
+    if isinstance(logprob, (int, float)):
+        names  = ["Self-reported score (JSON)", "Token-probability P(violates)"]
+        vals   = [score, float(logprob)]
+        colors = [_zone_color(score), _zone_color(float(logprob))]
+        if isinstance(consist, (int, float)):
+            names.append("Self-consistency (measured)")
+            vals.append(float(consist))
+            colors.append("#1a54c4")
+        cmp_fig = go.Figure(go.Bar(
+            x=vals, y=names, orientation="h",
+            marker_color=colors, text=[f"{v:.2f}" for v in vals],
+            textposition="outside",
+        ))
+        cmp_fig.update_layout(
+            title=dict(text="Suspicion Signals — self-written vs read from the model",
+                       font=dict(size=15)),
+            xaxis=dict(range=[0, 1.12], showgrid=True, gridcolor="#ebebeb"),
+            height=110 + 55 * len(names), paper_bgcolor="white", plot_bgcolor="white",
+            margin=dict(l=10, r=30, t=55, b=25),
+            font=dict(family="IBM Plex Sans, sans-serif", size=13),
+        )
+        yield {"type": "plotly", "data": cmp_fig.to_json(),
+               "caption": ("JSON score: the float the model wrote. Token-probability: "
+                           "P(model answers 'Yes' to 'does this violate physics?'), read "
+                           "from the next-token distribution — continuous and not "
+                           "self-flattering. Consistency: agreement across resampled "
+                           "judgements (1.0 = same verdict every time).")}
+
     severity = min(int(score * 100), 100)
     top_law = violations[0]["law"] if violations else "—"
     yield {"type": "metric", "label": "Suspicion score",    "value": f"{score:.2f}",
            "sub": "0–1 (whole video)"}
+    if isinstance(logprob, (int, float)):
+        yield {"type": "metric", "label": "Token-prob score", "value": f"{logprob:.2f}",
+               "sub": "P(violates) from Yes/No logits"}
     yield {"type": "metric", "label": "Physics violations", "value": str(len(violations)),
            "sub": top_law if len(violations) else "none detected"}
     yield {"type": "metric", "label": "Model confidence",   "value": f"{confidence:.0%}",
            "sub": "self-reported"}
+    if isinstance(consist, (int, float)):
+        samples_txt = ", ".join(f"{s:.2f}" for s in result.get("score_samples", []))
+        yield {"type": "metric", "label": "Self-consistency", "value": f"{consist:.2f}",
+               "sub": f"measured over samples [{samples_txt}]"}
     yield {"type": "severity", "label": "VLM suspicion level", "value": severity, "color": color}
 
     if assessment and not demo_mode:
