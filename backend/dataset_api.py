@@ -166,10 +166,12 @@ def build_dataset_router(pipelines: dict) -> APIRouter:
 
         async def event_stream():
             try:
+                from tools.costs import instrument
                 if p.get("requires_pair"):
                     gen = p["run"](path, path, **kwargs)   # self-pair fallback
                 else:
                     gen = p["run"](path, **kwargs)
+                gen = instrument(gen, badge=p.get("badge", "—"))
                 async for event in gen:
                     yield json.dumps(event) + "\n"
             except Exception as exc:

@@ -25,6 +25,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from tools.costs import instrument
+
 # ── Stage 1 — Screening ───────────────────────────────────────────────────────
 from pipelines.stage1.temporal_smoothness         import run as run_s1_temporal
 from pipelines.stage1.optical_flow_irregularities import run as run_s1_optical_flow
@@ -153,26 +155,31 @@ PIPELINES = {
     },
     "s1_vlm": {
         "id":    "s1_vlm",
-        "name":  "VLM Suspicion Scores",
-        "desc":  "Ask a vision-language model to rate keyframes for physics plausibility. Requires OpenRouter API key.",
-        "badge": "cheap",
+        "name":  "VLM Physics Anomaly Detector",
+        "desc":  "A vision-language model judges the motion across keyframes and extracts concrete physics violations — which law is broken, what is observed, and why it's impossible. Local open-weight models run on the GPU with no API key; API models need an OpenRouter key.",
+        "badge": "medium",
         "dummy": False,
         "requires_pair": False,
         "settings": [
             {"id": "model", "label": "Model", "type": "select",
-             "default": "gemini-2.5-pro",
+             "default": "qwen2.5-vl-7b",
              "options": [
-                 # Grouped by provider: Gemini, then GPT, then Claude.
-                 {"value": "gemini-2.5-pro",    "label": "Gemini 2.5 Pro (recommended)"},
-                 {"value": "gemini-2.5-flash",  "label": "Gemini 2.5 Flash"},
-                 {"value": "gpt-4o",            "label": "GPT-4o"},
-                 {"value": "gpt-4.1",           "label": "GPT-4.1"},
-                 {"value": "gpt-5.1",           "label": "GPT-5.1"},
-                 {"value": "claude-sonnet-4.5", "label": "Claude Sonnet 4.5"},
+                 # Local open-weight models (no API key; AUC = measured AI-vs-real
+                 # separation from scripts/vlm_multimodel_eval.py).
+                 {"value": "qwen2.5-vl-7b",     "label": "Qwen2.5-VL 7B — local, AUC 0.92, ~17 GB (recommended)"},
+                 {"value": "internvl3-8b",      "label": "InternVL3 8B — local, AUC 0.70, ~18 GB"},
+                 {"value": "smolvlm2-2.2b",     "label": "SmolVLM2 2.2B — local, AUC 0.50, ~5 GB (fast, weak)"},
+                 # API models via OpenRouter (need API key).
+                 {"value": "gemini-2.5-pro",    "label": "Gemini 2.5 Pro — API key required"},
+                 {"value": "gemini-2.5-flash",  "label": "Gemini 2.5 Flash — API key required"},
+                 {"value": "gpt-4o",            "label": "GPT-4o — API key required"},
+                 {"value": "gpt-4.1",           "label": "GPT-4.1 — API key required"},
+                 {"value": "gpt-5.1",           "label": "GPT-5.1 — API key required"},
+                 {"value": "claude-sonnet-4.5", "label": "Claude Sonnet 4.5 — API key required"},
              ]},
             {"id": "num_frames", "label": "Keyframes to sample", "type": "number",
              "default": 8, "min": 2, "max": 20},
-            {"id": "api_key",    "label": "OpenRouter API key",   "type": "password",
+            {"id": "api_key",    "label": "OpenRouter API key (API models only)", "type": "password",
              "default": ""},
         ],
         "run": run_s1_vlm,
@@ -182,27 +189,43 @@ PIPELINES = {
     "s2_object_tracker": {
         "id":    "s2_object_tracker",
         "name":  "Object Tracker",
-        "desc":  "Track salient objects with Shi-Tomasi + LK flow; measure appearance drift with DINOv2 (ported from SAM3 pipeline).",
+        "desc":  "Segment & name objects with SAM3 (VLM-named concepts), track them, and measure DINOv2 appearance drift. Outputs a labeled segmented video. Falls back to Shi-Tomasi+LK if no GPU.",
         "badge": "medium",
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "num_keypoints", "label": "Keypoints to detect",    "type": "number",
-             "default": 60, "min": 10, "max": 300},
-            {"id": "sample_every",  "label": "Sample every N frames",   "type": "number",
-             "default": 1,  "min": 1,  "max": 10},
+            {"id": "method",        "label": "Tracking method",        "type": "select",
+             "default": "sam3",
+             "options": [
+                 {"value": "sam3", "label": "SAM3 segmentation (named objects, GPU)"},
+                 {"value": "lk",   "label": "Shi-Tomasi + LK corners (CPU fallback)"},
+             ]},
+            {"id": "num_frames",    "label": "Max frames (SAM3)",      "type": "number",
+             "default": 48, "min": 8, "max": 120},
+            {"id": "use_vlm_naming","label": "Name objects with VLM",  "type": "select",
+             "default": "true",
+             "options": [
+                 {"value": "true",  "label": "Enabled (Qwen2.5-VL names the scene)"},
+                 {"value": "false", "label": "Disabled (use concept vocabulary)"},
+             ]},
+            {"id": "concepts",      "label": "Concepts (optional, comma-separated)", "type": "text",
+             "default": "", "placeholder": "e.g. ball, wooden block, cup"},
             {"id": "use_dinov2",    "label": "DINOv2 appearance drift", "type": "select",
              "default": "true",
              "options": [
                  {"value": "true",  "label": "Enabled (requires torch)"},
                  {"value": "false", "label": "Disabled (faster)"},
              ]},
-            {"id": "render_video",  "label": "Labeled object video",    "type": "select",
+            {"id": "render_video",  "label": "Labeled segmented video", "type": "select",
              "default": "true",
              "options": [
                  {"value": "true",  "label": "Show annotated video"},
                  {"value": "false", "label": "Skip (faster)"},
              ]},
+            {"id": "num_keypoints", "label": "Keypoints (LK method)",   "type": "number",
+             "default": 50, "min": 10, "max": 300},
+            {"id": "sample_every",  "label": "Sample every N (LK method)", "type": "number",
+             "default": 1,  "min": 1,  "max": 10},
         ],
         "run": run_s2_object_tracker,
     },
@@ -555,6 +578,7 @@ async def run_pipeline(
                     gen = pipeline_fn(paths[0], paths[1], **kwargs)
                 else:
                     gen = pipeline_fn(paths[0], **kwargs)
+                gen = instrument(gen, badge=p.get("badge", "—"))
                 async for event in gen:
                     yield json.dumps(event) + "\n"
             except Exception as exc:
