@@ -18,6 +18,7 @@ Files live in a managed temp directory; clients reference them by id only, so
 no arbitrary server path is ever exposed.
 """
 import json
+import os
 import shutil
 import tempfile
 import uuid
@@ -34,8 +35,13 @@ VIDEO_EXTS = {
     ".mpg", ".mpeg", ".ogv", ".wmv", ".flv", ".3gp", ".ts", ".mts", ".m2ts",
 }
 
-DATASET_DIR = Path(tempfile.gettempdir()) / "physicslens_dataset"
+# Per-user directory: on a shared host the temp root is world-visible, so a
+# fixed name like "physicslens_dataset" gets created by whoever starts a server
+# first and everyone else hits PermissionError writing into it. Suffixing with
+# the uid gives each user their own writable directory.
+DATASET_DIR = Path(tempfile.gettempdir()) / f"physicslens_dataset_{os.getuid()}"
 DATASET_DIR.mkdir(parents=True, exist_ok=True)
+os.chmod(DATASET_DIR, 0o700)
 
 # id -> {"path": Path, "name": str}
 _FILES: dict[str, dict] = {}
