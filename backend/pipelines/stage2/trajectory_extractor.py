@@ -355,31 +355,81 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         yield {"type": "log", "level": "info", "text": "Loading video & tracking…"}
         await asyncio.sleep(0)
 
-        # ── Phase 1: shared, cached tracks (no re-tracking) ───────────────────
+        # ── Phase 1: tracks. Prefer the Object Tracker's SAM3 mask tracks on
+        # the evidence bus (already computed, labeled, centroid-accurate —
+        # zero added compute). Fall back to shared cached LK tracks.
         loop = asyncio.get_event_loop()
-        tr = await loop.run_in_executor(
-            None, lambda: get_tracks(video_path, num_kp=num_kp, max_objects=8))
-        frames = tr["frames"]
-        meta   = tr["meta"]
-        # Shallow-copy so kinematics keys we attach don't leak into the shared
-        # track cache (the lists inside are read-only here).
-        obj_tracks = [dict(ct) for ct in tr["tracks"]]
-        n  = meta["n_frames"]
-        H, W = meta["H"], meta["W"]
-        nk = meta["nk"]
-        kp_loss_pct = meta["kp_loss_pct"]
-        start = meta["start"]
-        n_obj = len(obj_tracks)
+        obj_tracks, track_src = [], "lk"
+        ev_tr = EVIDENCE.get(video_id(video_path), "s2_object_tracker")
+        if ev_tr and ev_tr.get("mode") == "sam3" and ev_tr.get("tracks"):
+            from tools.video import load_frames as _load_frames
+            frames, _raw_fps = await loop.run_in_executor(
+                None, _load_frames, video_path)
+            if len(frames) == int(ev_tr["n_frames"]):
+                obj_tracks = [dict(ct) for ct in ev_tr["tracks"]
+                              if len(ct.get("frames", [])) >= 3]
+                if obj_tracks:
+                    track_src = "sam3"
+                    H, W = frames[0].shape[:2]
+                    n = len(frames)
+                    nk, kp_loss_pct, start = 0, 0.0, 0
+                    fps = fps_over if fps_over > 0 else float(ev_tr["fps"])
+                    names = ", ".join(f"“{ct['label']}”" for ct in obj_tracks
+                                      if ct.get("label"))
+                    yield {"type": "log", "level": "info",
+                           "text": f"Reusing {len(obj_tracks)} SAM3 mask track(s) "
+                                   f"from the Object Tracker ({names})."}
+            else:
+                yield {"type": "log", "level": "warn",
+                       "text": "Object Tracker evidence has a different frame grid "
+                               "— falling back to LK tracks."}
 
+        if not obj_tracks:
+            tr = await loop.run_in_executor(
+                None, lambda: get_tracks(video_path, num_kp=num_kp, max_objects=8))
+            frames = tr["frames"]
+            meta   = tr["meta"]
+            # Shallow-copy so kinematics keys we attach don't leak into the
+            # shared track cache (the lists inside are read-only here).
+            obj_tracks = [dict(ct) for ct in tr["tracks"]]
+            n  = meta["n_frames"]
+            H, W = meta["H"], meta["W"]
+            nk = meta["nk"]
+            kp_loss_pct = meta["kp_loss_pct"]
+            start = meta["start"]
+            fps = fps_over if fps_over > 0 else float(tr["fps"])
+
+            # Static-track filter: Shi-Tomasi corners latch onto textured
+            # background, producing tracks that never move — junk for
+            # trajectory analysis. Keep movers; if nothing moves enough, keep
+            # the single most-moving track rather than none.
+            def _disp(ct):
+                cx, cy = np.asarray(ct["cx"], float), np.asarray(ct["cy"], float)
+                return float(np.hypot(cx.max() - cx.min(), cy.max() - cy.min()))
+            if obj_tracks:
+                min_disp = max(8.0, 0.02 * float(np.hypot(W, H)))
+                movers = [ct for ct in obj_tracks if _disp(ct) >= min_disp]
+                if not movers:
+                    movers = [max(obj_tracks, key=_disp)]
+                    yield {"type": "log", "level": "warn",
+                           "text": "No track moved significantly — keeping only "
+                                   "the most-moving one (video may be near-static)."}
+                elif len(movers) < len(obj_tracks):
+                    yield {"type": "log", "level": "info",
+                           "text": f"Filtered {len(obj_tracks) - len(movers)} static "
+                                   f"background track(s) (moved < {min_disp:.0f}px); "
+                                   f"{len(movers)} moving track(s) kept."}
+                obj_tracks = movers
+
+        n_obj = len(obj_tracks)
         if n < 3:
             yield {"type": "error", "text": f"Video too short ({n} frames)."}
             yield {"type": "done"}
             return
 
-        fps = fps_over if fps_over > 0 else float(tr["fps"])
-
         yield {"type": "log", "level": "info",
-               "text": f"{n} frames @ {fps:.1f} fps — {n_obj} cached track(s)."}
+               "text": f"{n} frames @ {fps:.1f} fps — {n_obj} track(s) "
+                       f"({'SAM3 masks' if track_src == 'sam3' else 'LK keypoints'})."}
         await asyncio.sleep(0)
 
         if n_obj == 0:
@@ -601,7 +651,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         mean_speed = float(np.mean(np.concatenate([ct["speed"] for ct in obj_tracks])))
 
         yield {"type": "metric", "label": "Objects analyzed", "value": str(n_obj),
-               "sub": f"{kp_loss_pct:.0%} keypoint loss"}
+               "sub": ("SAM3 mask tracks (Object Tracker)" if track_src == "sam3"
+                       else f"{kp_loss_pct:.0%} keypoint loss")}
         yield {"type": "metric", "label": "Peak speed", "value": f"{peak_speed:.0f}",
                "sub": "px/s (fastest track)"}
         yield {"type": "metric", "label": "Peak acceleration", "value": f"{peak_accel:.0f}",

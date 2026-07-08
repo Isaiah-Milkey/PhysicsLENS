@@ -139,11 +139,12 @@ def segment_concepts(frames_bgr: list, concepts: list[str]) -> dict:
 
 
 def segment_video(frames_bgr: list, *, box: Optional[tuple] = None,
-                  text: str = "the main moving object") -> dict:
+                  text: str = "the main moving object",
+                  box_frame: int = 0) -> dict:
     """Track ONE object through the clip; return its per-frame masks.
 
     Prompting: tries the box (XYXY, coordinates in the ORIGINAL frame size) on
-    the first frame if the installed transformers exposes a box-prompt API;
+    frame `box_frame` if the installed transformers exposes a box-prompt API;
     otherwise falls back to the verified text-prompt path. When several objects
     match, keeps the most persistent + confident one (as sam_track_compare did).
 
@@ -169,12 +170,14 @@ def segment_video(frames_bgr: list, *, box: Optional[tuple] = None,
         prompt_mode = "text"
         if box is not None:
             sb = [int(c * scale) for c in box]           # box in tracking-res coords
+            # Map the original-frame index onto the subsampled grid.
+            bf = int(np.argmin(np.abs(np.asarray(orig_idx) - int(box_frame))))
             for name in ("add_box_prompt", "add_new_points_or_boxes", "add_boxes"):
                 fn = getattr(proc, name, None)
                 if fn is None:
                     continue
                 try:
-                    session = fn(inference_session=session, frame_idx=0,
+                    session = fn(inference_session=session, frame_idx=bf,
                                  obj_ids=[1], boxes=[[sb]]) or session
                     prompt_mode = "box"
                     break

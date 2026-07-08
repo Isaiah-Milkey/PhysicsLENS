@@ -60,6 +60,53 @@ def _render_annotated(
     return out, step
 
 
+# ── Motion hotspot (frame differencing — near-free) ──────────────────────────
+
+def _motion_hotspot(frames: list, max_pairs: int = 12) -> Optional[dict]:
+    """Locate the region with the most motion across the clip.
+
+    Accumulated |gray frame diff| over ≤max_pairs evenly spaced frame pairs,
+    blurred, thresholded, largest contour. Returns {"box": XYXY (original px),
+    "peak_frame": idx of the pair with the strongest motion} or None.
+    Pure numpy/cv2 — no models, no API.
+    """
+    n = len(frames)
+    if n < 3:
+        return None
+    idxs = np.linspace(0, n - 2, min(max_pairs, n - 1), dtype=int)
+    H, W = frames[0].shape[:2]
+    scale = min(1.0, 360.0 / H)
+    size = (max(2, int(W * scale)), max(2, int(H * scale)))
+
+    accum = np.zeros(size[::-1], np.float32)
+    peak_frame, peak_energy = int(idxs[0]), -1.0
+    for i in idxs:
+        a = cv2.cvtColor(cv2.resize(frames[i], size), cv2.COLOR_BGR2GRAY)
+        b = cv2.cvtColor(cv2.resize(frames[i + 1], size), cv2.COLOR_BGR2GRAY)
+        d = cv2.absdiff(a, b).astype(np.float32)
+        accum += d
+        e = float(d.sum())
+        if e > peak_energy:
+            peak_energy, peak_frame = e, int(i)
+    if accum.max() < 1e-3:
+        return None
+
+    norm = (accum / accum.max() * 255).astype(np.uint8)
+    norm = cv2.GaussianBlur(norm, (9, 9), 0)
+    _, mask = cv2.threshold(norm, 50, 255, cv2.THRESH_BINARY)
+    mask = cv2.dilate(mask, np.ones((7, 7), np.uint8), iterations=2)
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return None
+    x, y, w, h = cv2.boundingRect(max(cnts, key=cv2.contourArea))
+    if w * h < mask.size * 0.001:
+        return None
+    inv = 1.0 / scale
+    return {"box": (int(x * inv), int(y * inv),
+                    int((x + w) * inv), int((y + h) * inv)),
+            "peak_frame": peak_frame}
+
+
 # ── DINOv2 appearance drift (ported from sam_track_compare.py) ───────────────
 
 def _embed_crops_dinov2(crops: list[np.ndarray], model=None) -> np.ndarray:
@@ -135,11 +182,28 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                 return
             H, W = frames[0].shape[:2]
 
+            # Motion hotspot (frame differencing, near-free): guarantees the
+            # fastest-moving object gets named and, below, gets tracked even
+            # if SAM3 misses it by name.
+            hotspot = await loop.run_in_executor(None, _motion_hotspot, frames)
+            motion_crop = None
+            if hotspot:
+                hx0, hy0, hx1, hy1 = hotspot["box"]
+                pf = hotspot["peak_frame"]
+                px, py = max(16, (hx1 - hx0) // 6), max(16, (hy1 - hy0) // 6)
+                motion_crop = frames[pf][max(0, hy0 - py):hy1 + py,
+                                         max(0, hx0 - px):hx1 + px].copy()
+                yield {"type": "log", "level": "info",
+                       "text": f"Motion hotspot: box {hotspot['box']} "
+                               f"(peak around frame {pf})."}
+
             yield {"type": "log", "level": "info",
-                   "text": "Naming primary subjects (Gemini via CreateAI, first + middle frame)…"}
+                   "text": "Naming primary subjects (Gemini via CreateAI, "
+                           "first + middle frame + motion crop)…"}
             subjects = await name_subjects([frames[0], frames[n // 2]],
                                            max_subjects=max_subjects,
-                                           model=naming_model)
+                                           model=naming_model,
+                                           motion_crop=motion_crop)
             if not subjects:
                 raise RuntimeError("VLM returned no subject names")
             yield {"type": "log", "level": "info",
@@ -178,6 +242,62 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                 tid += 1
             if not obj_tracks:
                 raise RuntimeError("no subject produced a usable mask track")
+
+            # Motion rescue: if no subject's mask covers the motion hotspot,
+            # the fastest-moving object slipped through naming — box-prompt
+            # SAM3 on the hotspot itself so it gets tracked regardless.
+            if hotspot:
+                bx0, by0, bx1, by1 = [int(v * mask_scale) for v in hotspot["box"]]
+                pf = hotspot["peak_frame"]
+                covered = False
+                for masks in masks_by_track.values():
+                    for fi in sorted(masks, key=lambda f: abs(f - pf))[:3]:
+                        region = masks[fi][max(0, by0):max(1, by1),
+                                           max(0, bx0):max(1, bx1)]
+                        if region.size and float(region.mean()) > 0.05:
+                            covered = True
+                            break
+                    if covered:
+                        break
+                if not covered:
+                    yield {"type": "log", "level": "warn",
+                           "text": "No subject mask covers the motion hotspot — "
+                                   "box-prompting SAM3 on it directly (motion rescue)."}
+                    await asyncio.sleep(0)
+                    try:
+                        from tools.sam3 import segment_video
+                        res = await loop.run_in_executor(
+                            None, lambda: segment_video(
+                                frames, box=hotspot["box"],
+                                text="the main moving object",
+                                box_frame=hotspot["peak_frame"]))
+                        inv_r = 1.0 / res["scale"]
+                        f_idxs, boxes, cx, cy = [], [], [], []
+                        for fi in sorted(res["masks"]):
+                            b = mask_box(res["masks"][fi], pad_frac=0.0)
+                            if b is None:
+                                continue
+                            x0, y0, x1, y1 = (int(v * inv_r) for v in b)
+                            f_idxs.append(fi)
+                            boxes.append((x0, y0, x1, y1))
+                            cx.append((x0 + x1) / 2.0)
+                            cy.append((y0 + y1) / 2.0)
+                        if len(f_idxs) >= 3:
+                            rid = len(obj_tracks)
+                            obj_tracks.append({"id": rid, "frames": f_idxs,
+                                               "boxes": boxes, "cx": cx, "cy": cy,
+                                               "n_kp": 0, "label": "moving object"})
+                            masks_by_track[rid] = res["masks"]
+                            yield {"type": "log", "level": "info",
+                                   "text": f"Motion rescue tracked “moving object” on "
+                                           f"{len(f_idxs)} frame(s) "
+                                           f"(prompt mode: {res['prompt_mode']})."}
+                        else:
+                            yield {"type": "log", "level": "warn",
+                                   "text": "Motion rescue found no stable object."}
+                    except Exception as exc:                        # noqa: BLE001
+                        yield {"type": "log", "level": "warn",
+                               "text": f"Motion rescue failed: {str(exc)[:160]}"}
 
             seg_mode = True
             meta = {"n_frames": n, "H": H, "W": W, "start": 0,

@@ -37,7 +37,6 @@ from pipelines.stage2.object_tracker              import run as run_s2_object_tr
 from pipelines.stage2.trajectory_extractor        import run as run_s2_trajectory_extractor
 from pipelines.stage2.event_localizer             import run as run_s2_event_localizer
 from pipelines.stage2.physics_hypothesis_generator import run as run_s2_hypothesis_generator
-from pipelines.stage2.hypothesis_ranker           import run as run_s2_hypothesis_ranker
 
 # ── Stage 3 — Specialist Evaluation ──────────────────────────────────────────
 from pipelines.stage3.collision_specialist    import run as run_s3_collision
@@ -45,7 +44,6 @@ from pipelines.stage3.gravity_specialist      import run as run_s3_gravity
 from pipelines.stage3.momentum_specialist     import run as run_s3_momentum
 from pipelines.stage3.friction_specialist     import run as run_s3_friction
 from pipelines.stage3.deformation_specialist  import run as run_s3_deformation
-from pipelines.stage3.contact_specialist      import run as run_s3_contact
 from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
 from pipelines.stage3.causality_specialist    import run as run_s3_causality
 from pipelines.stage3.consistency_specialist  import run as run_s3_consistency
@@ -274,32 +272,24 @@ PIPELINES = {
     "s2_hypothesis_generator": {
         "id":    "s2_hypothesis_generator",
         "name":  "Physics Hypothesis Generator",
-        "desc":  "Map trajectory evidence to likely failure categories using cheap heuristics.",
+        "desc":  "Rank which Stage 3 specialists to run: heuristic priors from bus evidence + one VLM triage call over keyframes at flagged moments. (Absorbed the former Hypothesis Ranker.)",
         "badge": "medium",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "accel_spike_threshold", "label": "Acceleration spike threshold (σ)", "type": "number",
-             "default": 4.0, "min": 1.0, "max": 20.0},
-            {"id": "overlap_threshold", "label": "Overlap threshold (IoU)", "type": "number",
-             "default": 0.05, "min": 0.01, "max": 1.0},
+            {"id": "model", "label": "CreateAI vision model", "type": "select",
+             "default": "geminiflash2_5",
+             "options": [
+                 {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5"},
+                 {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite"},
+                 {"value": "gpt4o",               "label": "GPT-4o"},
+             ]},
+            {"id": "max_hypotheses", "label": "Max hypotheses to return", "type": "number",
+             "default": 4, "min": 1, "max": 8},
+            {"id": "max_keyframes", "label": "Keyframes shown to the VLM", "type": "number",
+             "default": 4, "min": 2, "max": 6},
         ],
         "run": run_s2_hypothesis_generator,
-    },
-    "s2_hypothesis_ranker": {
-        "id":    "s2_hypothesis_ranker",
-        "name":  "Hypothesis Ranker",
-        "desc":  "Deduplicate and rank candidate failures by confidence score for Stage 3 routing.",
-        "badge": "medium",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "min_score",      "label": "Minimum confidence score", "type": "number",
-             "default": 0.20, "min": 0.0, "max": 1.0},
-            {"id": "max_hypotheses", "label": "Max hypotheses to return",  "type": "number",
-             "default": 5, "min": 1, "max": 20},
-        ],
-        "run": run_s2_hypothesis_ranker,
     },
 
     # ── Stage 3: Specialist Evaluation ───────────────────────────────────────
@@ -333,16 +323,29 @@ PIPELINES = {
     },
     "s3_collision": {
         "id":    "s3_collision",
-        "name":  "Collision Specialist",
-        "desc":  "Verify approach/exit velocities, contact normals, and restitution bounds at impact events.",
+        "name":  "Collision & Contact Specialist",
+        "desc":  "Mask-intersection contact episodes per subject pair: interpenetration (VLM-verified), restitution bounds (energy gain), and phantom bounces off nothing.",
         "badge": "expensive",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "restitution_min", "label": "Min restitution coefficient", "type": "number",
-             "default": 0.0, "min": 0.0, "max": 1.0},
-            {"id": "restitution_max", "label": "Max restitution coefficient", "type": "number",
-             "default": 1.0, "min": 0.0, "max": 1.0},
+            {"id": "model", "label": "CreateAI vision model", "type": "select",
+             "default": "geminiflash2_5",
+             "options": [
+                 {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5"},
+                 {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite"},
+                 {"value": "gpt4o",               "label": "GPT-4o"},
+             ]},
+            {"id": "overlap_threshold", "label": "Contact threshold (dilated-mask adjacency)", "type": "number",
+             "default": 0.02, "min": 0.005, "max": 0.9},
+            {"id": "deep_overlap", "label": "Interpenetration threshold (raw mask overlap)", "type": "number",
+             "default": 0.35, "min": 0.05, "max": 1.0},
+            {"id": "restitution_max", "label": "Max plausible restitution", "type": "number",
+             "default": 1.1, "min": 0.5, "max": 3.0},
+            {"id": "max_checks", "label": "Max VLM confirmations", "type": "number",
+             "default": 3, "min": 1, "max": 10},
+            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
+             "default": 3, "min": 1, "max": 6},
         ],
         "run": run_s3_collision,
     },
@@ -402,19 +405,7 @@ PIPELINES = {
         ],
         "run": run_s3_deformation,
     },
-    "s3_contact": {
-        "id":    "s3_contact",
-        "name":  "Contact Specialist",
-        "desc":  "Detect interpenetration, phantom contacts, and sudden separation violating non-penetration constraints.",
-        "badge": "expensive",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "overlap_threshold", "label": "Overlap threshold (fraction of area)", "type": "number",
-             "default": 0.02, "min": 0.001, "max": 1.0},
-        ],
-        "run": run_s3_contact,
-    },
+    # s3_contact merged into s3_collision — same events, same mask evidence.
     "s3_fluid": {
         "id":    "s3_fluid",
         "name":  "Fluid Specialist",

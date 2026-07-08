@@ -82,30 +82,44 @@ async def query_vision(query: str, frame_bgr: np.ndarray, *,
 
 
 _SUBJECTS_PROMPT = (
-    "The image shows two sampled frames (side by side) from one video. List "
-    "the primary distinct physical objects — the moving/acting subjects whose "
-    "physical behavior matters, then key interacting surfaces. Skip pure "
-    "background. Use short visual noun phrases a segmentation model can "
-    'ground (e.g. "basketball", "wooden crate"). At most {k}. Reply with ONLY '
-    'strict JSON: {{"subjects": ["...", "..."]}}'
+    "The image shows sampled frames (side by side) from one video. If a tile "
+    "is labeled MOTION, it is a zoomed crop of the region with the MOST "
+    "MOTION in the video — the moving object shown there is the most "
+    "important subject: name it FIRST, as a specific visual noun phrase.\n"
+    "Then list the other primary physical objects — moving/acting subjects, "
+    "then key interacting surfaces. Skip pure background. Use short visual "
+    'noun phrases a segmentation model can ground (e.g. "basketball", '
+    '"wooden crate"). At most {k}. Reply with ONLY strict JSON: '
+    '{{"subjects": ["...", "..."]}}'
 )
 
 
 async def name_subjects(frames_bgr: list, *, max_subjects: int = 3,
-                        model: str = DEFAULT_MODEL) -> list[str]:
+                        model: str = DEFAULT_MODEL,
+                        motion_crop=None) -> list[str]:
     """Ask the VLM to name the primary subjects across sampled frames.
 
     `frames_bgr`: 1–2 frames (e.g. first + middle) tiled side by side so
-    subjects that only appear mid-action are still named. Returns a list of
-    short noun phrases (may be empty). Raises RuntimeError on missing
-    credentials / HTTP failure — callers degrade to their fallback.
+    subjects that only appear mid-action are still named. `motion_crop`, if
+    given, is appended as a labeled MOTION tile and the prompt requires the
+    moving object shown there to be named first — this keeps a fast-moving
+    subject (which static frames under-represent) from being missed. Returns
+    a list of short noun phrases (may be empty). Raises RuntimeError on
+    missing credentials / HTTP failure — callers degrade to their fallback.
     """
     from tools.vlm import parse_vlm_json
 
-    tiles = frames_bgr if isinstance(frames_bgr, list) else [frames_bgr]
+    tiles = list(frames_bgr) if isinstance(frames_bgr, list) else [frames_bgr]
     h = min(t.shape[0] for t in tiles)
     tiles = [cv2.resize(t, (max(2, int(t.shape[1] * h / t.shape[0])), h))
              for t in tiles]
+    if motion_crop is not None and motion_crop.size:
+        mc = cv2.resize(motion_crop,
+                        (max(2, int(motion_crop.shape[1] * h / motion_crop.shape[0])), h))
+        cv2.rectangle(mc, (0, 0), (mc.shape[1] - 1, mc.shape[0] - 1), (0, 0, 255), 4)
+        cv2.putText(mc, "MOTION", (8, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.9, (0, 0, 255), 2, cv2.LINE_AA)
+        tiles.append(mc)
     gap = np.full((h, 12, 3), 255, np.uint8)
     composite = tiles[0]
     for t in tiles[1:]:
