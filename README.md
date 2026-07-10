@@ -61,9 +61,9 @@ physicslens/
 │   │   │   ├── collision_specialist.py          🔵 implemented (contact episodes, restitution, phantom
 │   │   │   │                                       bounces; absorbed contact_specialist — unregistered)
 │   │   │   ├── gravity_specialist.py            🔶 stub
-│   │   │   ├── momentum_specialist.py           🔶 stub (deferred — needs mass/depth cues)
-│   │   │   ├── friction_specialist.py           🔶 stub
-│   │   │   ├── contact_specialist.py            (merged into collision_specialist; kept for reference)
+│   │   │   ├── momentum_specialist.py           🔵 implemented (motion signature + VLM mass proxy;
+│   │   │   │                                       flags causeless momentum jumps & bad transfer)
+│   │   │   ├── friction_specialist.py           🔵 implemented
 │   │   │   ├── fluid_specialist.py              🔶 stub
 │   │   │   └── causality_specialist.py          🔶 stub
 │   │   └── stage4/                  # Final diagnosis outputs
