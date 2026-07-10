@@ -25,6 +25,8 @@ import requests
 
 import plotly.graph_objects as go
 
+from tools.evidence import EVIDENCE, video_id
+
 
 def _to_float(x, default=None):
     try:
@@ -74,7 +76,163 @@ def _status_to_score(status: str) -> float:
     return 0.5
 
 
-def _build_unified_report(previous_results: list[dict], video_name: str) -> dict:
+# ── Semantic findings: VLM-explained violations from the evidence bus ────────
+# Every Stage 2/3 specialist that ran on this video writes its structured
+# findings (each with a timestamp, a confidence, and a plain-language VLM
+# explanation) to the evidence bus, keyed by video content hash. This is a
+# much richer, more reliable "what went wrong and when" source than parsing
+# the frontend's log lines — it's the exact data the specialists' own VLM
+# calls produced, not a summary of it.
+SPECIALIST_DISPLAY = {
+    "s3_deformation": "Deformation",
+    "s3_collision":   "Collision & Contact",
+    "s3_momentum":    "Momentum",
+    "s3_friction":    "Friction",
+    "s3_fluid":       "Fluid",
+}
+
+
+def _norm_finding(v: dict, source: str) -> dict:
+    """Normalizes one specialist's violation/verdict dict into a common shape.
+
+    Two specialist conventions exist: deformation's verdicts carry a
+    "verdict" field directly (no separate confirm/reject step — the VLM
+    judgment IS the verdict), while collision/momentum/friction/fluid carry a
+    "type" + a "confirmed" bool from a dedicated VLM confirm/reject check.
+    `flagged` unifies both: a deformation verdict counts unless it's
+    "consistent"; the others count unless explicitly confirmed False (the
+    VLM said "plausible", i.e. not actually a defect).
+    """
+    is_verdict_style = "verdict" in v
+    kind = v.get("verdict") if is_verdict_style else v.get("type", "anomaly")
+    flagged = (kind not in (None, "consistent")) if is_verdict_style \
+        else (v.get("confirmed") is not False)
+
+    conf = v.get("vlm_confidence")
+    if conf is None:
+        conf = v.get("confidence")
+    if conf is None:
+        conf = v.get("score")
+
+    return {
+        "source": source,
+        "type": kind,
+        "label": v.get("label") or v.get("object_name"),
+        "t": v.get("t"),
+        "t_end": v.get("t_end", v.get("t")),
+        "confidence": round(float(conf), 3) if conf is not None else None,
+        "explanation": v.get("explanation") or v.get("desc") or "",
+        "flagged": bool(flagged),
+    }
+
+
+def _collect_semantic_findings(video_path: str) -> tuple[list[dict], list[dict], list[str]]:
+    """Reads every Stage 2/3 specialist's evidence-bus entry for this exact
+    video and returns (semantic_timeline, triage_hypotheses, specialists_seen).
+
+    semantic_timeline: chronological (time-localized findings first, then
+    whole-clip ones), each a normalized "what went wrong, when, per whom, and
+    why" entry with the specialist's own VLM explanation.
+    triage_hypotheses: the Hypothesis Generator's pre-run suspicions (kept
+    separate — these are *where the system suspected trouble*, not confirmed
+    findings, and shouldn't be conflated with the timeline above).
+    """
+    vid = video_id(video_path)
+    timeline: list[dict] = []
+    specialists_seen: list[str] = []
+
+    for key, name in SPECIALIST_DISPLAY.items():
+        ev = EVIDENCE.get(vid, key)
+        if not ev:
+            continue
+        specialists_seen.append(name)
+
+        if key == "s3_deformation":
+            for v in ev.get("verdicts", []) or []:
+                f = _norm_finding(v, name)
+                if f["flagged"]:
+                    timeline.append(f)
+            for g in ev.get("vanish_events", []) or []:
+                timeline.append({
+                    "source": name, "type": "vanish_gap", "label": g.get("label"),
+                    "t": g.get("t_start"), "t_end": g.get("t_end"),
+                    "confidence": g.get("score"),
+                    "explanation": (f"a {g.get('gap_s')}s presence gap in "
+                                    f"\"{g.get('label')}\"'s mask timeline — the "
+                                    "object was briefly undetectable"),
+                    "flagged": True,
+                })
+        elif key == "s3_fluid":
+            for v in ev.get("violations", []) or []:
+                f = _norm_finding(v, name)
+                if f["flagged"]:
+                    timeline.append(f)
+            h = ev.get("holistic")
+            if h and h.get("verdict") == "unrealistic":
+                timeline.append({
+                    "source": name, "type": "holistic_realism", "label": None,
+                    "t": None, "t_end": None, "confidence": h.get("confidence"),
+                    "explanation": h.get("explanation", ""), "flagged": True,
+                })
+        else:
+            for v in ev.get("violations", []) or []:
+                f = _norm_finding(v, name)
+                if f["flagged"]:
+                    timeline.append(f)
+
+    triage: list[dict] = []
+    ev_hyp = EVIDENCE.get(vid, "s2_hypothesis_generator")
+    if ev_hyp:
+        for h in ev_hyp.get("hypotheses", []) or []:
+            triage.append({
+                "specialist": h.get("specialist"), "confidence": h.get("confidence"),
+                "reason": h.get("reason"), "t_window": h.get("t_window"),
+            })
+
+    timeline.sort(key=lambda f: (f["t"] is None, f["t"] if f["t"] is not None else 0.0))
+    return timeline, triage, specialists_seen
+
+
+def _build_timeline_plot(semantic_timeline: list[dict]) -> str | None:
+    """Scatter of every time-localized finding: x = when, y = which
+    specialist, sized/colored by confidence — the visual answer to
+    'what went wrong, and when'."""
+    dated = [f for f in semantic_timeline if f["t"] is not None]
+    if not dated:
+        return None
+
+    sources = sorted({f["source"] for f in dated})
+    fig = go.Figure()
+    palette = ["#c05621", "#1a54c4", "#1a7a3c", "#be185d", "#7c3aed", "#0891b2"]
+    for i, src in enumerate(sources):
+        pts = [f for f in dated if f["source"] == src]
+        fig.add_trace(go.Scatter(
+            x=[f["t"] for f in pts], y=[src] * len(pts),
+            mode="markers",
+            marker=dict(size=[10 + 14 * (f["confidence"] or 0.5) for f in pts],
+                       color=palette[i % len(palette)], opacity=0.8,
+                       line=dict(color="white", width=1)),
+            text=[f"{f['type']}"
+                 + (f" ({f['label']})" if f.get("label") else "")
+                 + f"<br>{f['explanation']}" for f in pts],
+            hovertemplate="t=%{x:.2f}s<br>%{text}<extra></extra>",
+            name=src,
+        ))
+    fig.update_xaxes(title_text="Time (s)", showgrid=True, gridcolor="#ebebeb")
+    fig.update_layout(
+        title="Timeline of Findings — What Went Wrong, and When",
+        height=140 + 50 * max(1, len(sources)),
+        plot_bgcolor="white", paper_bgcolor="white",
+        margin=dict(l=140, r=40, t=60, b=50),
+        showlegend=False,
+    )
+    return fig.to_json()
+
+
+def _build_unified_report(previous_results: list[dict], video_name: str,
+                          semantic_timeline: list[dict] | None = None,
+                          triage_hypotheses: list[dict] | None = None,
+                          specialists_with_evidence: list[str] | None = None) -> dict:
     included = [
         r for r in previous_results
         if not r.get("excluded", False) and r.get("pipelineId") != "s4_report"
@@ -167,6 +325,10 @@ def _build_unified_report(previous_results: list[dict], video_name: str) -> dict
     else:
         global_severity_label = "low"
 
+    semantic_timeline = semantic_timeline or []
+    triage_hypotheses = triage_hypotheses or []
+    specialists_with_evidence = specialists_with_evidence or []
+
     recommended_followup = []
     if not included:
         recommended_followup.append("Run at least one Stage 1 or Stage 2 diagnostic test before generating the final report.")
@@ -176,6 +338,26 @@ def _build_unified_report(previous_results: list[dict], video_name: str) -> dict
         recommended_followup.append("Run localized and specialist diagnostics around the high-severity event windows.")
     if len(included) < 2:
         recommended_followup.append("Run multiple complementary tests to improve confidence.")
+    if not semantic_timeline:
+        untried = [n for n in SPECIALIST_DISPLAY.values() if n not in specialists_with_evidence]
+        if untried:
+            recommended_followup.append(
+                "No Stage 3 specialist evidence found for this video yet — run "
+                + ", ".join(untried) + " for a semantic (what/when/why) diagnosis, "
+                "not just numeric severities."
+            )
+
+    # Richer basis for confidence when specialist VLM evidence backs the report.
+    if semantic_timeline:
+        confidence_level = "medium" if len(specialists_with_evidence) < 2 else "high"
+        confidence_reason = (
+            f"Backed by {len(semantic_timeline)} VLM-explained finding(s) from "
+            f"{len(specialists_with_evidence)} Stage 3 specialist(s) "
+            f"({', '.join(specialists_with_evidence)}), not just numeric severities."
+        )
+    else:
+        confidence_level = "low" if len(included) < 2 else "medium"
+        confidence_reason = "This is a first-pass aggregation based only on available frontend test outputs."
 
     report = {
         "schema_version": "0.1",
@@ -194,8 +376,8 @@ def _build_unified_report(previous_results: list[dict], video_name: str) -> dict
                 "average_value": round(avg_severity, 2) if avg_severity is not None else None,
             },
             "confidence": {
-                "level": "low" if len(included) < 2 else "medium",
-                "reason": "This is a first-pass aggregation based only on available frontend test outputs.",
+                "level": confidence_level,
+                "reason": confidence_reason,
             },
         },
 
@@ -210,17 +392,37 @@ def _build_unified_report(previous_results: list[dict], video_name: str) -> dict
 
         "local_reports": local_reports,
 
+        # The semantic "what and when could have gone wrong" evidence: each
+        # entry is a Stage 3 specialist's own VLM-explained finding (source,
+        # type, timestamp, confidence, plain-language explanation), pulled
+        # directly from the evidence bus rather than reconstructed from logs.
+        "semantic_timeline": semantic_timeline,
+        "specialists_with_evidence": specialists_with_evidence,
+        # Where the automated Hypothesis Generator suspected trouble BEFORE
+        # specialists ran — background context, not a confirmed finding.
+        "triage_hypotheses": triage_hypotheses,
+
         "recommended_followup": recommended_followup,
 
         "llm_ready_context": {
             "instruction": (
-                "Summarize the global physics diagnosis using the local reports, "
-                "highlight likely failure modes, severity, confidence, and recommended follow-up tests."
+                "Summarize the global physics diagnosis using semantic_timeline as "
+                "the primary source for WHAT went wrong and WHEN, cross-checked "
+                "against global_summary/local_reports for overall severity and "
+                "confidence, and recommended follow-up tests."
             ),
             "inputs": {
                 "global_summary": "See global_summary.",
                 "stage_summary": "See stage_summary.",
                 "local_reports": "See local_reports.",
+                "semantic_timeline": (
+                    "Chronological VLM-explained findings — the ground truth for "
+                    "'what and when'. See semantic_timeline."
+                ),
+                "triage_hypotheses": (
+                    "Pre-run suspicions from the Hypothesis Generator — context "
+                    "only, not confirmed findings. See triage_hypotheses."
+                ),
             },
         },
     }
@@ -284,19 +486,39 @@ def _build_llm_prompt(report: dict) -> str:
     Convert the unified PhysicsLENS JSON report into a prompt for the LLM.
     """
     report_text = json.dumps(report, ensure_ascii=False, separators=(",", ":"))
+    n_findings = len(report.get("semantic_timeline") or [])
 
     return f"""
 You are a physics diagnostic assistant for AI-generated videos.
 
-You will receive a structured JSON report from PhysicsLENS.
-Your job is to write a concise final diagnosis for a human evaluator.
+You will receive a structured JSON report from PhysicsLENS. Your job is to
+write a concise final diagnosis for a human evaluator that explains, in plain
+language, WHAT physically went wrong in this video and WHEN it happened —
+grounded in the specialists' own VLM-generated explanations, not just scores.
+
+`semantic_timeline` is the ground truth for this: each entry is one Stage 3
+specialist's confirmed finding, already timestamped and explained in plain
+language by that specialist's own vision-model check (e.g. "at t=0.85s, the
+ball's momentum vanishes with no visible cause"). Walk through it in
+chronological order and narrate it as a coherent story of the video's
+physical failures — do not just list the entries verbatim, connect them
+(e.g. a collision finding at t=2.1s and a deformation finding at t=2.15s are
+probably the same event described by two specialists).
+
+`triage_hypotheses` (if present) is where the automated system suspected
+trouble BEFORE the specialists ran — cite it only as background on why those
+specialists were run, never as a confirmed finding.
 
 Important rules:
 - Do not invent evidence that is not present in the JSON.
+- Every specific claim about what went wrong and when must trace to an entry
+  in semantic_timeline (cite its timestamp) or a metric in local_reports —
+  never state a failure that isn't backed by one of these.
+- If semantic_timeline is empty, say plainly that no specialist has produced
+  an explained finding yet, and that global_summary's severities are numeric
+  only — do not invent a narrative to fill the gap.
 - If a score is described as prototype, first-pass, or placeholder, say that clearly.
 - Distinguish between "no issue detected" and "no severity data reported".
-- Focus on physics consistency, detected anomalies, severity, confidence, and recommended follow-up tests.
-- Do not claim that the video has a specific physical failure unless the JSON supports it.
 - Use careful language such as "the available diagnostics suggest" rather than overconfident claims.
 
 Please return the answer in this format:
@@ -305,6 +527,11 @@ Please return the answer in this format:
 
 ## Overall Assessment
 ...
+
+## Timeline of Findings
+(walk through semantic_timeline chronologically — what happened, when, per
+which specialist, and why it's a violation; {n_findings} finding(s) available.
+If none, say so explicitly instead of writing this section.)
 
 ## Main Evidence
 ...
@@ -428,10 +655,29 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         "level": "info",
         "text": f"Diagnostic Report Generator received {len(previous_results)} previous test result(s).",
     }
-
     await asyncio.sleep(0)
 
-    report = _build_unified_report(previous_results, video_name)
+    semantic_timeline, triage_hypotheses, specialists_with_evidence = \
+        _collect_semantic_findings(video_path)
+    if semantic_timeline:
+        yield {
+            "type": "log", "level": "info",
+            "text": (f"Evidence bus: {len(semantic_timeline)} VLM-explained finding(s) "
+                     f"from {len(specialists_with_evidence)} specialist(s) "
+                     f"({', '.join(specialists_with_evidence)})."),
+        }
+    else:
+        yield {
+            "type": "log", "level": "warn",
+            "text": ("No Stage 3 specialist evidence found on the bus for this video — "
+                     "the report will be numeric-only (severities/metrics), not a "
+                     "semantic what/when narrative. Run some Stage 3 specialists first."),
+        }
+    await asyncio.sleep(0)
+
+    report = _build_unified_report(previous_results, video_name,
+                                   semantic_timeline, triage_hypotheses,
+                                   specialists_with_evidence)
 
     score = report["global_summary"]["physics_consistency_score"]
     sev = report["global_summary"]["global_severity"]
@@ -450,6 +696,14 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         "sub": "Placeholder score for first-pass testing.",
     }
 
+    yield {
+        "type": "metric",
+        "label": "Semantic findings",
+        "value": len(semantic_timeline),
+        "sub": (f"VLM-explained, from {', '.join(specialists_with_evidence)}"
+               if specialists_with_evidence else "no Stage 3 specialist evidence yet"),
+    }
+
     if sev["max_value"] is not None:
         color = "#dc2626" if sev["max_value"] >= 75 else "#f97316" if sev["max_value"] >= 50 else "#facc15" if sev["max_value"] >= 25 else "#22c55e"
         yield {
@@ -464,6 +718,15 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             "type": "result",
             "title": "Unified Diagnostic JSON",
             "report": report,
+        }
+
+    timeline_plot = _build_timeline_plot(semantic_timeline)
+    if output_format == "json_visual" and timeline_plot:
+        yield {
+            "type": "plotly",
+            "caption": "What went wrong, and when — one marker per VLM-confirmed "
+                      "finding across all Stage 3 specialists that ran.",
+            "data": timeline_plot,
         }
 
     if output_format == "json_visual":
