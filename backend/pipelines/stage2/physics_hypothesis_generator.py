@@ -55,8 +55,8 @@ SPECIALISTS = {
                     "effects before causes: objects moving before being hit, "
                     "response lag, time-reversed motion"),
     "momentum":    ("Momentum",
-                    "post-collision velocities inconsistent with conservation "
-                    "(needs mass cues; weakest probe)"),
+                    "motion changes with no visible cause, or contacts where "
+                    "momentum transfer is one-sided / appears from nowhere"),
 }
 
 TRIAGE_PROMPT = (
