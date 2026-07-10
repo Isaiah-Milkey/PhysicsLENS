@@ -45,16 +45,11 @@ from pipelines.stage3.collision_specialist    import run as run_s3_collision
 from pipelines.stage3.gravity_specialist      import run as run_s3_gravity
 from pipelines.stage3.momentum_specialist     import run as run_s3_momentum
 from pipelines.stage3.friction_specialist     import run as run_s3_friction
-from pipelines.stage3.deformation_specialist  import run as run_s3_deformation
+from pipelines.stage3.deformation_specialist  import run as run_s3_deformation   # (absorbed consistency)
 from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
 from pipelines.stage3.causality_specialist    import run as run_s3_causality
-from pipelines.stage3.consistency_specialist  import run as run_s3_consistency
 
 # ── Stage 4 — Final Diagnosis & Treatment Plan ────────────────────────────────
-from pipelines.stage4.physics_consistency_scorer import run as run_s4_scorer
-from pipelines.stage4.severity_assessor          import run as run_s4_severity
-from pipelines.stage4.physics_breakdown_timer    import run as run_s4_pbt
-from pipelines.stage4.failure_explainer          import run as run_s4_explainer
 from pipelines.stage4.diagnostic_report          import run as run_s4_report
 
 from tools.vlm_router import model_options as _vlm_options, DEFAULT_MODEL_KEY as _VLM_DEFAULT
@@ -313,29 +308,6 @@ PIPELINES = {
     },
 
     # ── Stage 3: Specialist Evaluation ───────────────────────────────────────
-    "s3_consistency": {
-        "id":    "s3_consistency",
-        "name":  "Object Consistency Specialist",
-        "desc":  "DINOv2 drift detects appearance change-points per masked subject (fixed viewport); the VLM verifies and explains each one. Vanish/reappear from mask presence gaps.",
-        "badge": "expensive",
-        "dummy": False,
-        "requires_pair": False,
-        "settings": [
-            _vlm_model_setting("Vision model"),
-            _vlm_key_setting(),
-            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
-             "default": 3, "min": 1, "max": 6},
-            {"id": "max_checks", "label": "Max VLM checks per subject", "type": "number",
-             "default": 4, "min": 1, "max": 12},
-            {"id": "drift_threshold", "label": "Drift threshold (cosine dist)", "type": "number",
-             "default": 0.30, "min": 0.05, "max": 1.0},
-            {"id": "strip_tiles", "label": "Tiles in overview strip", "type": "number",
-             "default": 6, "min": 3, "max": 10},
-            {"id": "min_vanish_gap_s", "label": "Min vanish gap (s)", "type": "number",
-             "default": 0.3, "min": 0.05, "max": 3.0},
-        ],
-        "run": run_s3_consistency,
-    },
     "s3_collision": {
         "id":    "s3_collision",
         "name":  "Collision & Contact Specialist",
@@ -405,17 +377,27 @@ PIPELINES = {
     "s3_deformation": {
         "id":    "s3_deformation",
         "name":  "Deformation Specialist",
-        "desc":  "Analyse surface deformation of soft objects; check proportionality to applied force.",
+        "desc":  "Per masked subject, DINOv2 drift detects shape/appearance change-points (fixed viewport); the VLM verifies and explains each morph/fragmentation, and mask presence gaps flag vanish/reappear. (Absorbed the Object Consistency Specialist.)",
         "badge": "expensive",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "deformation_threshold", "label": "Deformation threshold (normalised)", "type": "number",
-             "default": 0.05, "min": 0.001, "max": 1.0},
+            _vlm_model_setting("Vision model"),
+            _vlm_key_setting(),
+            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
+             "default": 3, "min": 1, "max": 6},
+            {"id": "max_checks", "label": "Max VLM checks per subject", "type": "number",
+             "default": 4, "min": 1, "max": 12},
+            {"id": "drift_threshold", "label": "Drift threshold (cosine dist)", "type": "number",
+             "default": 0.30, "min": 0.05, "max": 1.0},
+            {"id": "strip_tiles", "label": "Tiles in overview strip", "type": "number",
+             "default": 6, "min": 3, "max": 10},
+            {"id": "min_vanish_gap_s", "label": "Min vanish gap (s)", "type": "number",
+             "default": 0.3, "min": 0.05, "max": 3.0},
         ],
         "run": run_s3_deformation,
     },
-    # s3_contact merged into s3_collision — same events, same mask evidence.
+    # s3_consistency merged into s3_deformation; s3_contact merged into s3_collision.
     "s3_fluid": {
         "id":    "s3_fluid",
         "name":  "Fluid Specialist",
@@ -448,67 +430,6 @@ PIPELINES = {
     },
 
     # ── Stage 4: Final Diagnosis & Treatment Plan ─────────────────────────────
-    "s4_scorer": {
-        "id":    "s4_scorer",
-        "name":  "Physics Consistency Scorer",
-        "desc":  "Aggregate Stage 1–3 evidence into a single Physics Consistency Score (0–100).",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "w_stage1", "label": "Stage 1 weight", "type": "number",
-             "default": 0.2, "min": 0.0, "max": 1.0},
-            {"id": "w_stage2", "label": "Stage 2 weight", "type": "number",
-             "default": 0.3, "min": 0.0, "max": 1.0},
-            {"id": "w_stage3", "label": "Stage 3 weight", "type": "number",
-             "default": 0.5, "min": 0.0, "max": 1.0},
-        ],
-        "run": run_s4_scorer,
-    },
-    "s4_severity": {
-        "id":    "s4_severity",
-        "name":  "Severity Assessor",
-        "desc":  "Map confirmed failure type and confidence onto Critical / Moderate / Minor / Inconclusive.",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "run": run_s4_severity,
-    },
-    "s4_pbt": {
-        "id":    "s4_pbt",
-        "name":  "Physics Breakdown Timer",
-        "desc":  "Pinpoint the exact frame where the video first deviates from physical law (PBT).",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "method", "label": "Change-point method", "type": "select",
-             "default": "cusum",
-             "options": [
-                 {"value": "cusum", "label": "CUSUM"},
-                 {"value": "bocpd", "label": "BOCPD"},
-                 {"value": "pelt",  "label": "PELT"},
-             ]},
-        ],
-        "run": run_s4_pbt,
-    },
-    "s4_explainer": {
-        "id":    "s4_explainer",
-        "name":  "Failure Explainer",
-        "desc":  "Generate a structured, human-readable explanation of the detected physics failure.",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "use_vlm", "label": "Enhance with VLM description", "type": "select",
-             "default": "false",
-             "options": [
-                 {"value": "false", "label": "No"},
-                 {"value": "true",  "label": "Yes (requires API key)"},
-             ]},
-        ],
-        "run": run_s4_explainer,
-    },
     "s4_report": {
         "id":    "s4_report",
         "name":  "Diagnostic Report",

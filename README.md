@@ -55,23 +55,23 @@ physicslens/
 │   │   │   └── physics_hypothesis_generator.py  🔵 implemented (VLM triage → ranks Stage 3 specialists;
 │   │   │                                           absorbed the former hypothesis_ranker.py — removed)
 │   │   ├── stage3/                  # Specialist evaluation (one file per failure type)
-│   │   │   ├── consistency_specialist.py        🔵 implemented (DINOv2 drift detects, VLM explains)
+│   │   │   ├── deformation_specialist.py        🔵 implemented (DINOv2 drift detects shape/appearance
+│   │   │   │                                       change + vanish; VLM explains — absorbed the former
+│   │   │   │                                       consistency_specialist, removed)
 │   │   │   ├── collision_specialist.py          🔵 implemented (contact episodes, restitution, phantom
 │   │   │   │                                       bounces; absorbed contact_specialist — unregistered)
 │   │   │   ├── gravity_specialist.py            🔶 stub
 │   │   │   ├── momentum_specialist.py           🔶 stub (deferred — needs mass/depth cues)
 │   │   │   ├── friction_specialist.py           🔶 stub
-│   │   │   ├── deformation_specialist.py        🔶 stub
 │   │   │   ├── contact_specialist.py            (merged into collision_specialist; kept for reference)
 │   │   │   ├── fluid_specialist.py              🔶 stub
 │   │   │   └── causality_specialist.py          🔶 stub
 │   │   └── stage4/                  # Final diagnosis outputs
-│   │       ├── diagnostic_report.py             🔵 implemented
-│   │       ├── diagnostic_report_old.py         (previous version, kept for reference)
-│   │       ├── physics_consistency_scorer.py    🔶 stub
-│   │       ├── severity_assessor.py             🔶 stub
-│   │       ├── physics_breakdown_timer.py       🔶 stub
-│   │       └── failure_explainer.py             🔶 stub
+│   │       ├── diagnostic_report.py             🔵 implemented (only Stage 4 pipeline —
+│   │       │                                       physics_consistency_scorer.py, severity_assessor.py,
+│   │       │                                       physics_breakdown_timer.py, and failure_explainer.py
+│   │       │                                       were unimplemented stubs, removed)
+│   │       └── diagnostic_report_old.py         (previous version, kept for reference)
 │   ├── tools/                       # Shared utilities
 │   │   ├── video.py
 │   │   ├── flow.py

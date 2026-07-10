@@ -38,15 +38,14 @@ SPECIALISTS = {
     "collision":   ("Collision & Contact",
                     "impacts between objects: interpenetration, restitution/energy "
                     "gain, phantom bounces off nothing"),
-    "consistency": ("Object Consistency",
-                    "an object morphs, changes identity/structure, or vanishes/"
-                    "reappears over time"),
     "gravity":     ("Gravity",
                     "free-fall or projectile motion with wrong acceleration, "
                     "floating/levitating objects"),
     "deformation": ("Deformation",
-                    "implausible squash/stretch: rigid objects wobbling, soft "
-                    "objects not deforming at impact or not recovering"),
+                    "implausible shape/appearance change: squash/stretch, rigid "
+                    "objects wobbling, soft objects not deforming at impact or not "
+                    "recovering, or an object morphing / changing identity / "
+                    "vanishing/reappearing over time"),
     "friction":    ("Friction",
                     "sliding/rolling objects decelerating wrongly, accelerating "
                     "on flat surfaces, or changing friction character mid-motion"),
@@ -124,7 +123,7 @@ def _heuristic_priors(ev_traj: Optional[dict], ev_loc: Optional[dict],
             lines.append("- event-localizer markers: "
                          + ", ".join(f"{k}×{v}" for k, v in by_type.items()))
         if by_type.get("embedding_jump"):
-            priors["consistency"] = max(priors["consistency"], 0.6)
+            priors["deformation"] = max(priors["deformation"], 0.6)
         if by_type.get("temporal_anomaly"):
             priors["causality"] = max(priors["causality"], 0.45)
         if by_type.get("flow_spike"):
