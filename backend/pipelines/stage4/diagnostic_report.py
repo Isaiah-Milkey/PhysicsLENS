@@ -270,7 +270,13 @@ def _build_visual_summary(report: dict) -> str:
 
     return fig.to_json()
 
-CREATEAI_URL = os.getenv("CREATEAI_API_URL", "https://api-main.aiml.asu.edu/query")
+def _createai_url() -> str:
+    """CreateAI /query endpoint. Computed lazily (not at import time) so it
+    reflects .env after tools.createai's load_dotenv has run."""
+    from tools.createai import credentials
+    base = credentials()[1] or os.getenv("CREATEAI_API_URL") or "https://api-main.aiml.asu.edu"
+    base = base.rstrip("/")
+    return base if base.endswith("/query") else base + "/query"
 
 
 def _build_llm_prompt(report: dict) -> str:
@@ -356,21 +362,28 @@ def _extract_createai_text(data: dict) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False)
 
 
-def _call_createai_summary_sync(report: dict) -> str:
+def _call_createai_summary_sync(report: dict, api_key: str = "") -> str:
     """
     Send the unified PhysicsLENS report to CreateAI and return the LLM summary.
+
+    `api_key`, if given (from the pipeline's settings field), overrides the
+    .env credential. Falls back through tools.createai.credentials() (the
+    same CREATEAI_TOKEN every other PhysicsLENS CreateAI caller uses — this
+    also guarantees .env has been loaded, since this module doesn't load it
+    itself), then the legacy CREATEAI_API_KEY for backward compatibility.
 
     This function is synchronous because requests.post(...) is blocking.
     In run(), we call it using asyncio.to_thread(...) so it does not block
     the async event stream.
     """
-    api_key = os.getenv("CREATEAI_API_KEY")
+    if not api_key:
+        from tools.createai import credentials
+        api_key = credentials()[0] or os.getenv("CREATEAI_API_KEY")
 
     if not api_key:
         raise RuntimeError(
-            "CREATEAI_API_KEY is not set. "
-            "In the terminal where you run uvicorn, run: "
-            "export CREATEAI_API_KEY='your_key_here'"
+            "No CreateAI key — enter one in this pipeline's API key setting, "
+            "or set CREATEAI_TOKEN in the PhysicsLENS .env file."
         )
 
     prompt = _build_llm_prompt(report)
@@ -385,7 +398,7 @@ def _call_createai_summary_sync(report: dict) -> str:
     }
 
     response = requests.post(
-        CREATEAI_URL,
+        _createai_url(),
         headers=headers,
         json=payload,
         timeout=90,
@@ -408,6 +421,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     previous_results = cfg.get("previous_results", [])
     video_name = cfg.get("video_name", "uploaded video")
     use_llm_summary = str(cfg.get("use_llm_summary", "false")).lower() == "true"
+    api_key = str(cfg.get("api_key", "")).strip()
 
     yield {
         "type": "log",
@@ -467,7 +481,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         }
 
         try:
-            llm_summary = await asyncio.to_thread(_call_createai_summary_sync, report)
+            llm_summary = await asyncio.to_thread(_call_createai_summary_sync, report, api_key)
 
             yield {
                 "type": "log",

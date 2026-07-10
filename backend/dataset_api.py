@@ -17,6 +17,7 @@ the per-video track cache + evidence bus are shared across the batch for free.
 Files live in a managed temp directory; clients reference them by id only, so
 no arbitrary server path is ever exposed.
 """
+import hashlib
 import json
 import os
 import shutil
@@ -38,10 +39,21 @@ VIDEO_EXTS = {
 # Per-user directory: on a shared host the temp root is world-visible, so a
 # fixed name like "physicslens_dataset" gets created by whoever starts a server
 # first and everyone else hits PermissionError writing into it. Suffixing with
-# the uid gives each user their own writable directory.
-DATASET_DIR = Path(tempfile.gettempdir()) / f"physicslens_dataset_{os.getuid()}"
+# a per-user id gives each user their own writable directory.
+# os.getuid() is POSIX-only; on Windows fall back to the login name (hashed for
+# a filesystem-safe suffix).
+try:
+    _USER_ID = str(os.getuid())                                   # POSIX
+except AttributeError:                                            # Windows
+    import getpass
+    _USER_ID = hashlib.sha1(getpass.getuser().encode("utf-8", "replace")).hexdigest()[:12]
+
+DATASET_DIR = Path(tempfile.gettempdir()) / f"physicslens_dataset_{_USER_ID}"
 DATASET_DIR.mkdir(parents=True, exist_ok=True)
-os.chmod(DATASET_DIR, 0o700)
+try:
+    os.chmod(DATASET_DIR, 0o700)          # best-effort; no-op / unsupported on Windows
+except (OSError, NotImplementedError):
+    pass
 
 # id -> {"path": Path, "name": str}
 _FILES: dict[str, dict] = {}

@@ -49,33 +49,38 @@ physicslens/
 │   │   │   ├── embedding_biomarkers.py          ✅ verified
 │   │   │   └── vlm_suspicion.py                 ✅ verified
 │   │   ├── stage2/                  # Failure localisation & hypothesis testing
-│   │   │   ├── object_tracker.py                🔵 implemented
+│   │   │   ├── object_tracker.py                🔵 implemented (SAM3 subject masks + Gemini naming; LK fallback)
 │   │   │   ├── event_localizer.py               🔵 implemented
-│   │   │   ├── trajectory_extractor.py          🔵 implemented
-│   │   │   ├── physics_hypothesis_generator.py  🔶 stub
-│   │   │   └── hypothesis_ranker.py             🔶 stub
+│   │   │   ├── trajectory_extractor.py          🔵 implemented (reuses tracker masks; static-track filter)
+│   │   │   └── physics_hypothesis_generator.py  🔵 implemented (VLM triage → ranks Stage 3 specialists;
+│   │   │                                           absorbed the former hypothesis_ranker.py — removed)
 │   │   ├── stage3/                  # Specialist evaluation (one file per failure type)
-│   │   │   ├── collision_specialist.py          🔶 stub
+│   │   │   ├── deformation_specialist.py        🔵 implemented (DINOv2 drift detects shape/appearance
+│   │   │   │                                       change + vanish; VLM explains — absorbed the former
+│   │   │   │                                       consistency_specialist, removed)
+│   │   │   ├── collision_specialist.py          🔵 implemented (contact episodes, restitution, phantom
+│   │   │   │                                       bounces; absorbed contact_specialist — unregistered)
 │   │   │   ├── gravity_specialist.py            🔶 stub
-│   │   │   ├── momentum_specialist.py           🔶 stub
+│   │   │   ├── momentum_specialist.py           🔶 stub (deferred — needs mass/depth cues)
 │   │   │   ├── friction_specialist.py           🔶 stub
-│   │   │   ├── deformation_specialist.py        🔶 stub
-│   │   │   ├── contact_specialist.py            🔶 stub
+│   │   │   ├── contact_specialist.py            (merged into collision_specialist; kept for reference)
 │   │   │   ├── fluid_specialist.py              🔶 stub
 │   │   │   └── causality_specialist.py          🔶 stub
 │   │   └── stage4/                  # Final diagnosis outputs
-│   │       ├── diagnostic_report.py             🔵 implemented
-│   │       ├── diagnostic_report_old.py         (previous version, kept for reference)
-│   │       ├── physics_consistency_scorer.py    🔶 stub
-│   │       ├── severity_assessor.py             🔶 stub
-│   │       ├── physics_breakdown_timer.py       🔶 stub
-│   │       └── failure_explainer.py             🔶 stub
+│   │       ├── diagnostic_report.py             🔵 implemented (only Stage 4 pipeline —
+│   │       │                                       physics_consistency_scorer.py, severity_assessor.py,
+│   │       │                                       physics_breakdown_timer.py, and failure_explainer.py
+│   │       │                                       were unimplemented stubs, removed)
+│   │       └── diagnostic_report_old.py         (previous version, kept for reference)
 │   ├── tools/                       # Shared utilities
 │   │   ├── video.py
 │   │   ├── flow.py
 │   │   ├── tracking.py              # Cached Shi-Tomasi+LK tracks (one canonical set per video)
 │   │   ├── evidence.py             # Cross-stage evidence bus (Stage 2→3→4 data passing)
 │   │   ├── embeddings.py            # DINOv2 / CLIP / SigLIP — L2-normalised, batched, cached
+│   │   ├── sam3.py                  # SAM3 video segmentation (gated facebook/sam3; GPU)
+│   │   ├── createai.py              # ASU CreateAI client (Gemini vision; subject naming, judging)
+│   │   ├── locate_anything.py       # NVIDIA LocateAnything-3B open-set detection (GPU, optional)
 │   │   └── vlm.py                   # OpenRouter multi-frame suspicion scoring
 │   ├── scripts/
 │   │   ├── check_models.py          # Sanity-check ML model availability

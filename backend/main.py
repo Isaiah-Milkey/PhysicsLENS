@@ -39,24 +39,56 @@ from pipelines.stage2.object_tracker              import run as run_s2_object_tr
 from pipelines.stage2.trajectory_extractor        import run as run_s2_trajectory_extractor
 from pipelines.stage2.event_localizer             import run as run_s2_event_localizer
 from pipelines.stage2.physics_hypothesis_generator import run as run_s2_hypothesis_generator
-from pipelines.stage2.hypothesis_ranker           import run as run_s2_hypothesis_ranker
 
 # ── Stage 3 — Specialist Evaluation ──────────────────────────────────────────
 from pipelines.stage3.collision_specialist    import run as run_s3_collision
 from pipelines.stage3.gravity_specialist      import run as run_s3_gravity
 from pipelines.stage3.momentum_specialist     import run as run_s3_momentum
 from pipelines.stage3.friction_specialist     import run as run_s3_friction
-from pipelines.stage3.deformation_specialist  import run as run_s3_deformation
-from pipelines.stage3.contact_specialist      import run as run_s3_contact
+from pipelines.stage3.deformation_specialist  import run as run_s3_deformation   # (absorbed consistency)
 from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
 from pipelines.stage3.causality_specialist    import run as run_s3_causality
 
 # ── Stage 4 — Final Diagnosis & Treatment Plan ────────────────────────────────
-from pipelines.stage4.physics_consistency_scorer import run as run_s4_scorer
-from pipelines.stage4.severity_assessor          import run as run_s4_severity
-from pipelines.stage4.physics_breakdown_timer    import run as run_s4_pbt
-from pipelines.stage4.failure_explainer          import run as run_s4_explainer
 from pipelines.stage4.diagnostic_report          import run as run_s4_report
+
+from tools.vlm_router import model_options as _vlm_options, DEFAULT_MODEL_KEY as _VLM_DEFAULT
+
+# ── Shared VLM setting builders ──────────────────────────────────────────────
+# Every VLM-using pipeline offers ONE provider-tagged model dropdown (the value
+# encodes CreateAI vs OpenRouter) and ONE API-key field whose meaning follows
+# the selected model's provider (blank → the provider's .env credential).
+_LOCAL_VLM_OPTIONS = [
+    {"value": "qwen2.5-vl-7b", "label": "Qwen2.5-VL 7B — local, no key, AUC 0.92 (recommended)"},
+    {"value": "internvl3-8b",  "label": "InternVL3 8B — local, no key, AUC 0.70"},
+    {"value": "smolvlm2-2.2b", "label": "SmolVLM2 2.2B — local, no key, AUC 0.50 (fast)"},
+]
+
+
+def _vlm_key_setting():
+    return {"id": "api_key", "type": "password", "default": "",
+            "label": "API key — OpenRouter key or CreateAI token matching the "
+                     "selected model (blank = use .env)"}
+
+
+def _vlm_model_setting(label="Vision model", *, include_local=False, default=_VLM_DEFAULT):
+    opts = (_LOCAL_VLM_OPTIONS + _vlm_options()) if include_local else list(_vlm_options())
+    return {"id": "model", "label": label, "type": "select",
+            "default": default, "options": opts}
+
+
+def _createai_key_setting():
+    """CreateAI-only key field (no provider choice — used where only CreateAI
+    is wired, e.g. the Diagnostic Report's text-only LLM summary)."""
+    return {"id": "api_key", "type": "password", "default": "",
+            "label": "CreateAI token (blank = use .env CREATEAI_TOKEN)"}
+
+
+def _naming_model_setting():
+    return {"id": "naming_model", "label": "Object-naming model", "type": "select",
+            "default": "local",
+            "options": [{"value": "local", "label": "Local Qwen2.5-VL (no key)"}]
+                       + list(_vlm_options())}
 
 # ---------------------------------------------------------------------------
 # Pipeline registry
@@ -161,26 +193,10 @@ PIPELINES = {
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "model", "label": "Model", "type": "select",
-             "default": "qwen2.5-vl-7b",
-             "options": [
-                 # Local open-weight models (no API key; AUC = measured AI-vs-real
-                 # separation from scripts/vlm_multimodel_eval.py).
-                 {"value": "qwen2.5-vl-7b",     "label": "Qwen2.5-VL 7B — local, AUC 0.92, ~17 GB (recommended)"},
-                 {"value": "internvl3-8b",      "label": "InternVL3 8B — local, AUC 0.70, ~18 GB"},
-                 {"value": "smolvlm2-2.2b",     "label": "SmolVLM2 2.2B — local, AUC 0.50, ~5 GB (fast, weak)"},
-                 # API models via OpenRouter (need API key).
-                 {"value": "gemini-2.5-pro",    "label": "Gemini 2.5 Pro — API key required"},
-                 {"value": "gemini-2.5-flash",  "label": "Gemini 2.5 Flash — API key required"},
-                 {"value": "gpt-4o",            "label": "GPT-4o — API key required"},
-                 {"value": "gpt-4.1",           "label": "GPT-4.1 — API key required"},
-                 {"value": "gpt-5.1",           "label": "GPT-5.1 — API key required"},
-                 {"value": "claude-sonnet-4.5", "label": "Claude Sonnet 4.5 — API key required"},
-             ]},
+            _vlm_model_setting("Model", include_local=True, default="qwen2.5-vl-7b"),
             {"id": "num_frames", "label": "Keyframes to sample", "type": "number",
              "default": 8, "min": 2, "max": 20},
-            {"id": "api_key",    "label": "OpenRouter API key (API models only)", "type": "password",
-             "default": ""},
+            _vlm_key_setting(),
         ],
         "run": run_s1_vlm,
     },
@@ -189,7 +205,7 @@ PIPELINES = {
     "s2_object_tracker": {
         "id":    "s2_object_tracker",
         "name":  "Object Tracker",
-        "desc":  "Segment & name objects with SAM3 (VLM-named concepts), track them, and measure DINOv2 appearance drift. Outputs a labeled segmented video. Falls back to Shi-Tomasi+LK if no GPU.",
+        "desc":  "Segment & name objects with SAM3 (VLM-named concepts), track them, and measure DINOv2 appearance drift. Outputs a labeled segmented video; publishes masks to the evidence bus for the Stage 3 Consistency & Collision specialists. Falls back to Shi-Tomasi+LK if no GPU.",
         "badge": "medium",
         "dummy": False,
         "requires_pair": False,
@@ -205,9 +221,11 @@ PIPELINES = {
             {"id": "use_vlm_naming","label": "Name objects with VLM",  "type": "select",
              "default": "true",
              "options": [
-                 {"value": "true",  "label": "Enabled (Qwen2.5-VL names the scene)"},
+                 {"value": "true",  "label": "Enabled (a VLM names the scene)"},
                  {"value": "false", "label": "Disabled (use concept vocabulary)"},
              ]},
+            _naming_model_setting(),
+            _vlm_key_setting(),
             {"id": "concepts",      "label": "Concepts (optional, comma-separated)", "type": "text",
              "default": "", "placeholder": "e.g. ball, wooden block, cup"},
             {"id": "use_dinov2",    "label": "DINOv2 appearance drift", "type": "select",
@@ -274,47 +292,42 @@ PIPELINES = {
     "s2_hypothesis_generator": {
         "id":    "s2_hypothesis_generator",
         "name":  "Physics Hypothesis Generator",
-        "desc":  "Map trajectory evidence to likely failure categories using cheap heuristics.",
+        "desc":  "Rank which Stage 3 specialists to run: heuristic priors from bus evidence + one VLM triage call over keyframes at flagged moments. (Absorbed the former Hypothesis Ranker.)",
         "badge": "medium",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "accel_spike_threshold", "label": "Acceleration spike threshold (σ)", "type": "number",
-             "default": 4.0, "min": 1.0, "max": 20.0},
-            {"id": "overlap_threshold", "label": "Overlap threshold (IoU)", "type": "number",
-             "default": 0.05, "min": 0.01, "max": 1.0},
+            _vlm_model_setting("Vision model"),
+            _vlm_key_setting(),
+            {"id": "max_hypotheses", "label": "Max hypotheses to return", "type": "number",
+             "default": 4, "min": 1, "max": 8},
+            {"id": "max_keyframes", "label": "Keyframes shown to the VLM", "type": "number",
+             "default": 4, "min": 2, "max": 6},
         ],
         "run": run_s2_hypothesis_generator,
-    },
-    "s2_hypothesis_ranker": {
-        "id":    "s2_hypothesis_ranker",
-        "name":  "Hypothesis Ranker",
-        "desc":  "Deduplicate and rank candidate failures by confidence score for Stage 3 routing.",
-        "badge": "medium",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "min_score",      "label": "Minimum confidence score", "type": "number",
-             "default": 0.20, "min": 0.0, "max": 1.0},
-            {"id": "max_hypotheses", "label": "Max hypotheses to return",  "type": "number",
-             "default": 5, "min": 1, "max": 20},
-        ],
-        "run": run_s2_hypothesis_ranker,
     },
 
     # ── Stage 3: Specialist Evaluation ───────────────────────────────────────
     "s3_collision": {
         "id":    "s3_collision",
-        "name":  "Collision Specialist",
-        "desc":  "Verify approach/exit velocities, contact normals, and restitution bounds at impact events.",
+        "name":  "Collision & Contact Specialist",
+        "desc":  "Mask-intersection contact episodes per subject pair: interpenetration (VLM-verified), restitution bounds (energy gain), and phantom bounces off nothing.",
         "badge": "expensive",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "restitution_min", "label": "Min restitution coefficient", "type": "number",
-             "default": 0.0, "min": 0.0, "max": 1.0},
-            {"id": "restitution_max", "label": "Max restitution coefficient", "type": "number",
-             "default": 1.0, "min": 0.0, "max": 1.0},
+            _vlm_model_setting("Vision model"),
+            _vlm_key_setting(),
+            {"id": "overlap_threshold", "label": "Contact threshold (dilated-mask adjacency)", "type": "number",
+             "default": 0.02, "min": 0.005, "max": 0.9},
+            {"id": "deep_overlap", "label": "Interpenetration threshold (raw mask overlap)", "type": "number",
+             "default": 0.35, "min": 0.05, "max": 1.0},
+            {"id": "restitution_max", "label": "Max plausible restitution", "type": "number",
+             "default": 1.1, "min": 0.5, "max": 3.0},
+            {"id": "max_checks", "label": "Max VLM confirmations", "type": "number",
+             "default": 3, "min": 1, "max": 10},
+            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
+             "default": 3, "min": 1, "max": 6},
         ],
         "run": run_s3_collision,
     },
@@ -364,29 +377,27 @@ PIPELINES = {
     "s3_deformation": {
         "id":    "s3_deformation",
         "name":  "Deformation Specialist",
-        "desc":  "Analyse surface deformation of soft objects; check proportionality to applied force.",
+        "desc":  "Per masked subject, DINOv2 drift detects shape/appearance change-points (fixed viewport); the VLM verifies and explains each morph/fragmentation, and mask presence gaps flag vanish/reappear. (Absorbed the Object Consistency Specialist.)",
         "badge": "expensive",
-        "dummy": True,
+        "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "deformation_threshold", "label": "Deformation threshold (normalised)", "type": "number",
-             "default": 0.05, "min": 0.001, "max": 1.0},
+            _vlm_model_setting("Vision model"),
+            _vlm_key_setting(),
+            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
+             "default": 3, "min": 1, "max": 6},
+            {"id": "max_checks", "label": "Max VLM checks per subject", "type": "number",
+             "default": 4, "min": 1, "max": 12},
+            {"id": "drift_threshold", "label": "Drift threshold (cosine dist)", "type": "number",
+             "default": 0.30, "min": 0.05, "max": 1.0},
+            {"id": "strip_tiles", "label": "Tiles in overview strip", "type": "number",
+             "default": 6, "min": 3, "max": 10},
+            {"id": "min_vanish_gap_s", "label": "Min vanish gap (s)", "type": "number",
+             "default": 0.3, "min": 0.05, "max": 3.0},
         ],
         "run": run_s3_deformation,
     },
-    "s3_contact": {
-        "id":    "s3_contact",
-        "name":  "Contact Specialist",
-        "desc":  "Detect interpenetration, phantom contacts, and sudden separation violating non-penetration constraints.",
-        "badge": "expensive",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "overlap_threshold", "label": "Overlap threshold (fraction of area)", "type": "number",
-             "default": 0.02, "min": 0.001, "max": 1.0},
-        ],
-        "run": run_s3_contact,
-    },
+    # s3_consistency merged into s3_deformation; s3_contact merged into s3_collision.
     "s3_fluid": {
         "id":    "s3_fluid",
         "name":  "Fluid Specialist",
@@ -419,67 +430,6 @@ PIPELINES = {
     },
 
     # ── Stage 4: Final Diagnosis & Treatment Plan ─────────────────────────────
-    "s4_scorer": {
-        "id":    "s4_scorer",
-        "name":  "Physics Consistency Scorer",
-        "desc":  "Aggregate Stage 1–3 evidence into a single Physics Consistency Score (0–100).",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "w_stage1", "label": "Stage 1 weight", "type": "number",
-             "default": 0.2, "min": 0.0, "max": 1.0},
-            {"id": "w_stage2", "label": "Stage 2 weight", "type": "number",
-             "default": 0.3, "min": 0.0, "max": 1.0},
-            {"id": "w_stage3", "label": "Stage 3 weight", "type": "number",
-             "default": 0.5, "min": 0.0, "max": 1.0},
-        ],
-        "run": run_s4_scorer,
-    },
-    "s4_severity": {
-        "id":    "s4_severity",
-        "name":  "Severity Assessor",
-        "desc":  "Map confirmed failure type and confidence onto Critical / Moderate / Minor / Inconclusive.",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "run": run_s4_severity,
-    },
-    "s4_pbt": {
-        "id":    "s4_pbt",
-        "name":  "Physics Breakdown Timer",
-        "desc":  "Pinpoint the exact frame where the video first deviates from physical law (PBT).",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "method", "label": "Change-point method", "type": "select",
-             "default": "cusum",
-             "options": [
-                 {"value": "cusum", "label": "CUSUM"},
-                 {"value": "bocpd", "label": "BOCPD"},
-                 {"value": "pelt",  "label": "PELT"},
-             ]},
-        ],
-        "run": run_s4_pbt,
-    },
-    "s4_explainer": {
-        "id":    "s4_explainer",
-        "name":  "Failure Explainer",
-        "desc":  "Generate a structured, human-readable explanation of the detected physics failure.",
-        "badge": "output",
-        "dummy": True,
-        "requires_pair": False,
-        "settings": [
-            {"id": "use_vlm", "label": "Enhance with VLM description", "type": "select",
-             "default": "false",
-             "options": [
-                 {"value": "false", "label": "No"},
-                 {"value": "true",  "label": "Yes (requires API key)"},
-             ]},
-        ],
-        "run": run_s4_explainer,
-    },
     "s4_report": {
         "id":    "s4_report",
         "name":  "Diagnostic Report",
@@ -502,6 +452,7 @@ PIPELINES = {
                   {"value": "true", "label": "True"},
                   {"value": "false", "label": "False"},
              ]},
+             _createai_key_setting(),
         ],
         "run": run_s4_report,
     },

@@ -175,6 +175,51 @@ def build_suspicion_payload(
     }
 
 
+async def chat_vision(
+    prompt: str,
+    frame_bgr: np.ndarray,
+    model_key: str = "gpt-4o",
+    api_key: str = "",
+    timeout: float = 60.0,
+) -> str:
+    """Generic single-image OpenRouter chat → reply text (no fixed prompt).
+
+    Used by tools.vlm_router so any pipeline can send an arbitrary prompt +
+    image to an OpenRouter model. `model_key` may be a friendly key from
+    OPENROUTER_MODELS or a full "vendor/model" id (passed through).
+    """
+    try:
+        import aiohttp
+    except ImportError:
+        raise RuntimeError("aiohttp not installed — pip install aiohttp")
+
+    model_id = OPENROUTER_MODELS.get(model_key, model_key)
+    payload = {
+        "model": model_id,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url",
+                 "image_url": {"url": f"data:image/jpeg;base64,{frame_to_b64(frame_bgr)}"}},
+            ],
+        }],
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}",
+                     "Content-Type": "application/json",
+                     "HTTP-Referer": "https://physicslens.local"},
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=timeout),
+        ) as resp:
+            data = await resp.json()
+    if "choices" not in data:
+        raise RuntimeError(f"OpenRouter error: {str(data)[:300]}")
+    return data["choices"][0]["message"]["content"]
+
+
 async def score_frame(
     frame: np.ndarray,
     model_key: str = "gpt-4o",

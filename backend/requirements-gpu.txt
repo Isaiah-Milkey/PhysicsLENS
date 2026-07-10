@@ -8,6 +8,9 @@
 #   * SAM 3   — facebook/sam3        (GATED: run `hf auth login` with an approved
 #                                      account before first use; ~3.4 GB)
 #   * DINOv2  — facebook/dinov2-base (Apache-2.0, non-gated, 768-d descriptor)
+#   * LocateAnything — nvidia/LocateAnything-3B (non-commercial research license,
+#                      trust_remote_code, ~6 GB; semantic track labels in the
+#                      Stage 2 Object Tracker via tools/locate_anything.py)
 #
 # SAM 3 requires transformers >= 5.1 (5.9 verified on this host).
 # The object tracker also uses a local VLM (Qwen2.5-VL-7B-Instruct) to NAME the
@@ -20,5 +23,6 @@ accelerate>=1.0
 safetensors>=0.4
 huggingface_hub>=0.34
 pillow>=10.0.0
+peft>=0.19           # required by LocateAnything-3B's remote modeling code
 qwen-vl-utils>=0.0.8 # optional helper for Qwen2.5-VL preprocessing
 num2words>=0.5       # only for SmolVLM-family models in scripts/vlm_multimodel_eval.py

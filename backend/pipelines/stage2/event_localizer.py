@@ -40,6 +40,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from tools.video import load_frames, frame_to_gray
+from tools.evidence import EVIDENCE, video_id
 
 
 def _encode_frames(frames: list, idxs: list, fps: float, max_w: int, quality: int):
@@ -441,6 +442,15 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     overall = int(min(100, peak_sev * 0.6 + min(len(markers), 12) / 12 * 40)) if markers else 0
     yield {"type": "severity", "label": "Localization confidence",
            "value": overall, "color": _sev_color(overall)}
+
+    # Publish markers on the evidence bus so Stage 3 specialists can read them
+    # server-side (frame data stripped — downstream stages reload frames).
+    EVIDENCE.put(video_id(video_path), "s2_event_localizer", {
+        "fps": eff_fps, "n_frames": n, "duration": duration,
+        "markers": [{k: v for k, v in m.items()
+                     if k not in ("event_frames", "event_times")} for m in markers],
+        "lanes": lanes,
+    })
 
     msg = (f"{len(markers)} marker(s) localized across {len(lanes)} diagnostic(s); "
            f"peak severity {peak_sev}." if markers

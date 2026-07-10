@@ -49,14 +49,43 @@ def _drift_curve(embeddings: np.ndarray) -> np.ndarray:
 
 
 def _publish_tracks(video_path: str, objects: list[dict], eff_fps: float, n: int) -> None:
-    """Publish canonical tracks to the evidence bus for downstream stages."""
-    EVIDENCE.put(video_id(video_path), "s2_object_tracker", {
+    """Publish canonical tracks to the evidence bus for downstream stages.
+
+    For the SAM3 path (objects carry ``inst["masks"]``), the per-object masks are
+    also published PNG-encoded so the Stage 3 Consistency / Collision specialists
+    can reuse them instead of re-segmenting. Masks are keyed by this tracker's
+    frame index (0..n-1, from ``load_frames_rgb(video_path, n)`` at target_h=480);
+    consumers decode identically so indices align — see ``mode`` / ``num_frames``.
+    """
+    payload = {
         "fps": float(eff_fps), "n_frames": int(n),
         "tracks": [{"id": oi, "label": o["label"], "frames": o["frames"],
                     "boxes": o["boxes"], "cx": o["cx"], "cy": o["cy"],
                     "n_kp": o.get("n_kp", 0)}
                    for oi, o in enumerate(objects)],
-    })
+    }
+
+    has_masks = any(o.get("inst", {}).get("masks") for o in objects)
+    if has_masks:
+        from tools.sam3 import encode_mask_png
+        masks_png: dict[str, dict[int, bytes]] = {}
+        for oi, o in enumerate(objects):
+            masks = o.get("inst", {}).get("masks") or {}
+            if not masks:
+                continue
+            key = o["label"] or f"obj {oi}"
+            masks_png[key] = {int(fi): encode_mask_png(m) for fi, m in masks.items()}
+        payload.update({
+            "mode": "sam3",
+            "masks_png": masks_png,
+            "mask_scale": 1.0,          # masks are at load_frames_rgb (target_h=480) resolution
+            "num_frames": int(n),       # consumers: load_frames_rgb(video_path, num_frames)
+            "sampled_frames": sorted({fi for m in masks_png.values() for fi in m}),
+        })
+    else:
+        payload["mode"] = "lk"
+
+    EVIDENCE.put(video_id(video_path), "s2_object_tracker", payload)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -141,6 +170,8 @@ async def _run_sam3(video_path: str, cfg: dict) -> AsyncGenerator[dict, None]:
     use_dinov2   = str(cfg.get("use_dinov2", "true")).lower() not in ("false", "0", "no")
     render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
     use_naming   = str(cfg.get("use_vlm_naming", "true")).lower() not in ("false", "0", "no")
+    naming_model = str(cfg.get("naming_model", "local")).strip() or "local"
+    api_key      = str(cfg.get("api_key", "")).strip()
     concepts_in  = str(cfg.get("concepts", "")).strip()
     loop = asyncio.get_event_loop()
 
@@ -160,11 +191,20 @@ async def _run_sam3(video_path: str, cfg: dict) -> AsyncGenerator[dict, None]:
         concepts = [c.strip().lower() for c in concepts_in.split(",") if c.strip()]
         yield {"type": "log", "level": "info", "text": f"Using provided concepts: {', '.join(concepts)}"}
     elif use_naming:
-        yield {"type": "log", "level": "info", "text": "Naming scene objects with VLM (Qwen2.5-VL)…"}
+        _nm = "local Qwen2.5-VL" if naming_model == "local" else naming_model
+        yield {"type": "log", "level": "info", "text": f"Naming scene objects with VLM ({_nm})…"}
         await asyncio.sleep(0)
         try:
-            from tools.vlm_local import name_objects
-            concepts = await loop.run_in_executor(None, name_objects, frames)
+            if naming_model == "local":
+                from tools.vlm_local import name_objects
+                concepts = await loop.run_in_executor(None, name_objects, frames)
+            else:
+                # frames are RGB (load_frames_rgb); the router encodes JPEG → BGR.
+                from tools.vlm_router import name_subjects
+                bgr = [cv2.cvtColor(frames[0], cv2.COLOR_RGB2BGR),
+                       cv2.cvtColor(frames[n // 2], cv2.COLOR_RGB2BGR)]
+                concepts = await name_subjects(bgr, max_subjects=6,
+                                               model_key=naming_model, api_key=api_key)
         except Exception as exc:  # noqa: BLE001
             yield {"type": "log", "level": "warn", "text": f"VLM naming failed ({exc}); using fallback vocabulary."}
             concepts = []

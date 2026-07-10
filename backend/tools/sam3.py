@@ -10,9 +10,12 @@ the object tracker can label each segment individually.
 import threading
 from typing import Optional
 
+import cv2
 import numpy as np
 
 SAM3_MODEL_ID = "facebook/sam3"
+MAX_FRAMES    = 80      # cap frames sent through SAM3 in the single-subject helpers
+TARGET_H      = 720     # downscale tall frames before those helpers
 
 _MODELS: dict = {}
 _LOAD_LOCK = threading.Lock()
@@ -135,3 +138,124 @@ def mask_iou(a: dict[int, np.ndarray], b: dict[int, np.ndarray]) -> float:
         if union:
             ious.append(inter / union)
     return float(np.mean(ious)) if ious else 0.0
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Single-subject helpers (merged from the isaiah-work branch)
+# ------------------------------------------------------------
+# Used by the Stage 3 Consistency / Collision specialists' inline-segmentation
+# fallback and by PNG mask (de)serialisation on the evidence bus. These share
+# the same load_sam3() singleton and _MODELS keys as the concept API above.
+# ════════════════════════════════════════════════════════════════════════════
+
+def encode_mask_png(mask: np.ndarray) -> bytes:
+    """Binary mask → PNG bytes (~KBs) for cheap storage on the evidence bus."""
+    ok, buf = cv2.imencode(".png", mask.astype(np.uint8) * 255)
+    if not ok:
+        raise RuntimeError("PNG encode failed")
+    return buf.tobytes()
+
+
+def decode_mask_png(data: bytes) -> np.ndarray:
+    arr = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
+    return arr > 127
+
+
+def border_ratio(mask: np.ndarray) -> float:
+    """How much of a mask hugs the frame edge (≥~0.5 = partially out of frame)."""
+    edge = int(mask[0].sum() + mask[-1].sum() + mask[:, 0].sum() + mask[:, -1].sum())
+    return edge / max(np.sqrt(max(mask.sum(), 1)), 1.0)
+
+
+def usable_frames(masks: dict) -> list[int]:
+    """Frame indices whose masks are usable for appearance comparison.
+
+    Filters ONLY frames where the object is partially out of frame (heavy
+    border contact) or the mask is a degenerate sliver.
+    """
+    present = sorted(masks)
+    good = [fi for fi in present
+            if int(masks[fi].sum()) >= 64 and border_ratio(masks[fi]) < 0.5]
+    return good if len(good) >= 2 else present
+
+
+def representative_frames(masks: dict, k: int) -> list[int]:
+    """Pick ≤k usable frame indices, evenly spaced."""
+    pool = usable_frames(masks)
+    if len(pool) <= k:
+        return pool
+    return [pool[i] for i in np.linspace(0, len(pool) - 1, k, dtype=int)]
+
+
+def _prep_frames(frames_bgr: list) -> tuple[list, list[int]]:
+    """BGR → RGB, downscale tall frames, uniform subsample to MAX_FRAMES.
+
+    Returns (rgb_frames, orig_indices) where orig_indices[i] is the index of
+    rgb_frames[i] in the caller's frame list — callers map masks back with it.
+    """
+    n = len(frames_bgr)
+    idx = (list(range(n)) if n <= MAX_FRAMES
+           else [int(i) for i in np.linspace(0, n - 1, MAX_FRAMES)])
+    rgb = []
+    for i in idx:
+        bgr = frames_bgr[i]
+        h, w = bgr.shape[:2]
+        if h > TARGET_H:
+            bgr = cv2.resize(bgr, (int(TARGET_H * w / h), TARGET_H))
+        rgb.append(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+    return rgb, idx
+
+
+def _run_text_session(rgb: list, orig_idx: list[int], text: str) -> dict:
+    """One SAM3 text-prompt session; returns {orig_frame_idx: bool mask} for the
+    most persistent + confident object matching the concept (empty if none)."""
+    m = load_sam3()
+    torch, device, dtype = m["torch"], m["device"], m["dtype"]
+    model, proc = m["model"], m["proc"]
+
+    with _GPU_LOCK:
+        session = proc.init_video_session(
+            video=rgb, inference_device=device,
+            video_storage_device="cpu", dtype=dtype,
+        )
+        session = proc.add_text_prompt(inference_session=session, text=text) or session
+
+        per_frame: dict[int, dict[int, tuple]] = {}
+        with torch.inference_mode():
+            for out in model.propagate_in_video_iterator(
+                inference_session=session, max_frame_num_to_track=len(rgb)
+            ):
+                res = proc.postprocess_outputs(session, out)
+                fidx = int(getattr(out, "frame_idx", len(per_frame)))
+                obj_ids = res["object_ids"].tolist()
+                masks = res["masks"].cpu().numpy().astype(bool)
+                scores = res["scores"].float().cpu().numpy()
+                per_frame[fidx] = {int(o): (masks[i], float(scores[i]))
+                                   for i, o in enumerate(obj_ids)}
+
+    presence: dict[int, list[float]] = {}
+    for d in per_frame.values():
+        for oid, (_mk, sc) in d.items():
+            presence.setdefault(oid, []).append(sc)
+    if not presence:
+        return {}
+    target = max(presence, key=lambda o: (len(presence[o]), float(np.mean(presence[o]))))
+    return {orig_idx[f]: d[target][0] for f, d in per_frame.items() if target in d}
+
+
+def segment_concepts(frames_bgr: list, concepts: list[str]) -> dict:
+    """Mask-track each named subject through the clip (one session per name).
+
+    Returns {"subjects": {name: {orig_frame_idx: bool mask}}, "scale": float,
+             "sampled_frames": [orig_frame_idx...]}. Used by the Stage 3
+    specialists' inline-segmentation fallback when the Object Tracker hasn't
+    published masks on the evidence bus.
+    """
+    rgb, orig_idx = _prep_frames(frames_bgr)
+    scale = rgb[0].shape[0] / frames_bgr[0].shape[0]
+    subjects = {}
+    for name in concepts:
+        masks = _run_text_session(rgb, orig_idx, name)
+        if masks:
+            subjects[name] = masks
+    return {"subjects": subjects, "scale": scale, "sampled_frames": list(orig_idx)}
