@@ -156,7 +156,8 @@ def _pair_render(frame: np.ndarray, mask_a_s: np.ndarray, mask_b_s: np.ndarray,
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg             = json.loads(settings) if settings else {}
-    model           = str(cfg.get("model", "geminiflash2_5"))
+    model           = str(cfg.get("model") or "createai:geminiflash2_5")
+    api_key         = str(cfg.get("api_key", "")).strip()
     overlap_thresh  = float(cfg.get("overlap_threshold", 0.02))
     deep_overlap    = float(cfg.get("deep_overlap", 0.35))
     restitution_max = float(cfg.get("restitution_max", 1.1))
@@ -208,10 +209,11 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                "text": "No Object Tracker masks on the evidence bus — segmenting "
                        "inline (run the Object Tracker first to share its masks)."}
         try:
-            from tools.createai import name_subjects
+            from tools.vlm_router import name_subjects
             from tools.sam3 import segment_concepts
             subjects = await name_subjects([frames[0], frames[n // 2]],
-                                           max_subjects=max_subjects, model=model)
+                                           max_subjects=max_subjects,
+                                           model_key=model, api_key=api_key)
             if not subjects:
                 raise RuntimeError("VLM returned no subject names")
             yield {"type": "log", "level": "info",
@@ -353,11 +355,11 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                            "and not at the frame bottom."}
 
     # ── 3. VLM confirms the worst interpenetration candidates ────────────────
-    from tools.createai import credentials
+    from tools.vlm_router import ask_vision_json, key_status
+    have_api, key_desc = key_status(model, api_key)
     inter = sorted([v for v in violations if v["type"] == "interpenetration"],
                    key=lambda v: -v["score"])[:max_checks]
-    if inter and all(credentials()):
-        from tools.createai import query_vision, response_text
+    if inter and have_api:
         for v in inter:
             la, lb = v["pair"]
             img = _pair_render(frames[v["frame"]],
@@ -367,8 +369,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             if img is None:
                 continue
             try:
-                resp = await query_vision(PENETRATION_PROMPT, img, model=model)
-                parsed = parse_vlm_json(response_text(resp) or json.dumps(resp))
+                parsed = await ask_vision_json(PENETRATION_PROMPT, img, model, api_key)
                 verdict = str(parsed.get("verdict", "")).lower()
                 conf = float(np.clip(float(parsed.get("confidence", 0.5)), 0, 1))
                 expl = str(parsed.get("explanation", ""))[:300]
@@ -394,8 +395,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             await asyncio.sleep(0)
     elif inter:
         yield {"type": "log", "level": "warn",
-               "text": "CreateAI credentials missing — interpenetration candidates "
-                       "reported unverified."}
+               "text": f"No VLM credentials ({key_desc}) — interpenetration "
+                       "candidates reported unverified."}
 
     # ── 4. Aggregate: signals, severity, plot, metrics ────────────────────────
     signals = [{"frame": v["frame"], "signal_type": f"collision_{v['type']}",

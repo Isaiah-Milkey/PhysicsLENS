@@ -57,6 +57,44 @@ from pipelines.stage4.physics_breakdown_timer    import run as run_s4_pbt
 from pipelines.stage4.failure_explainer          import run as run_s4_explainer
 from pipelines.stage4.diagnostic_report          import run as run_s4_report
 
+from tools.vlm_router import model_options as _vlm_options, DEFAULT_MODEL_KEY as _VLM_DEFAULT
+
+# ── Shared VLM setting builders ──────────────────────────────────────────────
+# Every VLM-using pipeline offers ONE provider-tagged model dropdown (the value
+# encodes CreateAI vs OpenRouter) and ONE API-key field whose meaning follows
+# the selected model's provider (blank → the provider's .env credential).
+_LOCAL_VLM_OPTIONS = [
+    {"value": "qwen2.5-vl-7b", "label": "Qwen2.5-VL 7B — local, no key, AUC 0.92 (recommended)"},
+    {"value": "internvl3-8b",  "label": "InternVL3 8B — local, no key, AUC 0.70"},
+    {"value": "smolvlm2-2.2b", "label": "SmolVLM2 2.2B — local, no key, AUC 0.50 (fast)"},
+]
+
+
+def _vlm_key_setting():
+    return {"id": "api_key", "type": "password", "default": "",
+            "label": "API key — OpenRouter key or CreateAI token matching the "
+                     "selected model (blank = use .env)"}
+
+
+def _vlm_model_setting(label="Vision model", *, include_local=False, default=_VLM_DEFAULT):
+    opts = (_LOCAL_VLM_OPTIONS + _vlm_options()) if include_local else list(_vlm_options())
+    return {"id": "model", "label": label, "type": "select",
+            "default": default, "options": opts}
+
+
+def _createai_key_setting():
+    """CreateAI-only key field (no provider choice — used where only CreateAI
+    is wired, e.g. the Diagnostic Report's text-only LLM summary)."""
+    return {"id": "api_key", "type": "password", "default": "",
+            "label": "CreateAI token (blank = use .env CREATEAI_TOKEN)"}
+
+
+def _naming_model_setting():
+    return {"id": "naming_model", "label": "Object-naming model", "type": "select",
+            "default": "local",
+            "options": [{"value": "local", "label": "Local Qwen2.5-VL (no key)"}]
+                       + list(_vlm_options())}
+
 # ---------------------------------------------------------------------------
 # Pipeline registry
 # ---------------------------------------------------------------------------
@@ -160,26 +198,10 @@ PIPELINES = {
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "model", "label": "Model", "type": "select",
-             "default": "qwen2.5-vl-7b",
-             "options": [
-                 # Local open-weight models (no API key; AUC = measured AI-vs-real
-                 # separation from scripts/vlm_multimodel_eval.py).
-                 {"value": "qwen2.5-vl-7b",     "label": "Qwen2.5-VL 7B — local, AUC 0.92, ~17 GB (recommended)"},
-                 {"value": "internvl3-8b",      "label": "InternVL3 8B — local, AUC 0.70, ~18 GB"},
-                 {"value": "smolvlm2-2.2b",     "label": "SmolVLM2 2.2B — local, AUC 0.50, ~5 GB (fast, weak)"},
-                 # API models via OpenRouter (need API key).
-                 {"value": "gemini-2.5-pro",    "label": "Gemini 2.5 Pro — API key required"},
-                 {"value": "gemini-2.5-flash",  "label": "Gemini 2.5 Flash — API key required"},
-                 {"value": "gpt-4o",            "label": "GPT-4o — API key required"},
-                 {"value": "gpt-4.1",           "label": "GPT-4.1 — API key required"},
-                 {"value": "gpt-5.1",           "label": "GPT-5.1 — API key required"},
-                 {"value": "claude-sonnet-4.5", "label": "Claude Sonnet 4.5 — API key required"},
-             ]},
+            _vlm_model_setting("Model", include_local=True, default="qwen2.5-vl-7b"),
             {"id": "num_frames", "label": "Keyframes to sample", "type": "number",
              "default": 8, "min": 2, "max": 20},
-            {"id": "api_key",    "label": "OpenRouter API key (API models only)", "type": "password",
-             "default": ""},
+            _vlm_key_setting(),
         ],
         "run": run_s1_vlm,
     },
@@ -204,9 +226,11 @@ PIPELINES = {
             {"id": "use_vlm_naming","label": "Name objects with VLM",  "type": "select",
              "default": "true",
              "options": [
-                 {"value": "true",  "label": "Enabled (Qwen2.5-VL names the scene)"},
+                 {"value": "true",  "label": "Enabled (a VLM names the scene)"},
                  {"value": "false", "label": "Disabled (use concept vocabulary)"},
              ]},
+            _naming_model_setting(),
+            _vlm_key_setting(),
             {"id": "concepts",      "label": "Concepts (optional, comma-separated)", "type": "text",
              "default": "", "placeholder": "e.g. ball, wooden block, cup"},
             {"id": "use_dinov2",    "label": "DINOv2 appearance drift", "type": "select",
@@ -278,13 +302,8 @@ PIPELINES = {
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "model", "label": "CreateAI vision model", "type": "select",
-             "default": "geminiflash2_5",
-             "options": [
-                 {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5"},
-                 {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite"},
-                 {"value": "gpt4o",               "label": "GPT-4o"},
-             ]},
+            _vlm_model_setting("Vision model"),
+            _vlm_key_setting(),
             {"id": "max_hypotheses", "label": "Max hypotheses to return", "type": "number",
              "default": 4, "min": 1, "max": 8},
             {"id": "max_keyframes", "label": "Keyframes shown to the VLM", "type": "number",
@@ -302,13 +321,8 @@ PIPELINES = {
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "model", "label": "CreateAI vision model", "type": "select",
-             "default": "geminiflash2_5",
-             "options": [
-                 {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5"},
-                 {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite"},
-                 {"value": "gpt4o",               "label": "GPT-4o"},
-             ]},
+            _vlm_model_setting("Vision model"),
+            _vlm_key_setting(),
             {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
              "default": 3, "min": 1, "max": 6},
             {"id": "max_checks", "label": "Max VLM checks per subject", "type": "number",
@@ -330,13 +344,8 @@ PIPELINES = {
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            {"id": "model", "label": "CreateAI vision model", "type": "select",
-             "default": "geminiflash2_5",
-             "options": [
-                 {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5"},
-                 {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite"},
-                 {"value": "gpt4o",               "label": "GPT-4o"},
-             ]},
+            _vlm_model_setting("Vision model"),
+            _vlm_key_setting(),
             {"id": "overlap_threshold", "label": "Contact threshold (dilated-mask adjacency)", "type": "number",
              "default": 0.02, "min": 0.005, "max": 0.9},
             {"id": "deep_overlap", "label": "Interpenetration threshold (raw mask overlap)", "type": "number",
@@ -522,6 +531,7 @@ PIPELINES = {
                   {"value": "true", "label": "True"},
                   {"value": "false", "label": "False"},
              ]},
+             _createai_key_setting(),
         ],
         "run": run_s4_report,
     },

@@ -146,10 +146,9 @@ def _embed_crops(crops: list[np.ndarray]) -> np.ndarray:
     return embs / np.where(norms < 1e-8, 1.0, norms)
 
 
-async def _judge_pair(pair_img: np.ndarray, model: str) -> dict:
-    from tools.createai import query_vision, response_text
-    resp = await query_vision(PAIR_PROMPT, pair_img, model=model)
-    parsed = parse_vlm_json(response_text(resp) or json.dumps(resp))
+async def _judge_pair(pair_img: np.ndarray, model_key: str, api_key: str = "") -> dict:
+    from tools.vlm_router import ask_vision_json
+    parsed = await ask_vision_json(PAIR_PROMPT, pair_img, model_key, api_key)
     verdict = str(parsed.get("verdict", "")).lower()
     if verdict not in VERDICT_WEIGHTS:
         raise ValueError(f"unparseable verdict: {str(parsed)[:120]}")
@@ -160,7 +159,8 @@ async def _judge_pair(pair_img: np.ndarray, model: str) -> dict:
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg          = json.loads(settings) if settings else {}
-    model        = str(cfg.get("model", "geminiflash2_5"))
+    model        = str(cfg.get("model") or "createai:geminiflash2_5")
+    api_key      = str(cfg.get("api_key", "")).strip()
     max_subjects = max(1, int(cfg.get("max_subjects", 3)))
     max_checks   = max(1, int(cfg.get("max_checks", 4)))
     min_gap_s    = max(0.05, float(cfg.get("min_vanish_gap_s", 0.3)))
@@ -211,10 +211,11 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                "text": "No Object Tracker masks on the evidence bus — segmenting "
                        "inline (run the Object Tracker first to share its masks)."}
         try:
-            from tools.createai import name_subjects
+            from tools.vlm_router import name_subjects
             from tools.sam3 import segment_concepts
             subjects = await name_subjects([frames[0], frames[n // 2]],
-                                           max_subjects=max_subjects, model=model)
+                                           max_subjects=max_subjects,
+                                           model_key=model, api_key=api_key)
             if not subjects:
                 raise RuntimeError("VLM returned no subject names")
             yield {"type": "log", "level": "info",
@@ -239,12 +240,12 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     verdicts: list[dict] = []
     vanish_events: list[dict] = []
     drift_curves: dict[str, dict] = {}          # label → {t, dcons, dref}
-    from tools.createai import credentials
-    have_api = all(credentials())
+    from tools.vlm_router import key_status
+    have_api, key_desc = key_status(model, api_key)
     if not have_api:
         yield {"type": "log", "level": "warn",
-               "text": "CreateAI credentials missing — drift change-points will be "
-                       "reported unverified (no VLM explanation)."}
+               "text": f"No VLM credentials ({key_desc}) — drift change-points will "
+                       "be reported unverified (no VLM explanation)."}
 
     for label, masks in subjects_masks.items():
         present = sorted(masks)
@@ -339,7 +340,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                                         "(unverified — no VLM)")
                 continue
             try:
-                v = {**base, **await _judge_pair(pair, model)}
+                v = {**base, **await _judge_pair(pair, model, api_key)}
                 verdicts.append(v)
                 lvl = "info" if v["verdict"] == "consistent" else "warn"
                 yield {"type": "log", "level": lvl,

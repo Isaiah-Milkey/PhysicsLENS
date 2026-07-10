@@ -25,8 +25,9 @@ import numpy as np
 import plotly.graph_objects as go
 
 from tools.video     import load_frames, sample_frames
-from tools.vlm       import score_frames, OPENROUTER_MODELS
+from tools.vlm       import score_frames, OPENROUTER_MODELS, SUSPICION_PROMPT_MULTI
 from tools.vlm_local import LOCAL_VLMS
+from tools.vlm_router import resolve as _resolve, key_status as _key_status, model_options
 
 
 def _zone_color(score: float) -> str:
@@ -55,10 +56,12 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     cfg        = json.loads(settings) if settings else {}
     model_key  = cfg.get("model", "qwen2.5-vl-7b")
     num_frames = max(2, int(cfg.get("num_frames", 8)))
-    api_key    = cfg.get("api_key", "").strip() or os.environ.get("OPENROUTER_API_KEY", "")
+    api_key    = str(cfg.get("api_key", "")).strip()
 
     is_local  = model_key in LOCAL_VLMS
-    demo_mode = (not is_local) and (not api_key)
+    provider  = "local" if is_local else _resolve(model_key)[0]   # createai | openrouter
+    have_api  = is_local or _key_status(model_key, api_key)[0]
+    demo_mode = (not is_local) and (not have_api)
 
     if is_local:
         info = LOCAL_VLMS[model_key]
@@ -70,11 +73,12 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         yield {"type": "log", "level": "warn",
                "text": "No API key — running in demo mode (placeholder score)."}
         yield {"type": "log", "level": "info",
-               "text": "Set OPENROUTER_API_KEY / enter a key in settings, or pick a "
-                       "local model (Qwen2.5-VL, InternVL3, SmolVLM2) that needs none."}
+               "text": f"Enter a {provider} key in settings (or set the provider's env "
+                       "var), or pick a local model (Qwen2.5-VL, InternVL3, SmolVLM2) "
+                       "that needs none."}
     else:
         yield {"type": "log", "level": "info",
-               "text": f"API model via OpenRouter: {OPENROUTER_MODELS.get(model_key, model_key)}"}
+               "text": f"API model via {provider}: {model_key}"}
 
     yield {"type": "log", "level": "info", "text": "Loading video…"}
     frames, fps = load_frames(video_path)
@@ -112,9 +116,35 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             yield {"type": "log", "level": "error", "text": f"Local VLM failed: {exc}"}
             result = {"suspicion_score": None, "overall_assessment": str(exc),
                       "confidence": 0.0, "violations": []}
-    else:
+    elif provider == "openrouter":
+        # OpenRouter sends each keyframe as its own image block (measured AUC 0.90).
+        or_model = _resolve(model_key)[1]
+        or_key = api_key or os.environ.get("OPENROUTER_API_KEY", "")
         try:
-            result = await score_frames(keyframes, model_key=model_key, api_key=api_key)
+            result = await score_frames(keyframes, model_key=or_model, api_key=or_key)
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "error", "text": f"VLM call failed: {exc}"}
+            result = {"suspicion_score": None, "overall_assessment": str(exc),
+                      "confidence": 0.0, "violations": []}
+    else:
+        # CreateAI /query takes ONE image, so tile the keyframes into a labeled
+        # strip and send the same multi-frame suspicion prompt.
+        from tools.vlm_router import ask_vision_json
+        tiles = []
+        for i, f in enumerate(keyframes, 1):
+            s = 260 / f.shape[0]
+            t = cv2.resize(f, (max(2, int(f.shape[1] * s)), 260))
+            band = np.full((26, t.shape[1], 3), 20, np.uint8)
+            cv2.putText(band, f"frame {i}", (5, 19), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            tiles.append(np.concatenate([band, t], axis=0))
+        gap = np.full((tiles[0].shape[0], 8, 3), 255, np.uint8)
+        composite = tiles[0]
+        for t in tiles[1:]:
+            composite = np.concatenate([composite, gap, t], axis=1)
+        prompt = SUSPICION_PROMPT_MULTI.replace("{n}", str(len(keyframes)))
+        try:
+            result = await ask_vision_json(prompt, composite, model_key, api_key, timeout=90)
         except Exception as exc:  # noqa: BLE001
             yield {"type": "log", "level": "error", "text": f"VLM call failed: {exc}"}
             result = {"suspicion_score": None, "overall_assessment": str(exc),

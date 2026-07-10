@@ -170,6 +170,8 @@ async def _run_sam3(video_path: str, cfg: dict) -> AsyncGenerator[dict, None]:
     use_dinov2   = str(cfg.get("use_dinov2", "true")).lower() not in ("false", "0", "no")
     render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
     use_naming   = str(cfg.get("use_vlm_naming", "true")).lower() not in ("false", "0", "no")
+    naming_model = str(cfg.get("naming_model", "local")).strip() or "local"
+    api_key      = str(cfg.get("api_key", "")).strip()
     concepts_in  = str(cfg.get("concepts", "")).strip()
     loop = asyncio.get_event_loop()
 
@@ -189,11 +191,20 @@ async def _run_sam3(video_path: str, cfg: dict) -> AsyncGenerator[dict, None]:
         concepts = [c.strip().lower() for c in concepts_in.split(",") if c.strip()]
         yield {"type": "log", "level": "info", "text": f"Using provided concepts: {', '.join(concepts)}"}
     elif use_naming:
-        yield {"type": "log", "level": "info", "text": "Naming scene objects with VLM (Qwen2.5-VL)…"}
+        _nm = "local Qwen2.5-VL" if naming_model == "local" else naming_model
+        yield {"type": "log", "level": "info", "text": f"Naming scene objects with VLM ({_nm})…"}
         await asyncio.sleep(0)
         try:
-            from tools.vlm_local import name_objects
-            concepts = await loop.run_in_executor(None, name_objects, frames)
+            if naming_model == "local":
+                from tools.vlm_local import name_objects
+                concepts = await loop.run_in_executor(None, name_objects, frames)
+            else:
+                # frames are RGB (load_frames_rgb); the router encodes JPEG → BGR.
+                from tools.vlm_router import name_subjects
+                bgr = [cv2.cvtColor(frames[0], cv2.COLOR_RGB2BGR),
+                       cv2.cvtColor(frames[n // 2], cv2.COLOR_RGB2BGR)]
+                concepts = await name_subjects(bgr, max_subjects=6,
+                                               model_key=naming_model, api_key=api_key)
         except Exception as exc:  # noqa: BLE001
             yield {"type": "log", "level": "warn", "text": f"VLM naming failed ({exc}); using fallback vocabulary."}
             concepts = []

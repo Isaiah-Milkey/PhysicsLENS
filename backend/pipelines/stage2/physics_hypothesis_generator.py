@@ -139,7 +139,8 @@ def _heuristic_priors(ev_traj: Optional[dict], ev_loc: Optional[dict],
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg            = json.loads(settings) if settings else {}
-    model          = str(cfg.get("model", "geminiflash2_5"))
+    model          = str(cfg.get("model") or "createai:geminiflash2_5")
+    api_key        = str(cfg.get("api_key", "")).strip()
     max_hypotheses = max(1, int(cfg.get("max_hypotheses", 4)))
     max_keyframes  = max(2, min(6, int(cfg.get("max_keyframes", 4))))
 
@@ -187,17 +188,16 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         composite = np.concatenate([composite, gap, tl], axis=1)
 
     # ── 3. VLM triage (heuristics-only fallback) ──────────────────────────────
-    from tools.createai import credentials
+    from tools.vlm_router import ask_vision_json, key_status
+    have_api, key_desc = key_status(model, api_key)
     vlm_hyps: list[dict] = []
-    if all(credentials()):
-        from tools.createai import query_vision, response_text
+    if have_api:
         catalog = "\n".join(f"- {k}: {d}" for k, (_nm, d) in SPECIALISTS.items())
         prompt = TRIAGE_PROMPT.format(evidence="\n".join(ev_lines), catalog=catalog)
         try:
             yield {"type": "log", "level": "info",
                    "text": f"VLM triage over {len(tiles)} keyframe(s) via {model}…"}
-            resp = await query_vision(prompt, composite, model=model)
-            parsed = parse_vlm_json(response_text(resp) or json.dumps(resp))
+            parsed = await ask_vision_json(prompt, composite, model, api_key)
             for h in (parsed.get("hypotheses") or []):
                 sid = str(h.get("specialist", "")).lower().strip()
                 if sid not in SPECIALISTS:
@@ -217,7 +217,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                            "heuristic priors only."}
     else:
         yield {"type": "log", "level": "warn",
-               "text": "CreateAI credentials missing — heuristic priors only."}
+               "text": f"No VLM credentials ({key_desc}) — heuristic priors only."}
 
     # ── 4. Merge: per specialist, max(heuristic prior, VLM confidence) ───────
     merged: dict[str, dict] = {}

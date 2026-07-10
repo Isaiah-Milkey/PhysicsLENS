@@ -39,19 +39,26 @@ def credentials() -> tuple[Optional[str], Optional[str]]:
 async def query_vision(query: str, frame_bgr: np.ndarray, *,
                        model: str = DEFAULT_MODEL,
                        system_prompt: Optional[str] = None,
-                       timeout_s: float = 60.0) -> Dict[str, Any]:
+                       timeout_s: float = 60.0,
+                       token: Optional[str] = None,
+                       base_url: Optional[str] = None) -> Dict[str, Any]:
     """One image + prompt → CreateAI /query response JSON.
 
-    Sends both the flat "model" key (newer CreateAI examples) and the vision
-    endpoint fields, so either payload style the deployment expects is present.
-    Raises RuntimeError on missing credentials or HTTP failure.
+    `token`/`base_url` override the .env credentials when provided (e.g. a key
+    entered in the UI); otherwise they fall back to CREATEAI_TOKEN /
+    CREATEAI_BASE_URL. Sends both the flat "model" key and the vision endpoint
+    fields so either payload style the deployment expects is present. Raises
+    RuntimeError on missing credentials or HTTP failure.
     """
     import aiohttp
 
-    token, base_url = credentials()
+    env_token, env_base = credentials()
+    token = token or env_token
+    base_url = base_url or env_base
     if not token or not base_url:
         raise RuntimeError(
-            "CreateAI credentials missing — set CREATEAI_TOKEN and "
+            "CreateAI credentials missing — enter a CreateAI token in the "
+            "pipeline's API key field, or set CREATEAI_TOKEN and "
             "CREATEAI_BASE_URL in the PhysicsLENS .env file."
         )
 
