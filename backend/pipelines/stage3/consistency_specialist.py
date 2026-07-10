@@ -170,25 +170,39 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     loop = asyncio.get_event_loop()
     vid = video_id(video_path)
 
-    yield {"type": "log", "level": "info", "text": "Loading video…"}
-    frames, raw_fps = await loop.run_in_executor(None, load_frames, video_path)
+    # ── 1. Subject masks: evidence bus first, inline segmentation fallback ────
+    subjects_masks: dict[str, dict[int, np.ndarray]] = {}
+    sampled_frames: list[int] = []
+    ev_tr = EVIDENCE.get(vid, "s2_object_tracker")
+    use_bus_masks = bool(ev_tr and ev_tr.get("masks_png"))
+
+    # Decode frames so their indices match how the masks are keyed. The Object
+    # Tracker's SAM3 masks are keyed to load_frames_rgb(num_frames) at
+    # target_h=480 — decode identically (→ BGR) when reusing them so mask index
+    # i ↔ frames[i]; otherwise decode the full video for inline segmentation.
+    if use_bus_masks and ev_tr.get("num_frames"):
+        from tools.video import load_frames_rgb
+        yield {"type": "log", "level": "info",
+               "text": "Loading video (aligned to Object Tracker frames)…"}
+        rgb, raw_fps = await loop.run_in_executor(
+            None, load_frames_rgb, video_path, int(ev_tr["num_frames"]))
+        frames = [cv2.cvtColor(f, cv2.COLOR_RGB2BGR) for f in rgb]
+    else:
+        yield {"type": "log", "level": "info", "text": "Loading video…"}
+        frames, raw_fps = await loop.run_in_executor(None, load_frames, video_path)
     n = len(frames)
     if n < 3:
         yield {"type": "error", "text": f"Video too short ({n} frames)."}
         return
     eff_fps = raw_fps or 30.0
 
-    # ── 1. Subject masks: evidence bus first, inline segmentation fallback ────
-    subjects_masks: dict[str, dict[int, np.ndarray]] = {}
-    sampled_frames: list[int] = []
-
-    ev_tr = EVIDENCE.get(vid, "s2_object_tracker")
-    if ev_tr and ev_tr.get("masks_png"):
+    if use_bus_masks:
         from tools.sam3 import decode_mask_png
         for label, per_frame in ev_tr["masks_png"].items():
             subjects_masks[label] = {int(fi): decode_mask_png(png)
                                      for fi, png in per_frame.items()}
-        sampled_frames = ev_tr.get("sampled_frames") or []
+        sampled_frames = ev_tr.get("sampled_frames") or sorted(
+            {fi for m in subjects_masks.values() for fi in m})
         yield {"type": "log", "level": "info",
                "text": f"Reusing Object Tracker masks for {len(subjects_masks)} "
                        "subject(s) from the evidence bus."}

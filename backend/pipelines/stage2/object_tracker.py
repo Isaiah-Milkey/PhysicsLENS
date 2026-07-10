@@ -1,22 +1,27 @@
 """
 Stage 2 · Step 1 — Object Tracker
 ------------------------------------
-Detect salient moving objects with Shi-Tomasi corners + Lucas-Kanade tracking.
-Cluster nearby keypoints into persistent object tracks.
-Optionally embed each track's bounding-box crops with DINOv2 (from archive
-sam_track_compare.py) to measure appearance drift — an identity-stability
-biomarker.  A physically consistent object keeps a near-flat drift curve;
-flickering / morphing AI objects spike.
+Segment, name, and track the physically-interacting objects in a video, then
+measure each object's appearance stability over time.
 
-Metrics
--------
-  • Tracked objects count
-  • Keypoint loss rate
-  • Mean / peak track duration
-  • Per-track mean & peak cosine drift  (DINOv2)
-  • Overall tracking instability score  (0–100)
+Default method ("sam3"):
+  1. A local VLM (Qwen2.5-VL) names the distinct objects in the scene
+     (human-readable labels, e.g. "ball", "wooden block").
+  2. SAM 3 segments + tracks every instance of each named concept across frames.
+  3. DINOv2 embeds each tracked object's masked crop → appearance-drift curve
+     (flat = stable identity; spikes = morphing / flicker — an AI biomarker).
+  4. The GUI gets a *labeled segmented video* (colored masks + names that match
+     the plot legend) plus trajectory & drift plots.
 
-GPU not required — falls back gracefully if DINOv2 / torch are absent.
+Fallback method ("lk"): the original Shi-Tomasi + Lucas-Kanade corner-cluster
+tracker (shared, cached implementation in tools.tracking). Used when SAM3/GPU
+are unavailable, or when explicitly selected.
+
+Either path publishes its canonical tracks to the evidence bus for downstream
+stages.
+
+Metrics: objects found (named), per-object presence, mean/peak appearance drift,
+overall tracking-instability score (0–100).
 """
 import asyncio, base64, json
 from typing import AsyncGenerator, Optional
@@ -26,516 +31,319 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from tools.video    import encode_video_browser
+from tools.video    import load_frames_rgb, encode_video_browser
 from tools.tracking import get_tracks, _PALETTE, _hex_to_bgr
 from tools.evidence import EVIDENCE, video_id
 
+# Concepts tried when VLM naming is unavailable / returns nothing.
+_FALLBACK_CONCEPTS = ["ball", "block", "cup", "bottle", "person"]
 
-def _render_annotated(
-    frames: list, obj_tracks: list[dict], max_frames: int = 240
-) -> tuple[list, int]:
-    """Draw each track's box + label (legend colors) on every frame.
-    Uses the track's semantic label (LocateAnything) if present, else 'obj N'.
-    Returns (annotated frames, subsample step)."""
-    by_frame: dict[int, list] = {}
-    for ct in obj_tracks:
-        for f, box in zip(ct["frames"], ct["boxes"]):
-            by_frame.setdefault(f, []).append((ct["id"], ct.get("label"), box))
+CROP_PAD    = 0.10   # fractional padding around bounding box before DINOv2
+MIN_CROP_PX = 12     # ignore degenerate boxes smaller than this
 
-    n    = len(frames)
-    step = max(1, -(-n // max_frames))   # ceil division
-    out  = []
+
+def _drift_curve(embeddings: np.ndarray) -> np.ndarray:
+    """Cosine-distance drift to the first embedding: drift[t] = 1 − <e_t, e_0>."""
+    ref = embeddings[0]
+    return 1.0 - embeddings @ ref
+
+
+def _publish_tracks(video_path: str, objects: list[dict], eff_fps: float, n: int) -> None:
+    """Publish canonical tracks to the evidence bus for downstream stages.
+
+    For the SAM3 path (objects carry ``inst["masks"]``), the per-object masks are
+    also published PNG-encoded so the Stage 3 Consistency / Collision specialists
+    can reuse them instead of re-segmenting. Masks are keyed by this tracker's
+    frame index (0..n-1, from ``load_frames_rgb(video_path, n)`` at target_h=480);
+    consumers decode identically so indices align — see ``mode`` / ``num_frames``.
+    """
+    payload = {
+        "fps": float(eff_fps), "n_frames": int(n),
+        "tracks": [{"id": oi, "label": o["label"], "frames": o["frames"],
+                    "boxes": o["boxes"], "cx": o["cx"], "cy": o["cy"],
+                    "n_kp": o.get("n_kp", 0)}
+                   for oi, o in enumerate(objects)],
+    }
+
+    has_masks = any(o.get("inst", {}).get("masks") for o in objects)
+    if has_masks:
+        from tools.sam3 import encode_mask_png
+        masks_png: dict[str, dict[int, bytes]] = {}
+        for oi, o in enumerate(objects):
+            masks = o.get("inst", {}).get("masks") or {}
+            if not masks:
+                continue
+            key = o["label"] or f"obj {oi}"
+            masks_png[key] = {int(fi): encode_mask_png(m) for fi, m in masks.items()}
+        payload.update({
+            "mode": "sam3",
+            "masks_png": masks_png,
+            "mask_scale": 1.0,          # masks are at load_frames_rgb (target_h=480) resolution
+            "num_frames": int(n),       # consumers: load_frames_rgb(video_path, num_frames)
+            "sampled_frames": sorted({fi for m in masks_png.values() for fi in m}),
+        })
+    else:
+        payload["mode"] = "lk"
+
+    EVIDENCE.put(video_id(video_path), "s2_object_tracker", payload)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# SAM3 path
+# ════════════════════════════════════════════════════════════════════════════
+
+def _assign_labels(instances: list[dict]) -> None:
+    """Give each instance a human-readable `label`; number repeats within a concept."""
+    by_concept: dict[str, list[dict]] = {}
+    for inst in instances:
+        by_concept.setdefault(inst["concept"], []).append(inst)
+    for concept, group in by_concept.items():
+        if len(group) == 1:
+            group[0]["label"] = concept
+        else:
+            for i, inst in enumerate(group, 1):
+                inst["label"] = f"{concept} #{i}"
+
+
+def _dedupe_instances(instances: list[dict], iou_thresh: float = 0.6) -> list[dict]:
+    """Drop instances that overlap an already-kept one (e.g. two concepts hit the
+    same object). Keeps the more persistent / confident of the pair."""
+    from tools.sam3 import mask_iou
+    instances = sorted(instances, key=lambda d: (-d["n_frames"], -d["mean_score"]))
+    kept: list[dict] = []
+    for inst in instances:
+        if all(mask_iou(inst["masks"], k["masks"]) < iou_thresh for k in kept):
+            kept.append(inst)
+    return kept
+
+
+def _object_geometry(inst: dict, n: int) -> dict:
+    """Per-frame centroid + bbox for a tracked instance."""
+    from tools.sam3 import mask_bbox
+    frame_idxs, boxes, cx_list, cy_list = [], [], [], []
+    for f in sorted(inst["masks"]):
+        mask = inst["masks"][f]
+        box = mask_bbox(mask, pad=CROP_PAD, min_px=MIN_CROP_PX)
+        if box is None:
+            continue
+        ys, xs = np.where(mask)
+        frame_idxs.append(f)
+        boxes.append(box)
+        cx_list.append(float(xs.mean()))
+        cy_list.append(float(ys.mean()))
+    return {"frames": frame_idxs, "boxes": boxes, "cx": cx_list, "cy": cy_list}
+
+
+def _render_segmented(frames_rgb: list, objects: list[dict], max_frames: int = 240) -> tuple:
+    """Overlay each object's mask (tinted fill + contour + readable label) on every
+    frame. Returns (annotated BGR frames, subsample step)."""
+    n = len(frames_rgb)
+    step = max(1, -(-n // max_frames))
+    out = []
     for f in range(0, n, step):
-        img = frames[f].copy()
-        for tid, tlabel, (x0, y0, x1, y1) in by_frame.get(f, []):
-            color = _hex_to_bgr(_PALETTE[tid % len(_PALETTE)])
-            cv2.rectangle(img, (x0, y0), (x1, y1), color, 2)
-            label = f"obj {tid} ({tlabel})" if tlabel else f"obj {tid}"
+        img = cv2.cvtColor(frames_rgb[f], cv2.COLOR_RGB2BGR)
+        for oi, obj in enumerate(objects):
+            mask = obj["inst"]["masks"].get(f)
+            if mask is None or not mask.any():
+                continue
+            color = _hex_to_bgr(_PALETTE[oi % len(_PALETTE)])
+            tint = np.array(color, np.uint8)
+            img[mask] = (0.45 * tint + 0.55 * img[mask]).astype(np.uint8)
+            contours, _ = cv2.findContours(mask.astype(np.uint8),
+                                           cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cv2.drawContours(img, contours, -1, color, 2)
+            ys, xs = np.where(mask)
+            lx, ly = int(xs.min()), int(ys.min())
+            label = obj["label"]
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
-            ty = y0 - 6 if y0 - th - 10 >= 0 else min(y1 + th + 6, img.shape[0] - 4)
-            cv2.rectangle(img, (x0, ty - th - 4), (x0 + tw + 6, ty + 4), color, -1)
-            cv2.putText(img, label, (x0 + 3, ty), cv2.FONT_HERSHEY_SIMPLEX,
+            lx = max(0, min(lx, img.shape[1] - tw - 8))   # keep label box on-screen
+            ty = ly - 6 if ly - th - 10 >= 0 else min(ly + th + 16, img.shape[0] - 4)
+            cv2.rectangle(img, (lx, ty - th - 4), (lx + tw + 6, ty + 4), color, -1)
+            cv2.putText(img, label, (lx + 3, ty), cv2.FONT_HERSHEY_SIMPLEX,
                         0.55, (255, 255, 255), 2, cv2.LINE_AA)
         out.append(img)
     return out, step
 
 
-# ── Motion hotspot (frame differencing — near-free) ──────────────────────────
-
-def _motion_hotspot(frames: list, max_pairs: int = 12) -> Optional[dict]:
-    """Locate the region with the most motion across the clip.
-
-    Accumulated |gray frame diff| over ≤max_pairs evenly spaced frame pairs,
-    blurred, thresholded, largest contour. Returns {"box": XYXY (original px),
-    "peak_frame": idx of the pair with the strongest motion} or None.
-    Pure numpy/cv2 — no models, no API.
-    """
-    n = len(frames)
-    if n < 3:
-        return None
-    idxs = np.linspace(0, n - 2, min(max_pairs, n - 1), dtype=int)
-    H, W = frames[0].shape[:2]
-    scale = min(1.0, 360.0 / H)
-    size = (max(2, int(W * scale)), max(2, int(H * scale)))
-
-    accum = np.zeros(size[::-1], np.float32)
-    peak_frame, peak_energy = int(idxs[0]), -1.0
-    for i in idxs:
-        a = cv2.cvtColor(cv2.resize(frames[i], size), cv2.COLOR_BGR2GRAY)
-        b = cv2.cvtColor(cv2.resize(frames[i + 1], size), cv2.COLOR_BGR2GRAY)
-        d = cv2.absdiff(a, b).astype(np.float32)
-        accum += d
-        e = float(d.sum())
-        if e > peak_energy:
-            peak_energy, peak_frame = e, int(i)
-    if accum.max() < 1e-3:
-        return None
-
-    norm = (accum / accum.max() * 255).astype(np.uint8)
-    norm = cv2.GaussianBlur(norm, (9, 9), 0)
-    _, mask = cv2.threshold(norm, 50, 255, cv2.THRESH_BINARY)
-    mask = cv2.dilate(mask, np.ones((7, 7), np.uint8), iterations=2)
-    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not cnts:
-        return None
-    x, y, w, h = cv2.boundingRect(max(cnts, key=cv2.contourArea))
-    if w * h < mask.size * 0.001:
-        return None
-    inv = 1.0 / scale
-    return {"box": (int(x * inv), int(y * inv),
-                    int((x + w) * inv), int((y + h) * inv)),
-            "peak_frame": peak_frame}
-
-
-# ── DINOv2 appearance drift (ported from sam_track_compare.py) ───────────────
-
-def _embed_crops_dinov2(crops: list[np.ndarray], model=None) -> np.ndarray:
-    """
-    L2-normalised DINOv2 (facebook/dinov2-base) descriptors for a list of
-    BGR uint8 crop arrays.  Ported from sam_track_compare._embed_track —
-    same checkpoint, so the 0.35 drift threshold keeps its original meaning.
-    Returns (K, 768) float32.  The loader is cached, so per-track calls
-    reuse one model instance.
-    """
-    from tools.embeddings import load_dinov2, embed_frames_dinov2
-    if model is None:
-        model = load_dinov2()
-    embs  = embed_frames_dinov2(crops, model)       # (K, D)
-    # Ensure L2 normalisation (safe double-norm)
-    norms = np.linalg.norm(embs, axis=1, keepdims=True)
-    embs  = embs / np.where(norms < 1e-8, 1.0, norms)
-    return embs
-
-
-def _drift_curve(embeddings: np.ndarray) -> np.ndarray:
-    """
-    Cosine-distance drift relative to the first embedding.
-    Ported directly from sam_track_compare._drift_curve:
-      drift[t] = 1 − <e_t , e_0>  ∈ [0, 2]
-    Flat curve = stable identity.  Spike = morphing / appearance jump.
-    """
-    ref = embeddings[0]
-    return 1.0 - embeddings @ ref
-
-
-# ── Main pipeline ─────────────────────────────────────────────────────────────
-
-async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
-    cfg          = json.loads(settings) if settings else {}
-    num_kp       = max(5,  int(cfg.get("num_keypoints", 60)))
-    sample_every = max(1,  int(cfg.get("sample_every",   1)))
+async def _run_sam3(video_path: str, cfg: dict) -> AsyncGenerator[dict, None]:
+    num_frames   = max(8, int(cfg.get("num_frames", 48)))
     use_dinov2   = str(cfg.get("use_dinov2", "true")).lower() not in ("false", "0", "no")
     render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
-    use_locate_anything = str(cfg.get("use_locate_anything", "true")).lower() not in ("false", "0", "no")
-    tracker_mode = str(cfg.get("tracker_mode", "auto")).lower()          # auto | sam3 | lk
-    max_subjects = max(1, int(cfg.get("max_subjects", 3)))
-    naming_model = str(cfg.get("naming_model", "geminiflash2_5"))
-
+    use_naming   = str(cfg.get("use_vlm_naming", "true")).lower() not in ("false", "0", "no")
+    concepts_in  = str(cfg.get("concepts", "")).strip()
     loop = asyncio.get_event_loop()
 
-    # ── Phase 1 (primary): segmentation-first subject tracking ────────────────
-    # Gemini names the primary subjects from the first frame; SAM3 mask-tracks
-    # each named subject. Tracks come out in the same schema as the LK path so
-    # every downstream consumer (drift, plots, evidence bus) works unchanged.
-    obj_tracks: list[dict] = []
-    masks_by_track: dict[int, dict[int, np.ndarray]] = {}   # track id → {frame: mask}
-    mask_scale = 1.0
-    seg_mode = False
-
-    if tracker_mode in ("auto", "sam3"):
-        try:
-            from tools.video import load_frames
-            from tools.createai import name_subjects, credentials
-            from tools.sam3 import segment_concepts, mask_box
-
-            if not all(credentials()):
-                raise RuntimeError("CreateAI credentials missing (needed to name subjects)")
-
-            yield {"type": "log", "level": "info", "text": "Loading video…"}
-            await asyncio.sleep(0)
-            frames, raw_fps = await loop.run_in_executor(
-                None, lambda: load_frames(video_path, step=sample_every))
-            eff_fps = (raw_fps or 30.0) / sample_every
-            n = len(frames)
-            if n < 3:
-                yield {"type": "error", "text": f"Video too short ({n} frames)."}
-                return
-            H, W = frames[0].shape[:2]
-
-            # Motion hotspot (frame differencing, near-free): guarantees the
-            # fastest-moving object gets named and, below, gets tracked even
-            # if SAM3 misses it by name.
-            hotspot = await loop.run_in_executor(None, _motion_hotspot, frames)
-            motion_crop = None
-            if hotspot:
-                hx0, hy0, hx1, hy1 = hotspot["box"]
-                pf = hotspot["peak_frame"]
-                px, py = max(16, (hx1 - hx0) // 6), max(16, (hy1 - hy0) // 6)
-                motion_crop = frames[pf][max(0, hy0 - py):hy1 + py,
-                                         max(0, hx0 - px):hx1 + px].copy()
-                yield {"type": "log", "level": "info",
-                       "text": f"Motion hotspot: box {hotspot['box']} "
-                               f"(peak around frame {pf})."}
-
-            yield {"type": "log", "level": "info",
-                   "text": "Naming primary subjects (Gemini via CreateAI, "
-                           "first + middle frame + motion crop)…"}
-            subjects = await name_subjects([frames[0], frames[n // 2]],
-                                           max_subjects=max_subjects,
-                                           model=naming_model,
-                                           motion_crop=motion_crop)
-            if not subjects:
-                raise RuntimeError("VLM returned no subject names")
-            yield {"type": "log", "level": "info",
-                   "text": "Primary subjects: " + ", ".join(f"“{s}”" for s in subjects)}
-            await asyncio.sleep(0)
-
-            yield {"type": "log", "level": "info",
-                   "text": f"SAM3 mask-tracking {len(subjects)} subject(s) through the clip…"}
-            await asyncio.sleep(0)
-            seg = await loop.run_in_executor(
-                None, lambda: segment_concepts(frames, subjects))
-            mask_scale = seg["scale"]
-            sampled_frames = seg["sampled_frames"]      # SAM3's uniform subsample grid
-            n_sampled = len(sampled_frames)
-            if not seg["subjects"]:
-                raise RuntimeError("SAM3 matched none of the named subjects")
-
-            inv = 1.0 / mask_scale
-            tid = 0
-            for name, masks in seg["subjects"].items():
-                f_idxs, boxes, cx, cy = [], [], [], []
-                for fi in sorted(masks):
-                    b = mask_box(masks[fi], pad_frac=0.0)
-                    if b is None:
-                        continue
-                    x0, y0, x1, y1 = (int(v * inv) for v in b)
-                    f_idxs.append(fi)
-                    boxes.append((x0, y0, x1, y1))
-                    cx.append((x0 + x1) / 2.0)
-                    cy.append((y0 + y1) / 2.0)
-                if len(f_idxs) < 3:
-                    continue
-                obj_tracks.append({"id": tid, "frames": f_idxs, "boxes": boxes,
-                                   "cx": cx, "cy": cy, "n_kp": 0, "label": name})
-                masks_by_track[tid] = masks
-                tid += 1
-            if not obj_tracks:
-                raise RuntimeError("no subject produced a usable mask track")
-
-            # Motion rescue: if no subject's mask covers the motion hotspot,
-            # the fastest-moving object slipped through naming — box-prompt
-            # SAM3 on the hotspot itself so it gets tracked regardless.
-            if hotspot:
-                bx0, by0, bx1, by1 = [int(v * mask_scale) for v in hotspot["box"]]
-                pf = hotspot["peak_frame"]
-                covered = False
-                for masks in masks_by_track.values():
-                    for fi in sorted(masks, key=lambda f: abs(f - pf))[:3]:
-                        region = masks[fi][max(0, by0):max(1, by1),
-                                           max(0, bx0):max(1, bx1)]
-                        if region.size and float(region.mean()) > 0.05:
-                            covered = True
-                            break
-                    if covered:
-                        break
-                if not covered:
-                    yield {"type": "log", "level": "warn",
-                           "text": "No subject mask covers the motion hotspot — "
-                                   "box-prompting SAM3 on it directly (motion rescue)."}
-                    await asyncio.sleep(0)
-                    try:
-                        from tools.sam3 import segment_video
-                        res = await loop.run_in_executor(
-                            None, lambda: segment_video(
-                                frames, box=hotspot["box"],
-                                text="the main moving object",
-                                box_frame=hotspot["peak_frame"]))
-                        inv_r = 1.0 / res["scale"]
-                        f_idxs, boxes, cx, cy = [], [], [], []
-                        for fi in sorted(res["masks"]):
-                            b = mask_box(res["masks"][fi], pad_frac=0.0)
-                            if b is None:
-                                continue
-                            x0, y0, x1, y1 = (int(v * inv_r) for v in b)
-                            f_idxs.append(fi)
-                            boxes.append((x0, y0, x1, y1))
-                            cx.append((x0 + x1) / 2.0)
-                            cy.append((y0 + y1) / 2.0)
-                        if len(f_idxs) >= 3:
-                            rid = len(obj_tracks)
-                            obj_tracks.append({"id": rid, "frames": f_idxs,
-                                               "boxes": boxes, "cx": cx, "cy": cy,
-                                               "n_kp": 0, "label": "moving object"})
-                            masks_by_track[rid] = res["masks"]
-                            yield {"type": "log", "level": "info",
-                                   "text": f"Motion rescue tracked “moving object” on "
-                                           f"{len(f_idxs)} frame(s) "
-                                           f"(prompt mode: {res['prompt_mode']})."}
-                        else:
-                            yield {"type": "log", "level": "warn",
-                                   "text": "Motion rescue found no stable object."}
-                    except Exception as exc:                        # noqa: BLE001
-                        yield {"type": "log", "level": "warn",
-                               "text": f"Motion rescue failed: {str(exc)[:160]}"}
-
-            seg_mode = True
-            meta = {"n_frames": n, "H": H, "W": W, "start": 0,
-                    "nk": 0, "kp_loss_pct": 0.0}
-            nk, kp_loss_pct, kp_lost = 0, 0.0, 0
-            for ct in obj_tracks:
-                yield {"type": "log", "level": "info",
-                       "text": f"“{ct['label']}” masked on {len(ct['frames'])}/{n_sampled} "
-                               "sampled frame(s)."}
-        except Exception as exc:                                    # noqa: BLE001
-            if tracker_mode == "sam3":
-                yield {"type": "error",
-                       "text": f"Segmentation mode failed: {str(exc)[:300]}"}
-                return
-            yield {"type": "log", "level": "warn",
-                   "text": f"Segmentation path unavailable ({str(exc)[:160]}) — "
-                           "falling back to LK keypoint tracking."}
-            obj_tracks, masks_by_track, seg_mode = [], {}, False
-
-    # ── Phase 1 (fallback): shared, cached LK tracking + clustering ───────────
-    if not seg_mode:
-        yield {"type": "log", "level": "info", "text": "Loading video & tracking keypoints…"}
-        await asyncio.sleep(0)
-        tr = await loop.run_in_executor(
-            None, lambda: get_tracks(video_path, num_kp=num_kp,
-                                     sample_every=sample_every, max_objects=8))
-        frames     = tr["frames"]
-        eff_fps    = tr["fps"]
-        meta       = tr["meta"]
-        obj_tracks = tr["tracks"]
-        n  = meta["n_frames"]
-        H, W = meta["H"], meta["W"]
-        nk = meta["nk"]
-        kp_loss_pct = meta["kp_loss_pct"]
-        kp_lost     = int(round(kp_loss_pct * nk))
-
-        if n < 3:
-            yield {"type": "error", "text": f"Video too short ({n} frames)."}
-            return
-        if not obj_tracks:
-            yield {"type": "error", "text": "No keypoints detected in any frame."}
-            return
-        if meta["start"] > 0:
-            yield {"type": "log", "level": "warn",
-                   "text": f"First {meta['start']} frame(s) featureless — tracking started later."}
-
-    n_objects = len(obj_tracks)
+    yield {"type": "log", "level": "info", "text": "Loading video…"}
+    frames, eff_fps = await loop.run_in_executor(None, load_frames_rgb, video_path, num_frames)
+    n = len(frames)
+    if n < 3:
+        yield {"type": "error", "text": f"Video too short ({n} frames)."}
+        return
+    H, W = frames[0].shape[:2]
     yield {"type": "log", "level": "info",
-           "text": f"{n} frames @ {eff_fps:.1f} fps — {n_objects} object track(s) "
-                   + ("via SAM3 subject masks." if seg_mode else f"from {nk} keypoints.")}
+           "text": f"{n} frames @ {eff_fps:.1f} fps ({W}×{H}) loaded."}
     await asyncio.sleep(0)
 
-    # ── Phase 1b: Semantic labeling (NVIDIA LocateAnything-3B, one-shot) ──────
-    # LK-fallback mode only — in segmentation mode subjects are already named.
-    # Single-image open-set detector — run once on the first tracked frame and
-    # match its grounded boxes onto the LK tracks by IOU. Doesn't change what
-    # gets tracked, only what it's called. Degrades gracefully (no GPU/model).
-    if use_locate_anything and not seg_mode:
-        yield {"type": "log", "level": "info",
-               "text": "Running LocateAnything-3B for semantic object labels…"}
+    # ── Step 1: name the objects ──────────────────────────────────────────────
+    if concepts_in:
+        concepts = [c.strip().lower() for c in concepts_in.split(",") if c.strip()]
+        yield {"type": "log", "level": "info", "text": f"Using provided concepts: {', '.join(concepts)}"}
+    elif use_naming:
+        yield {"type": "log", "level": "info", "text": "Naming scene objects with VLM (Qwen2.5-VL)…"}
         await asyncio.sleep(0)
         try:
-            from tools.locate_anything import detect, match_label
-            det_frame_idx = meta["start"]
-            detections = await loop.run_in_executor(
-                None, lambda: detect(frames[det_frame_idx]))
-            labeled = 0
-            for ct in obj_tracks:
-                if det_frame_idx in ct["frames"]:
-                    fi = ct["frames"].index(det_frame_idx)
-                    box = ct["boxes"][fi]
-                else:
-                    box = ct["boxes"][0]                # nearest available box
-                label = match_label(box, detections)
-                if label:
-                    ct["label"] = label
-                    labeled += 1
+            from tools.vlm_local import name_objects
+            concepts = await loop.run_in_executor(None, name_objects, frames)
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "warn", "text": f"VLM naming failed ({exc}); using fallback vocabulary."}
+            concepts = []
+        if concepts:
+            yield {"type": "log", "level": "success", "text": f"VLM identified: {', '.join(concepts)}"}
+        else:
+            concepts = _FALLBACK_CONCEPTS
+            yield {"type": "log", "level": "info", "text": f"Falling back to: {', '.join(concepts)}"}
+    else:
+        concepts = _FALLBACK_CONCEPTS
+        yield {"type": "log", "level": "info", "text": f"Trying concept vocabulary: {', '.join(concepts)}"}
+    await asyncio.sleep(0)
+
+    # ── Step 2: SAM3 segment + track each concept ─────────────────────────────
+    yield {"type": "log", "level": "info", "text": "Loading SAM3 and segmenting…"}
+    await asyncio.sleep(0)
+    try:
+        from tools.sam3 import segment_concept
+    except Exception as exc:  # noqa: BLE001
+        yield {"type": "error", "text": f"SAM3 import failed: {exc}"}
+        return
+
+    instances: list[dict] = []
+    for concept in concepts:
+        try:
+            found = await loop.run_in_executor(None, segment_concept, frames, concept)
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "warn", "text": f'"{concept}" segmentation error: {exc}'}
+            continue
+        if found:
             yield {"type": "log", "level": "info",
-                   "text": f"{len(detections)} object(s) detected; "
-                           f"{labeled}/{n_objects} track(s) labeled."}
-        except Exception as exc:                                    # noqa: BLE001
-            yield {"type": "log", "level": "warn",
-                   "text": f"LocateAnything-3B unavailable ({str(exc)[:180]}) — "
-                           "tracks stay unlabeled (obj N)."}
+                   "text": f'"{concept}" → {len(found)} instance(s) '
+                           f'(best present {found[0]["n_frames"]}/{n} frames).'}
+        instances.extend(found)
         await asyncio.sleep(0)
 
-    # Publish canonical tracks — plus, in segmentation mode, the per-subject
-    # masks (PNG-compressed, a few KB each) — to the evidence bus. Stage 3's
-    # Consistency Specialist consumes the masks for its VLM judgment; the
-    # tracker itself only segments, tracks, and labels.
-    masks_png: dict = {}
-    if seg_mode:
-        from tools.sam3 import encode_mask_png
-        for ct in obj_tracks:
-            masks_png[ct["label"]] = {
-                int(fi): encode_mask_png(mk)
-                for fi, mk in masks_by_track[ct["id"]].items()}
-    EVIDENCE.put(video_id(video_path), "s2_object_tracker", {
-        "fps": float(eff_fps), "n_frames": int(n),
-        "mode": "sam3" if seg_mode else "lk",
-        "mask_scale": mask_scale,
-        "sampled_frames": (sampled_frames if seg_mode else None),
-        "masks_png": masks_png,
-        "tracks": [{"id": ct["id"], "frames": ct["frames"], "boxes": ct["boxes"],
-                    "cx": ct["cx"], "cy": ct["cy"], "n_kp": ct["n_kp"],
-                    "label": ct.get("label")}
-                   for ct in obj_tracks],
-    })
+    if not instances:
+        yield {"type": "error",
+               "text": "SAM3 found no trackable objects for the named concepts. "
+                       "Try entering concepts manually in test settings."}
+        return
 
-    # ── Phase 2b: Annotated video — show which region each "obj N" is ─────────
+    instances = _dedupe_instances(instances)
+    instances = sorted(instances, key=lambda d: (-d["n_frames"], -d["mean_score"]))[:6]
+    _assign_labels(instances)
+
+    objects = [{"label": inst["label"], "inst": inst, **_object_geometry(inst, n)}
+               for inst in instances]
+    objects = [o for o in objects if len(o["frames"]) >= 2]
+    n_objects = len(objects)
+    yield {"type": "log", "level": "success",
+           "text": f"Tracking {n_objects} object(s): {', '.join(o['label'] for o in objects)}"}
+    await asyncio.sleep(0)
+
+    _publish_tracks(video_path, objects, eff_fps, n)
+
+    # ── Step 3: labeled segmented video ───────────────────────────────────────
     if render_video and n_objects > 0:
-        yield {"type": "log", "level": "info", "text": "Rendering labeled object video…"}
+        yield {"type": "log", "level": "info", "text": "Rendering labeled segmented video…"}
         await asyncio.sleep(0)
         try:
-            ann_frames, step = _render_annotated(frames, obj_tracks)
-            data, mime = await loop.run_in_executor(
-                None, encode_video_browser, ann_frames, eff_fps / step
-            )
-            yield {
-                "type": "video",
-                "data": base64.b64encode(data).decode(),
-                "mime": mime,
-                "caption": ("Tracked objects — box colors and labels match the "
-                            "plot legend (obj N below)."),
-            }
-            yield {"type": "log", "level": "info",
-                   "text": f"Labeled video ready ({len(data)/1024:.0f} KB, {mime})."}
-        except Exception as exc:
-            yield {"type": "log", "level": "warn",
-                   "text": f"Labeled video rendering failed ({exc}) — continuing."}
+            ann, step = _render_segmented(frames, objects)
+            data, mime = await loop.run_in_executor(None, encode_video_browser, ann, eff_fps / step)
+            yield {"type": "video", "data": base64.b64encode(data).decode(), "mime": mime,
+                   "caption": "SAM3 segmentation — mask colors & labels match the plot legend below."}
+            yield {"type": "log", "level": "info", "text": f"Segmented video ready ({len(data)/1024:.0f} KB, {mime})."}
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "warn", "text": f"Segmented video failed ({exc}) — continuing."}
         await asyncio.sleep(0)
 
-    # ── Phase 3: DINOv2 appearance drift (ported from sam_track_compare) ──────
+    # ── Step 4: DINOv2 appearance drift per object ────────────────────────────
     dino_drifts: dict[int, np.ndarray] = {}
     dino_available = False
-
     if use_dinov2 and n_objects > 0:
-        yield {"type": "log", "level": "info",
-               "text": "Loading DINOv2 for appearance-drift analysis (sam_track_compare approach)…"}
+        yield {"type": "log", "level": "info", "text": "DINOv2 appearance-drift analysis…"}
         await asyncio.sleep(0)
         try:
-            from tools.embeddings import load_dinov2
-            dino_model = load_dinov2()
-            for ct in obj_tracks:
+            from tools.embeddings import embed_crops_dinov2_hf
+            for oi, obj in enumerate(objects):
                 crops = []
-                for f, box in zip(ct["frames"], ct["boxes"]):
+                for f, box in zip(obj["frames"], obj["boxes"]):
                     x0, y0, x1, y1 = box
-                    crop = frames[f][y0:y1, x0:x1]
+                    crop = frames[f][y0:y1, x0:x1]   # RGB
                     if crop.size > 0:
                         crops.append(crop)
-
                 if len(crops) < 2:
                     continue
-
-                embs  = _embed_crops_dinov2(crops, dino_model)  # (K, D) L2-normed
-                drift = _drift_curve(embs)              # (K,)  cosine dist to frame 0
-                dino_drifts[ct["id"]] = drift
-
+                embs = await loop.run_in_executor(None, embed_crops_dinov2_hf, crops)
+                dino_drifts[oi] = _drift_curve(embs)
             dino_available = True
             yield {"type": "log", "level": "info",
-                   "text": f"Appearance drift computed for {len(dino_drifts)} track(s)."}
-        except Exception as exc:
-            yield {"type": "log", "level": "warn",
-                   "text": f"DINOv2 unavailable ({exc}) — skipping appearance embedding."}
+                   "text": f"Appearance drift computed for {len(dino_drifts)} object(s)."}
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "warn", "text": f"DINOv2 unavailable ({exc}) — skipping drift."}
     await asyncio.sleep(0)
 
-    # ── Phase 4: Plotly visualisation ─────────────────────────────────────────
+    # ── Step 5: plots ─────────────────────────────────────────────────────────
+    async for ev in _emit_plots_and_metrics(objects, dino_drifts, dino_available,
+                                             eff_fps, H, n, kp_loss_pct=None):
+        yield ev
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Shared plotting + metrics (used by both methods)
+# ════════════════════════════════════════════════════════════════════════════
+
+async def _emit_plots_and_metrics(objects, dino_drifts, dino_available,
+                                  eff_fps, H, n, kp_loss_pct) -> AsyncGenerator[dict, None]:
     yield {"type": "log", "level": "info", "text": "Building plots…"}
     await asyncio.sleep(0)
 
-    n_rows    = 2 if dino_available else 1
-    subtitles = ["Object Trajectories (centroid, px)"]
+    n_rows = 2 if dino_available else 1
+    subtitles = ["Object Trajectories (centroid Y, px)"]
     if dino_available:
-        subtitles.append("DINOv2 Appearance Drift per Track — cosine dist to frame 0")
+        subtitles.append("DINOv2 Appearance Drift per Object — cosine dist to frame 0")
+    fig = make_subplots(rows=n_rows, cols=1, shared_xaxes=True,
+                        vertical_spacing=0.12, subplot_titles=subtitles)
 
-    fig = make_subplots(
-        rows=n_rows, cols=1, shared_xaxes=True,
-        vertical_spacing=0.12, subplot_titles=subtitles,
-    )
-
-    for ct in obj_tracks:
-        color  = _PALETTE[ct["id"] % len(_PALETTE)]
-        t_secs = [f / eff_fps for f in ct["frames"]]
-
-        # Y-centroid trajectory (inverted: 0=bottom, H=top in pixel space → flip)
+    for oi, obj in enumerate(objects):
+        color = _PALETTE[oi % len(_PALETTE)]
+        t_secs = [f / eff_fps for f in obj["frames"]]
         fig.add_trace(go.Scatter(
-            x=t_secs,
-            y=[H - cy for cy in ct["cy"]],
-            mode="lines+markers",
-            marker=dict(size=4, color=color),
-            line=dict(color=color, width=1.6),
-            name=(f"obj {ct['id']} — {ct['label']}" if ct.get("label")
-                  else f"obj {ct['id']}  ({ct['n_kp']} kp)"),
-            hovertemplate=(
-                "<b>t = %{x:.2f}s</b><br>"
-                "y-centroid = %{y:.0f}px<br>"
-                f"track {ct['id']}"
-                "<extra></extra>"
-            ),
+            x=t_secs, y=[H - cy for cy in obj["cy"]],
+            mode="lines+markers", marker=dict(size=4, color=color),
+            line=dict(color=color, width=1.6), name=obj["label"],
+            hovertemplate=("<b>t = %{x:.2f}s</b><br>y-centroid = %{y:.0f}px<br>"
+                           f"{obj['label']}<extra></extra>"),
         ), row=1, col=1)
 
-        if dino_available and ct["id"] in dino_drifts:
-            drift   = dino_drifts[ct["id"]]
+        if dino_available and oi in dino_drifts:
+            drift = dino_drifts[oi]
             t_drift = t_secs[:len(drift)]
-            # Flag high-drift anomalies
-            thresh = 0.35
             fig.add_trace(go.Scatter(
-                x=t_drift, y=drift.tolist(),
-                mode="lines+markers",
-                marker=dict(size=4, color=color),
-                line=dict(color=color, width=1.6),
-                name=f"obj {ct['id']} drift",
-                showlegend=False,
-                hovertemplate=(
-                    "<b>t = %{x:.2f}s</b><br>"
-                    "cosine dist = %{y:.3f}<br>"
-                    f"track {ct['id']}"
-                    "<extra></extra>"
-                ),
+                x=t_drift, y=drift.tolist(), mode="lines+markers",
+                marker=dict(size=4, color=color), line=dict(color=color, width=1.6),
+                name=f"{obj['label']} drift", showlegend=False,
+                hovertemplate=("<b>t = %{x:.2f}s</b><br>cosine dist = %{y:.3f}<br>"
+                               f"{obj['label']}<extra></extra>"),
             ), row=2, col=1)
-
-            # Highlight anomalous drift segments
-            spikes = np.where(drift > thresh)[0]
-            for si in spikes:
+            for si in np.where(drift > 0.35)[0]:
                 if si < len(t_drift):
                     hw = 0.5 / eff_fps
-                    fig.add_vrect(
-                        x0=t_drift[si] - hw, x1=t_drift[si] + hw,
-                        fillcolor=color, opacity=0.12, line_width=0, row=2, col=1,
-                    )
+                    fig.add_vrect(x0=t_drift[si] - hw, x1=t_drift[si] + hw,
+                                  fillcolor=color, opacity=0.12, line_width=0, row=2, col=1)
 
     if dino_available:
-        fig.add_hline(
-            y=0.35, line=dict(color="#E24B4A", dash="dash", width=1.2),
-            annotation_text="appearance jump threshold (0.35)",
-            annotation_font=dict(color="#E24B4A", size=11),
-            annotation_position="top right", row=2, col=1,
-        )
+        fig.add_hline(y=0.35, line=dict(color="#E24B4A", dash="dash", width=1.2),
+                      annotation_text="appearance jump threshold (0.35)",
+                      annotation_font=dict(color="#E24B4A", size=11),
+                      annotation_position="top right", row=2, col=1)
 
     _grid = dict(showgrid=True, gridcolor="#ebebeb", gridwidth=1)
     fig.update_xaxes(**_grid, title_text="Time (s)", row=n_rows, col=1)
@@ -544,80 +352,188 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     fig.update_yaxes(title_text="Y position (px, bottom=0)", row=1, col=1)
     if dino_available:
         fig.update_yaxes(title_text="Cosine distance to frame 0", range=[0, None], row=2, col=1)
-
     fig.update_layout(
-        title=dict(text="Object Tracker — LK Trajectories & DINOv2 Appearance Drift",
+        title=dict(text="Object Tracker — Segment Trajectories & DINOv2 Appearance Drift",
                    font=dict(size=15)),
         height=380 + (260 if dino_available else 0),
         legend=dict(orientation="h", y=1.07, x=0, font=dict(size=12)),
         plot_bgcolor="white", paper_bgcolor="white",
         margin=dict(l=65, r=40, t=110, b=55),
-        font=dict(family="IBM Plex Sans, sans-serif", size=13),
-        hovermode="x unified",
+        font=dict(family="IBM Plex Sans, sans-serif", size=13), hovermode="x unified",
     )
-
-    yield {
-        "type": "plotly", "data": fig.to_json(),
-        "caption": (
-            "Y-centroid trajectories of detected object tracks (top). "
-            + ("DINOv2 appearance drift — flat = stable, spikes = identity jump (bottom)."
-               if dino_available else "")
-        ),
-    }
+    yield {"type": "plotly", "data": fig.to_json(),
+           "caption": ("Centroid-Y trajectory of each named object (top). "
+                       + ("DINOv2 appearance drift — flat = stable, spikes = identity jump (bottom)."
+                          if dino_available else ""))}
 
     # ── Metrics ───────────────────────────────────────────────────────────────
-    durations  = [len(ct["frames"]) for ct in obj_tracks]
-    mean_dur   = float(np.mean(durations))  if durations  else 0.0
-    # Seg-mode tracks live on SAM3's sampling grid, not the full frame count.
-    persist_base = n_sampled if seg_mode else n
-    persistent = sum(1 for d in durations if d >= persist_base * 0.5)
+    durations  = [len(o["frames"]) for o in objects]
+    mean_dur   = float(np.mean(durations)) if durations else 0.0
+    persistent = sum(1 for d in durations if d >= n * 0.5)
+    n_objects  = len(objects)
 
     if dino_drifts:
-        all_drift  = np.concatenate(list(dino_drifts.values()))
-        mean_drift = float(all_drift.mean())
-        peak_drift = float(all_drift.max())
+        all_drift = np.concatenate(list(dino_drifts.values()))
+        mean_drift, peak_drift = float(all_drift.mean()), float(all_drift.max())
     else:
         mean_drift = peak_drift = float("nan")
 
-    labeled_names = [ct["label"] for ct in obj_tracks if ct.get("label")]
-    yield {"type": "metric", "label": "Objects tracked",   "value": str(n_objects),
-           "sub": (f"{persistent} persistent · " + ", ".join(labeled_names)) if labeled_names
-                  else f"{persistent} persistent (≥50% of video)"}
-    if seg_mode:
-        coverage = float(np.mean([len(ct["frames"]) / max(n_sampled, 1)
-                                  for ct in obj_tracks]))
-        yield {"type": "metric", "label": "Mask coverage", "value": f"{coverage:.0%}",
-               "sub": f"mean fraction of {n_sampled} sampled frames each subject is masked on"}
-    else:
-        yield {"type": "metric", "label": "Keypoint loss",     "value": f"{kp_loss_pct:.0%}",
-               "sub": f"{kp_lost} of {nk} keypoints lost"}
+    names = ", ".join(o["label"] for o in objects) or "—"
+    yield {"type": "metric", "label": "Objects tracked", "value": str(n_objects), "sub": names}
+    yield {"type": "metric", "label": "Persistent objects", "value": str(persistent),
+           "sub": f"present ≥50% of video"}
     yield {"type": "metric", "label": "Mean track length", "value": f"{mean_dur:.0f}",
            "sub": f"frames (video = {n})"}
-
+    if kp_loss_pct is not None:
+        yield {"type": "metric", "label": "Keypoint loss", "value": f"{kp_loss_pct:.0%}",
+               "sub": "LK corners lost"}
     if not np.isnan(mean_drift):
         yield {"type": "metric", "label": "Mean appearance drift", "value": f"{mean_drift:.3f}",
                "sub": "cosine dist to frame 0 (DINOv2)"}
-        yield {"type": "metric", "label": "Peak drift",            "value": f"{peak_drift:.3f}",
-               "sub": "max identity deviation across all tracks"}
+        yield {"type": "metric", "label": "Peak drift", "value": f"{peak_drift:.3f}",
+               "sub": "max identity deviation across objects"}
 
-    # Instability score.
-    # Seg mode: mask coverage gaps + appearance drift (consistency judgment
-    #           itself is Stage 3's job — see the Consistency Specialist).
-    # LK mode:  keypoint loss + appearance drift (as before).
-    drift_contrib = (min(mean_drift, 0.6) / 0.6 * 60) if not np.isnan(mean_drift) else 30
-    if seg_mode:
-        loss_contrib = (1.0 - coverage) * 40
-    else:
-        loss_contrib = kp_loss_pct * 40
+    drift_contrib = (min(mean_drift, 0.6) / 0.6 * 70) if not np.isnan(mean_drift) else 35
+    loss_contrib  = (kp_loss_pct * 30) if kp_loss_pct is not None else 0
     instability   = min(int(drift_contrib + loss_contrib), 100)
-    sev_color     = "#E24B4A" if instability > 50 else "#EF9F27" if instability > 25 else "#4CAF50"
-    yield {"type": "severity", "label": "Tracking instability score",
-           "value": instability, "color": sev_color}
-
-    msg = (
-        f"{n_objects} track(s), {persistent} persistent, "
-        + (f"{1 - coverage:.0%} mask gaps" if seg_mode else f"{kp_loss_pct:.0%} keypoint loss")
-        + (f", mean drift {mean_drift:.3f}" if not np.isnan(mean_drift) else "") + "."
-    )
+    sev_color = "#E24B4A" if instability > 50 else "#EF9F27" if instability > 25 else "#4CAF50"
+    yield {"type": "severity", "label": "Tracking instability score", "value": instability, "color": sev_color}
+    msg = (f"{n_objects} object(s) tracked ({names}); {persistent} persistent"
+           + (f"; mean drift {mean_drift:.3f}" if not np.isnan(mean_drift) else "") + ".")
     yield {"type": "log", "level": "success" if instability < 30 else "warn", "text": msg}
     yield {"type": "done"}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Lucas-Kanade fallback path (shared, cached tracker in tools.tracking)
+# ════════════════════════════════════════════════════════════════════════════
+
+async def _run_lk(video_path: str, cfg: dict) -> AsyncGenerator[dict, None]:
+    num_kp       = max(5, int(cfg.get("num_keypoints", 50)))
+    sample_every = max(1, int(cfg.get("sample_every", 1)))
+    use_dinov2   = str(cfg.get("use_dinov2", "true")).lower() not in ("false", "0", "no")
+    render_video = str(cfg.get("render_video", "true")).lower() not in ("false", "0", "no")
+    loop = asyncio.get_event_loop()
+
+    yield {"type": "log", "level": "info", "text": "Loading video & tracking keypoints (LK method)…"}
+    await asyncio.sleep(0)
+
+    tr = await loop.run_in_executor(
+        None, lambda: get_tracks(video_path, num_kp=num_kp,
+                                 sample_every=sample_every, max_objects=8))
+    frames     = tr["frames"]
+    eff_fps    = tr["fps"]
+    meta       = tr["meta"]
+    obj_tracks = tr["tracks"]
+    n  = meta["n_frames"]
+    H, W = meta["H"], meta["W"]
+    nk = meta["nk"]
+    kp_loss_pct = meta["kp_loss_pct"]
+
+    if n < 3:
+        yield {"type": "error", "text": f"Video too short ({n} frames)."}
+        return
+    if not obj_tracks:
+        yield {"type": "error", "text": "No keypoints detected in any frame."}
+        return
+    if meta["start"] > 0:
+        yield {"type": "log", "level": "warn",
+               "text": f"First {meta['start']} frame(s) featureless — tracking started later."}
+
+    for ct in obj_tracks:
+        ct["label"] = f"obj {ct['id']}"
+    n_objects = len(obj_tracks)
+    yield {"type": "log", "level": "info",
+           "text": f"{n} frames @ {eff_fps:.1f} fps — {n_objects} object track(s) "
+                   f"from {nk} keypoints."}
+    await asyncio.sleep(0)
+
+    _publish_tracks(video_path, obj_tracks, eff_fps, n)
+
+    # Labeled (box) video for parity with the SAM3 path.
+    if render_video and obj_tracks:
+        yield {"type": "log", "level": "info", "text": "Rendering labeled object video…"}
+        await asyncio.sleep(0)
+        try:
+            by_frame: dict[int, list] = {}
+            for oi, ct in enumerate(obj_tracks):
+                for f, box in zip(ct["frames"], ct["boxes"]):
+                    by_frame.setdefault(f, []).append((oi, box))
+            step = max(1, -(-n // 240))
+            ann = []
+            for f in range(0, n, step):
+                img = frames[f].copy()
+                for oi, (x0, y0, x1, y1) in by_frame.get(f, []):
+                    color = _hex_to_bgr(_PALETTE[oi % len(_PALETTE)])
+                    cv2.rectangle(img, (x0, y0), (x1, y1), color, 2)
+                    label = obj_tracks[oi]["label"]
+                    (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
+                    ty = y0 - 6 if y0 - th - 10 >= 0 else min(y1 + th + 6, img.shape[0] - 4)
+                    cv2.rectangle(img, (x0, ty - th - 4), (x0 + tw + 6, ty + 4), color, -1)
+                    cv2.putText(img, label, (x0 + 3, ty), cv2.FONT_HERSHEY_SIMPLEX,
+                                0.55, (255, 255, 255), 2, cv2.LINE_AA)
+                ann.append(img)
+            data, mime = await loop.run_in_executor(
+                None, encode_video_browser, ann, eff_fps / step)
+            yield {"type": "video", "data": base64.b64encode(data).decode(), "mime": mime,
+                   "caption": "LK corner-cluster tracks (boxes & labels match the plot legend)."}
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "warn", "text": f"LK video failed ({exc})."}
+        await asyncio.sleep(0)
+
+    dino_drifts, dino_available = {}, False
+    if use_dinov2 and obj_tracks:
+        yield {"type": "log", "level": "info", "text": "DINOv2 appearance-drift analysis…"}
+        await asyncio.sleep(0)
+        try:
+            from tools.embeddings import load_dinov2, embed_frames_dinov2
+            model = load_dinov2()
+            for oi, ct in enumerate(obj_tracks):
+                crops = [frames[f][y0:y1, x0:x1]
+                         for f, (x0, y0, x1, y1) in zip(ct["frames"], ct["boxes"])
+                         if frames[f][y0:y1, x0:x1].size > 0]
+                if len(crops) < 2:
+                    continue
+                embs = await loop.run_in_executor(None, embed_frames_dinov2, crops, model)
+                dino_drifts[oi] = _drift_curve(embs)
+            dino_available = True
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "warn", "text": f"DINOv2 unavailable ({exc})."}
+    await asyncio.sleep(0)
+
+    async for ev in _emit_plots_and_metrics(obj_tracks, dino_drifts, dino_available,
+                                            eff_fps, H, n, kp_loss_pct=kp_loss_pct):
+        yield ev
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Dispatcher
+# ════════════════════════════════════════════════════════════════════════════
+
+async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
+    cfg = json.loads(settings) if settings else {}
+    method = str(cfg.get("method", "sam3")).lower()
+
+    if method == "lk":
+        async for ev in _run_lk(video_path, cfg):
+            yield ev
+        return
+
+    # Default: SAM3. If SAM3/GPU init fails, degrade to LK so the test still runs.
+    try:
+        sam3_failed = False
+        async for ev in _run_sam3(video_path, cfg):
+            if ev.get("type") == "error":
+                sam3_failed = True
+                yield {"type": "log", "level": "warn",
+                       "text": f"SAM3 path failed ({ev['text']}); falling back to LK tracker."}
+                break
+            yield ev
+        if not sam3_failed:
+            return
+    except Exception as exc:  # noqa: BLE001
+        yield {"type": "log", "level": "warn",
+               "text": f"SAM3 path crashed ({exc}); falling back to LK tracker."}
+
+    async for ev in _run_lk(video_path, cfg):
+        yield ev

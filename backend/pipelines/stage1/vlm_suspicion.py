@@ -1,46 +1,80 @@
 """
-Stage 1 · Test 4 — VLM Suspicion Score
-----------------------------------------
-Sample keyframes and ask a VLM (via OpenRouter) whether the MOTION across the
-video looks physically suspicious. All frames are sent in a single multi-frame
-call and the model returns one holistic verdict — physics violations live in how
-things move between frames, not in any single still. This separates AI-generated
-from real video far better than independent per-frame scoring
-(scripts/vlm_failure_mode_eval.py: AUC 0.90 vs 0.58). Decoding is deterministic
-(temperature 0 + fixed seed) so repeated runs on the same video agree.
+Stage 1 · Test 4 — VLM Physics Anomaly Detector
+------------------------------------------------
+Sample keyframes and ask a vision-language model whether the MOTION across the
+video obeys real-world physics. All frames are sent in a single multi-frame
+call and the model returns one holistic verdict plus a list of concrete
+violations — which physical law is broken, what is observed, and how it
+contradicts real physics. Multi-frame beats per-frame scoring decisively
+(AUC 0.90 vs 0.58, scripts/vlm_failure_mode_eval.py).
 
-Without an API key the pipeline runs in demo mode (random placeholder score).
-Set the key via the settings panel or the OPENROUTER_API_KEY env var.
+Model dropdown (measured AI-vs-real separation, scripts/vlm_multimodel_eval.py):
+  • Local open-weight, no API key: Qwen2.5-VL-7B (AUC 0.92) · InternVL3-8B
+    (AUC 0.70) · SmolVLM2-2.2B (AUC 0.50)
+  • API via OpenRouter (needs key): Gemini 2.5 Pro/Flash, GPT-4o/4.1/5.1,
+    Claude Sonnet 4.5
+
+Without a key, API models fall back to demo mode (placeholder score); local
+models always run for real on the GPU.
 """
 import asyncio, json, os
 from typing import AsyncGenerator
 
+import cv2
 import numpy as np
 import plotly.graph_objects as go
 
-from tools.video import load_frames, sample_frames
-from tools.vlm   import score_frames, OPENROUTER_MODELS
+from tools.video     import load_frames, sample_frames
+from tools.vlm       import score_frames, OPENROUTER_MODELS
+from tools.vlm_local import LOCAL_VLMS
 
 
 def _zone_color(score: float) -> str:
     return "#E24B4A" if score > 0.5 else "#EF9F27" if score > 0.25 else "#4CAF50"
 
 
+def _normalize_violations(result: dict) -> list[dict]:
+    """Coerce local (rich dict) and OpenRouter (short string) violations into
+    one shape: {law, observation, why_impossible, severity}."""
+    out = []
+    for v in result.get("violations") or []:
+        if isinstance(v, dict):
+            out.append({
+                "law":            v.get("law") or "unspecified",
+                "observation":    v.get("observation") or "",
+                "why_impossible": v.get("why_impossible") or "",
+                "severity":       v.get("severity"),
+            })
+        elif isinstance(v, str) and v.strip():
+            out.append({"law": v.strip(), "observation": "", "why_impossible": "",
+                        "severity": None})
+    return out
+
+
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg        = json.loads(settings) if settings else {}
-    model_key  = cfg.get("model", "gpt-4o")
+    model_key  = cfg.get("model", "qwen2.5-vl-7b")
     num_frames = max(2, int(cfg.get("num_frames", 8)))
     api_key    = cfg.get("api_key", "").strip() or os.environ.get("OPENROUTER_API_KEY", "")
-    demo_mode  = not api_key
 
-    if demo_mode:
+    is_local  = model_key in LOCAL_VLMS
+    demo_mode = (not is_local) and (not api_key)
+
+    if is_local:
+        info = LOCAL_VLMS[model_key]
+        yield {"type": "log", "level": "info",
+               "text": (f"Local model: {info['label']} ({info['hf_id']}) — "
+                        f"~{info['vram_gb']} GB VRAM, measured AUC {info['auc']:.2f}, "
+                        "no API key needed.")}
+    elif demo_mode:
         yield {"type": "log", "level": "warn",
                "text": "No API key — running in demo mode (placeholder score)."}
         yield {"type": "log", "level": "info",
-               "text": "Set OPENROUTER_API_KEY or enter it in test settings to use a real model."}
+               "text": "Set OPENROUTER_API_KEY / enter a key in settings, or pick a "
+                       "local model (Qwen2.5-VL, InternVL3, SmolVLM2) that needs none."}
     else:
         yield {"type": "log", "level": "info",
-               "text": f"Using model: {OPENROUTER_MODELS.get(model_key, model_key)}"}
+               "text": f"API model via OpenRouter: {OPENROUTER_MODELS.get(model_key, model_key)}"}
 
     yield {"type": "log", "level": "info", "text": "Loading video…"}
     frames, fps = load_frames(video_path)
@@ -53,33 +87,49 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     duration  = n / fps if fps else 0.0
 
     yield {"type": "log", "level": "info",
-           "text": f"Scoring {len(keyframes)} frames from {n} total in one multi-frame pass…"}
+           "text": f"Analyzing {len(keyframes)} frames from {n} total in one multi-frame pass…"}
     await asyncio.sleep(0)
 
     if demo_mode:
         await asyncio.sleep(0.4)
         result = {
-            "suspicion_score":   float(np.random.beta(2, 5)),
-            "suspected_failure": None,
-            "explanation":       "Demo mode — no API key provided.",
-            "confidence":        0.0,
+            "suspicion_score":    float(np.random.beta(2, 5)),
+            "overall_assessment": "Demo mode — no API key provided.",
+            "confidence":         0.0,
+            "violations":         [],
         }
+    elif is_local:
+        try:
+            from tools.vlm_local import analyze_physics
+            loop = asyncio.get_event_loop()
+            rgb = [cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in keyframes]
+            yield {"type": "log", "level": "info",
+                   "text": "Loading model (first run downloads/loads weights — may take a minute)…"}
+            await asyncio.sleep(0)
+            result = await loop.run_in_executor(
+                None, lambda: analyze_physics(rgb, n_sample=len(rgb), model_key=model_key))
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "error", "text": f"Local VLM failed: {exc}"}
+            result = {"suspicion_score": None, "overall_assessment": str(exc),
+                      "confidence": 0.0, "violations": []}
     else:
         try:
             result = await score_frames(keyframes, model_key=model_key, api_key=api_key)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             yield {"type": "log", "level": "error", "text": f"VLM call failed: {exc}"}
-            result = {"suspicion_score": None, "suspected_failure": None,
-                      "explanation": str(exc), "confidence": 0.0}
+            result = {"suspicion_score": None, "overall_assessment": str(exc),
+                      "confidence": 0.0, "violations": []}
 
-    raw_score   = result.get("suspicion_score")
-    parsed_ok   = isinstance(raw_score, (int, float))
-    score       = min(max(float(raw_score), 0.0), 1.0) if parsed_ok else 0.0
-    label       = (result.get("suspected_failure") or "").strip()
-    if label.lower() in ("", "null", "none"):
-        label = "—"
-    explanation = result.get("explanation", "")
-    confidence  = float(result.get("confidence", 0) or 0)
+    raw_score  = result.get("suspicion_score")
+    parsed_ok  = isinstance(raw_score, (int, float))
+    score      = min(max(float(raw_score), 0.0), 1.0) if parsed_ok else 0.0
+    assessment = (result.get("overall_assessment") or result.get("explanation") or "").strip()
+    confidence = float(result.get("confidence", 0) or 0)
+    violations = _normalize_violations(result)
+    fail_label = (result.get("suspected_failure") or "").strip()
+    if fail_label and fail_label.lower() not in ("null", "none") and not violations:
+        violations = [{"law": fail_label, "observation": "", "why_impossible": "",
+                       "severity": None}]
 
     if not parsed_ok and not demo_mode:
         yield {"type": "log", "level": "warn",
@@ -87,10 +137,22 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
 
     level = "warn" if score > 0.5 else "info"
     yield {"type": "log", "level": level,
-           "text": f"Verdict: score={score:.2f}  [{label}]  {explanation}"}
+           "text": f"Verdict: score={score:.2f}  ({len(violations)} violation(s))  {assessment}"}
+
+    # ── What physics are broken, and how ────────────────────────────────────────
+    for i, v in enumerate(violations, 1):
+        parts = [f"Violation {i}: {v['law']}"]
+        if v["observation"]:
+            parts.append(f"observed: {v['observation']}")
+        if v["why_impossible"]:
+            parts.append(f"why impossible: {v['why_impossible']}")
+        if v["severity"] is not None:
+            parts.append(f"severity {v['severity']:.1f}")
+        yield {"type": "log", "level": "warn", "text": " — ".join(parts)}
 
     # ── Gauge: one holistic suspicion score ─────────────────────────────────────
     color = _zone_color(score)
+    model_label = (LOCAL_VLMS[model_key]["label"] if is_local else model_key)
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=score,
@@ -108,7 +170,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             threshold=dict(line=dict(color="#E24B4A", width=3), thickness=0.85, value=0.5),
         ),
         title=dict(
-            text=f"VLM Suspicion — {model_key}" + ("  [DEMO]" if demo_mode else ""),
+            text=f"VLM Physics Suspicion — {model_label}" + ("  [DEMO]" if demo_mode else ""),
             font=dict(size=15),
         ),
     ))
@@ -124,15 +186,46 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                     "Red ≥ 0.5 (suspicious), amber ≥ 0.25 (uncertain), green < 0.25 (plausible)."),
     }
 
+    # ── Violations table ─────────────────────────────────────────────────────────
+    if violations:
+        tbl = go.Figure(data=[go.Table(
+            columnwidth=[22, 39, 39],
+            header=dict(values=["<b>Broken law / principle</b>", "<b>What is observed</b>",
+                                "<b>Why it's physically impossible</b>"],
+                        fill_color="#1a54c4", font=dict(color="white", size=13),
+                        align="left", height=30),
+            cells=dict(values=[
+                [v["law"] for v in violations],
+                [v["observation"] or "—" for v in violations],
+                [v["why_impossible"] or "—" for v in violations]],
+                fill_color=[["#f6f8fe", "#ffffff"] * len(violations)],
+                align="left", font=dict(size=12.5), height=28),
+        )])
+        tbl.update_layout(
+            title=dict(text="Physics Violations Extracted by the Model", font=dict(size=15)),
+            height=120 + 34 * max(len(violations), 1),
+            margin=dict(l=20, r=20, t=55, b=15),
+            paper_bgcolor="white",
+            font=dict(family="IBM Plex Sans, sans-serif"),
+        )
+        yield {"type": "plotly", "data": tbl.to_json(),
+               "caption": "Each row: the physical law the model believes is broken, "
+                          "the visual evidence, and the reasoning."}
+
     severity = min(int(score * 100), 100)
-    yield {"type": "metric", "label": "Suspicion score",   "value": f"{score:.2f}",     "sub": "0–1 (whole video)"}
-    yield {"type": "metric", "label": "Suspected failure",  "value": label,              "sub": "VLM label"}
-    yield {"type": "metric", "label": "Model confidence",   "value": f"{confidence:.0%}", "sub": "self-reported"}
+    top_law = violations[0]["law"] if violations else "—"
+    yield {"type": "metric", "label": "Suspicion score",    "value": f"{score:.2f}",
+           "sub": "0–1 (whole video)"}
+    yield {"type": "metric", "label": "Physics violations", "value": str(len(violations)),
+           "sub": top_law if len(violations) else "none detected"}
+    yield {"type": "metric", "label": "Model confidence",   "value": f"{confidence:.0%}",
+           "sub": "self-reported"}
     yield {"type": "severity", "label": "VLM suspicion level", "value": severity, "color": color}
 
-    if explanation and not demo_mode:
-        yield {"type": "log", "level": "info", "text": f"Explanation: {explanation}"}
+    if assessment and not demo_mode:
+        yield {"type": "log", "level": "info", "text": f"Assessment: {assessment}"}
     if demo_mode:
         yield {"type": "log", "level": "warn",
-               "text": "Result is a demo placeholder. Provide an OpenRouter API key for real scoring."}
+               "text": "Result is a demo placeholder. Pick a local model or provide an "
+                       "OpenRouter API key for real scoring."}
     yield {"type": "done"}

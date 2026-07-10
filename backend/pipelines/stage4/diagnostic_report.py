@@ -16,9 +16,12 @@ Future version:
 
 import asyncio
 import json
+import os
 from collections import Counter, defaultdict
 from datetime import datetime
 from typing import AsyncGenerator, Any
+
+import requests
 
 import plotly.graph_objects as go
 
@@ -226,34 +229,176 @@ def _build_unified_report(previous_results: list[dict], video_name: str) -> dict
 
 
 def _build_visual_summary(report: dict) -> str:
-    stage_summary = report.get("stage_summary", {})
+    local_reports = report.get("local_reports", [])
 
-    stages = list(stage_summary.keys())
-    counts = [stage_summary[s]["num_tests"] for s in stages]
+    names = []
+    severities = []
 
-    if not stages:
-        stages = ["No previous tests"]
-        counts = [0]
+    for r in local_reports:
+        pipeline_name = r.get("pipeline", {}).get("name", "Unknown test")
+        stage_name = r.get("stage", {}).get("name", "Unknown stage")
+        max_sev = r.get("max_severity")
+
+        if max_sev is None:
+            max_sev = 0
+
+        names.append(f"{pipeline_name}<br><sup>{stage_name}</sup>")
+        severities.append(max_sev)
+
+    if not names:
+        names = ["No previous tests"]
+        severities = [0]
 
     fig = go.Figure()
 
     fig.add_trace(go.Bar(
-        x=stages,
-        y=counts,
-        text=counts,
+        x=names,
+        y=severities,
+        text=[f"{v:.1f}%" for v in severities],
         textposition="auto",
-        name="Included tests",
+        name="Max severity",
     ))
 
     fig.update_layout(
-        title="Global Diagnostic Report: Tests Included by Stage",
-        xaxis_title="Stage",
-        yaxis_title="Number of Tests",
-        margin=dict(l=40, r=20, t=60, b=80),
-        height=360,
+        title="Global Diagnostic Report: Severity by Test",
+        xaxis_title="Diagnostic Test",
+        yaxis_title="Max Severity (%)",
+        yaxis=dict(range=[0, 100]),
+        margin=dict(l=40, r=20, t=60, b=120),
+        height=420,
     )
 
     return fig.to_json()
+
+CREATEAI_URL = os.getenv("CREATEAI_API_URL", "https://api-main.aiml.asu.edu/query")
+
+
+def _build_llm_prompt(report: dict) -> str:
+    """
+    Convert the unified PhysicsLENS JSON report into a prompt for the LLM.
+    """
+    report_text = json.dumps(report, ensure_ascii=False, separators=(",", ":"))
+
+    return f"""
+You are a physics diagnostic assistant for AI-generated videos.
+
+You will receive a structured JSON report from PhysicsLENS.
+Your job is to write a concise final diagnosis for a human evaluator.
+
+Important rules:
+- Do not invent evidence that is not present in the JSON.
+- If a score is described as prototype, first-pass, or placeholder, say that clearly.
+- Distinguish between "no issue detected" and "no severity data reported".
+- Focus on physics consistency, detected anomalies, severity, confidence, and recommended follow-up tests.
+- Do not claim that the video has a specific physical failure unless the JSON supports it.
+- Use careful language such as "the available diagnostics suggest" rather than overconfident claims.
+
+Please return the answer in this format:
+
+# PhysicsLENS Final Diagnosis
+
+## Overall Assessment
+...
+
+## Main Evidence
+...
+
+## Severity and Confidence
+...
+
+## Recommended Follow-up
+...
+
+Here is the PhysicsLENS JSON report:
+
+{report_text}
+""".strip()
+
+
+def _extract_createai_text(data: dict) -> str:
+    """
+    Extract the model's text answer from the CreateAI API response.
+
+    Different APIs wrap the text differently, so this function tries several
+    common response shapes. If none match, it returns the raw JSON as text
+    so we can debug the response format.
+    """
+
+    # Common simple formats
+    for key in ["response", "answer", "text", "output", "result"]:
+        if isinstance(data.get(key), str):
+            return data[key]
+
+    # Some APIs return {"data": "..."}
+    if isinstance(data.get("data"), str):
+        return data["data"]
+
+    # Some APIs return {"data": {"response": "..."}}
+    if isinstance(data.get("data"), dict):
+        nested = data["data"]
+        for key in ["response", "answer", "text", "output", "result"]:
+            if isinstance(nested.get(key), str):
+                return nested[key]
+
+    # OpenAI-like chat format
+    try:
+        return data["choices"][0]["message"]["content"]
+    except Exception:
+        pass
+
+    # OpenAI-like completion format
+    try:
+        return data["choices"][0]["text"]
+    except Exception:
+        pass
+
+    # Fallback: return the full response for debugging
+    return json.dumps(data, indent=2, ensure_ascii=False)
+
+
+def _call_createai_summary_sync(report: dict) -> str:
+    """
+    Send the unified PhysicsLENS report to CreateAI and return the LLM summary.
+
+    This function is synchronous because requests.post(...) is blocking.
+    In run(), we call it using asyncio.to_thread(...) so it does not block
+    the async event stream.
+    """
+    api_key = os.getenv("CREATEAI_API_KEY")
+
+    if not api_key:
+        raise RuntimeError(
+            "CREATEAI_API_KEY is not set. "
+            "In the terminal where you run uvicorn, run: "
+            "export CREATEAI_API_KEY='your_key_here'"
+        )
+
+    prompt = _build_llm_prompt(report)
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "query": prompt,
+    }
+
+    response = requests.post(
+        CREATEAI_URL,
+        headers=headers,
+        json=payload,
+        timeout=90,
+    )
+
+    if not response.ok:
+        raise RuntimeError(
+            f"CreateAI API call failed with status {response.status_code}: "
+            f"{response.text[:1000]}"
+        )
+
+    data = response.json()
+    return _extract_createai_text(data)
 
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
@@ -262,6 +407,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     output_format = cfg.get("output_format", "json_visual")
     previous_results = cfg.get("previous_results", [])
     video_name = cfg.get("video_name", "uploaded video")
+    use_llm_summary = str(cfg.get("use_llm_summary", "false")).lower() == "true"
 
     yield {
         "type": "log",
@@ -312,5 +458,39 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             "caption": "Global visual summary",
             "data": _build_visual_summary(report),
         }
+
+    if use_llm_summary:
+        yield {
+            "type": "log",
+            "level": "info",
+            "text": "Sending unified diagnostic JSON to CreateAI for LLM summary.",
+        }
+
+        try:
+            llm_summary = await asyncio.to_thread(_call_createai_summary_sync, report)
+
+            yield {
+                "type": "log",
+                "level": "info",
+                "text": f"CreateAI responded successfully. LLM summary length: {len(llm_summary)} characters.",
+            }
+
+            report["llm_summary"] = {
+                "provider": "CreateAI",
+                "summary": llm_summary,
+            }
+
+            yield {
+                "type": "llm_summary",
+                "title": "LLM Diagnostic Summary",
+                "markdown": llm_summary,
+            }
+
+        except Exception as e:
+            yield {
+                "type": "log",
+                "level": "error",
+                "text": f"LLM summary failed: {e}",
+            }
 
     yield {"type": "done"}

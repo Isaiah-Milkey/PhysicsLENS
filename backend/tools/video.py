@@ -62,6 +62,37 @@ def _load_gif_frames(
     return frames, fps
 
 
+def load_frames_rgb(
+    video_path: str,
+    max_frames: int = 48,
+    target_h: int = 480,
+) -> Tuple[List[np.ndarray], float]:
+    """
+    Read a video into RGB uint8 frames, downscaled to `target_h` and uniformly
+    subsampled to at most `max_frames`. Returns (frames, effective_fps) where
+    effective_fps accounts for subsampling so playback speed is preserved.
+    """
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    raw: List[np.ndarray] = []
+    while True:
+        ret, bgr = cap.read()
+        if not ret:
+            break
+        h, w = bgr.shape[:2]
+        if h > target_h:
+            bgr = cv2.resize(bgr, (int(target_h * w / h), target_h))
+        raw.append(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+    cap.release()
+    if not raw:
+        return [], fps
+    if len(raw) > max_frames:
+        idx = np.linspace(0, len(raw) - 1, max_frames).astype(int)
+        eff_fps = fps * max_frames / len(raw)
+        return [raw[i] for i in idx], eff_fps
+    return raw, fps
+
+
 def sample_frames(frames: List[np.ndarray], n: int) -> List[np.ndarray]:
     """Uniformly sample exactly n frames (or all if len ≤ n)."""
     if len(frames) <= n:

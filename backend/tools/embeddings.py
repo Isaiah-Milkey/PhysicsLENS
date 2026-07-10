@@ -11,6 +11,7 @@ world_models_evaluation notebooks, the Physics-IQ baseline statistics,
 scripts/check_models.py, and the archived SAM3 pipeline. Keep them aligned —
 latent-kinematics thresholds and baselines are only meaningful in this space.
 """
+import threading
 from functools import lru_cache
 from typing import List, Tuple
 
@@ -54,6 +55,49 @@ def load_dinov2(variant: str = "facebook/dinov2-base") -> Tuple:
     processor = AutoImageProcessor.from_pretrained(variant)
     model = AutoModel.from_pretrained(variant).to(device()).eval()
     return model, processor
+
+
+# ── DINOv2 via transformers (GPU singleton, 768-d CLS) ────────────────────────
+# Used by the SAM3 object tracker: fast batched crop embedding on-device.
+DINOV2_HF_ID = "facebook/dinov2-base"
+_DINO_HF: dict = {}
+_DINO_LOCK = threading.Lock()
+_DINO_GPU_LOCK = threading.Lock()
+
+
+def load_dinov2_hf(device: str = "cuda:0"):
+    if _DINO_HF:
+        return _DINO_HF
+    with _DINO_LOCK:
+        if _DINO_HF:
+            return _DINO_HF
+        import torch
+        from transformers import AutoImageProcessor, AutoModel
+        proc = AutoImageProcessor.from_pretrained(DINOV2_HF_ID)
+        dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+        model = AutoModel.from_pretrained(
+            DINOV2_HF_ID, dtype=dtype, attn_implementation="sdpa"
+        ).to(device).eval()
+        _DINO_HF.update(torch=torch, model=model, proc=proc, device=device, dtype=dtype)
+        return _DINO_HF
+
+
+def embed_crops_dinov2_hf(crops_rgb: List[np.ndarray], batch: int = 64) -> np.ndarray:
+    """L2-normalised (K, 768) DINOv2 CLS descriptors for a list of RGB uint8 crops."""
+    from PIL import Image
+    m = load_dinov2_hf()
+    torch, model, proc, device, dtype = (
+        m["torch"], m["model"], m["proc"], m["device"], m["dtype"]
+    )
+    pil = [Image.fromarray(c) for c in crops_rgb]
+    feats = []
+    with _DINO_GPU_LOCK, torch.inference_mode():
+        for i in range(0, len(pil), batch):
+            inputs = proc(images=pil[i:i + batch], return_tensors="pt").to(device, dtype)
+            cls = model(**inputs).last_hidden_state[:, 0]
+            cls = torch.nn.functional.normalize(cls, dim=-1)
+            feats.append(cls.float().cpu().numpy())
+    return np.concatenate(feats, axis=0) if feats else np.empty((0, 768), np.float32)
 
 
 def embed_frames_dinov2(frames: List[np.ndarray], bundle) -> np.ndarray:

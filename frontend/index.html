@@ -1034,7 +1034,7 @@ async function runPipeline() {
     status:       'running',
     //Jiqing
     // logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [],
-    logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [], results: [],
+    logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [], results: [], llmSummaries: [],
     excluded: false,
     comment:  "",
   };
@@ -1239,6 +1239,11 @@ function handleEvent(ev, entry) {
     appendJsonResult(ev.title || "Unified Diagnostic JSON", ev.report || ev);
     if (!entry.results) entry.results = [];
     entry.results.push(ev);
+  } else if (ev.type === "llm_summary") {
+    document.getElementById("resultsPane").classList.add("show");
+    appendLLMSummary(ev.title || "LLM Diagnostic Summary", ev.markdown || "");
+    if (!entry.llmSummaries) entry.llmSummaries = [];
+    entry.llmSummaries.push(ev);
   } else if (ev.type === "video") {
     document.getElementById("resultsPane").classList.add("show");
     appendVideo(ev.data, ev.mime, ev.caption);
@@ -1334,6 +1339,37 @@ function appendJsonResult(title, obj) {
   `;
 
   pre.textContent = JSON.stringify(obj, null, 2);
+
+  wrap.appendChild(label);
+  wrap.appendChild(pre);
+
+  document.getElementById("imageBlocks").appendChild(wrap);
+}
+
+function appendLLMSummary(title, markdown) {
+  const wrap = document.createElement("div");
+  wrap.className = "image-block";
+
+  const label = document.createElement("div");
+  label.className = "image-caption";
+  label.textContent = title;
+
+  const pre = document.createElement("pre");
+  pre.style.cssText = `
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 520px;
+    overflow: auto;
+    background: #f8fafc;
+    color: #0f172a;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.55;
+    border: 1px solid #e5e7eb;
+  `;
+
+  pre.textContent = markdown;
 
   wrap.appendChild(label);
   wrap.appendChild(pre);
