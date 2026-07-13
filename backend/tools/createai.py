@@ -23,6 +23,17 @@ except ImportError:
 
 DEFAULT_MODEL = "geminiflash2_5"
 
+# CreateAI routes by provider; omitting model_provider silently falls back to
+# a default route that we measured giving degraded answers on the vision
+# endpoint (probe 2026-07-12: physics question wrong without it, right with).
+_PROVIDERS = {"gemini": "gcp-deepmind", "gemma": "asu-air",
+              "gpt": "openai", "claude": "aws"}
+
+
+def _provider_for(model: str) -> Optional[str]:
+    return next((p for k, p in _PROVIDERS.items()
+                 if model.lower().startswith(k)), None)
+
 
 def frame_to_data_url(frame_bgr: np.ndarray, quality: int = 85) -> str:
     ok, buf = cv2.imencode(".jpg", frame_bgr,
@@ -39,6 +50,7 @@ def credentials() -> tuple[Optional[str], Optional[str]]:
 async def query_vision(query: str, frame_bgr: np.ndarray, *,
                        model: str = DEFAULT_MODEL,
                        system_prompt: Optional[str] = None,
+                       thinking_level: Optional[str] = None,
                        timeout_s: float = 60.0,
                        token: Optional[str] = None,
                        base_url: Optional[str] = None) -> Dict[str, Any]:
@@ -71,8 +83,19 @@ async def query_vision(query: str, frame_bgr: np.ndarray, *,
         "model": model,
         "model_name": model,
     }
+    provider = _provider_for(model)
+    if provider:
+        payload["model_provider"] = provider
+    model_params: Dict[str, Any] = {}
     if system_prompt:
-        payload["model_params"] = {"system_prompt": system_prompt}
+        model_params["system_prompt"] = system_prompt
+    if thinking_level:
+        # Accepted by the API; effect not yet measurable on the vision
+        # endpoint (probe 2026-07-12) — plumbed through for when CreateAI's
+        # WIP support lands. LOW | MEDIUM | HIGH.
+        model_params["thinking_level"] = str(thinking_level).upper()
+    if model_params:
+        payload["model_params"] = model_params
 
     async with aiohttp.ClientSession() as session:
         async with session.post(

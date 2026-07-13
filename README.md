@@ -60,10 +60,13 @@ physicslens/
 │   │   │   │                                       consistency_specialist, removed)
 │   │   │   ├── collision_specialist.py          🔵 implemented (contact episodes, restitution, phantom
 │   │   │   │                                       bounces; absorbed contact_specialist — unregistered)
-│   │   │   ├── gravity_specialist.py            🔶 stub
+│   │   │   ├── gravity_specialist.py            🔵 implemented (parabola fits on free-flight
+│   │   │   │                                       segments; anti-gravity/float/Galileo/apex
+│   │   │   │                                       checks, VLM-confirmed; optional absolute-g)
 │   │   │   ├── momentum_specialist.py           🔵 implemented (motion signature + VLM mass proxy;
 │   │   │   │                                       flags causeless momentum jumps & bad transfer)
 │   │   │   ├── friction_specialist.py           🔵 implemented
+│   │   │   ├── contact_specialist.py            (merged into collision_specialist; kept for reference)
 │   │   │   ├── fluid_specialist.py              🔶 stub
 │   │   │   └── causality_specialist.py          🔶 stub
 │   │   └── stage4/                  # Final diagnosis outputs
@@ -77,6 +80,7 @@ physicslens/
 │   │   ├── flow.py
 │   │   ├── tracking.py              # Cached Shi-Tomasi+LK tracks (one canonical set per video)
 │   │   ├── evidence.py             # Cross-stage evidence bus (Stage 2→3→4 data passing)
+│   │   ├── evidence_planner.py      # Stage-3 pre-step: agent/rules plan → auto-fetch missing Stage-2 evidence
 │   │   ├── embeddings.py            # DINOv2 / CLIP / SigLIP — L2-normalised, batched, cached
 │   │   ├── sam3.py                  # SAM3 video segmentation (gated facebook/sam3; GPU)
 │   │   ├── createai.py              # ASU CreateAI client (Gemini vision; subject naming, judging)

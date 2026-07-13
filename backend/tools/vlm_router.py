@@ -28,6 +28,8 @@ _MODELS: dict[str, dict] = {
                                      "label": "Gemini 2.5 Flash — CreateAI"},
     "createai:geminiflash2_5-lite": {"provider": "createai", "model": "geminiflash2_5-lite",
                                      "label": "Gemini 2.5 Flash Lite — CreateAI"},
+    "createai:geminipro3_1":        {"provider": "createai", "model": "geminipro3_1",
+                                     "label": "Gemini 3.1 Pro — CreateAI"},
     "createai:gpt4o":               {"provider": "createai", "model": "gpt4o",
                                      "label": "GPT-4o — CreateAI"},
     # OpenRouter — "model" is the friendly key tools.vlm maps to a full id.
