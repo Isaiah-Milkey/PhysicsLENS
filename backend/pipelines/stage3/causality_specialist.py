@@ -1,42 +1,84 @@
 """
 Stage 3 · Specialist — Causality / Temporal Drift Specialist
 --------------------------------------------------------------
-Confirms or rejects *causality* failures: effects that precede their causes,
-globally time-reversed motion, and temporal-continuity artefacts (duplicated or
-dropped frames). These are distinct from the per-object physics the other
-specialists check — causality is about the ORDERING of events in time.
+A VLM *rule-checking agent*. Rather than asking one vague "is this suspicious?"
+question, causality is decomposed into an explicit CHECKLIST OF RULES, each a
+focused prompt the vision-language model checks and verifies against the frames:
 
-Signals (all derived from object kinematics, no GPU needed):
+    CHECK   — the rule is posed as a Yes/No question; we read P(Yes) straight
+              from the model's next-token logits (a calibrated probability, not a
+              self-written float).
+    VERIFY  — if the rule fires, the model returns one sentence of concrete
+              visual evidence (what it sees, which frame), so every flag is
+              auditable.
 
-  1. Effect-before-cause — at a contact event, the struck object's motion change
-     (acceleration spike) must occur AT or AFTER contact, never before. A strong
-     acceleration response that leads the contact by more than the allowed lag is
-     an effect preceding its cause.
-  2. Global time-reversal — a natural velocity reversal is local to one object at
-     a contact (a bounce). When a large fraction of objects reverse velocity on
-     the SAME frame with no contact present, the segment is running backwards.
-  3. Temporal drift — frame duplication shows up as a run of near-zero global
-     motion sandwiched between motion (a stall); a dropped/spliced frame shows up
-     as a synchronized position jump across most tracks on a single frame.
+Why rule-prompts instead of extracted numbers? Everything measurable from frames
+is in PIXEL space — velocity/acceleration are relative, unscaled, and warped by
+perspective and camera motion, so absolute-magnitude thresholds are meaningless.
+Qualitative causality rules ("does an effect precede its cause?", "does the clip
+play in reverse?") are scale-invariant and answerable by a VLM.
 
-Evidence: reads `s2_trajectory_extractor` from the evidence bus when present
-(richer kinematics); otherwise self-computes lightweight tracks via
-tools.tracking.get_tracks so the specialist still runs standalone. Publishes its
-verdict back to the bus as `s3_causality` for Stage 4.
+Corroboration: when Stage 2 (`s2_trajectory_extractor`) has run, its
+scale-invariant GEOMETRIC signals — event ordering and synchronized velocity
+reversal — cross-check the two rules that have a kinematic analogue, so geometry
+verifies what the VLM claims. Publishes `s3_causality` to the bus for Stage 4.
 """
 import asyncio, json
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
+import cv2
 import numpy as np
 import plotly.graph_objects as go
 
 from tools.evidence import EVIDENCE, video_id
+from tools.video    import load_frames, sample_frames
 
 
-# ── Normalise both evidence sources into one per-track structure ──────────────
+# ── The causality rule-checklist ──────────────────────────────────────────────
+# Each rule: id, the physical principle it guards, the VLM check prompt, and the
+# id of a Stage-2 geometric detector that can corroborate it (or None).
+RULES = [
+    {"id": "effect_before_cause", "law": "Cause must precede effect",
+     "question": ("These frames are in time order. Does any object begin moving or "
+                  "react BEFORE anything touches, hits, or pushes it — an effect "
+                  "appearing before its cause?"),
+     "geom": "effect_before_cause"},
+    {"id": "time_reversal", "law": "The arrow of time",
+     "question": ("Do any of these frames appear to play in REVERSE — scattered "
+                  "pieces coming back together, spilled or splashed liquid returning "
+                  "to its source, or a motion visibly undoing itself?"),
+     "geom": "time_reversal"},
+    {"id": "temporal_discontinuity", "law": "Temporal continuity",
+     "question": ("Is there an abrupt break in the sequence — a frozen or repeated "
+                  "moment, or a sudden jump — as if frames were duplicated or dropped?"),
+     "geom": None},
+    {"id": "cause_without_effect", "law": "Cause-effect coupling",
+     "question": ("Does a clear physical cause occur — a collision, impact, or push — "
+                  "WITHOUT its expected effect, so the affected object carries on as "
+                  "if nothing happened?"),
+     "geom": None},
+    {"id": "spontaneous_change", "law": "No effect without a cause",
+     "question": ("Does any object suddenly start moving, stop, or change direction "
+                  "with NO visible cause acting on it?"),
+     "geom": None},
+]
+
+
+# ── Geometric corroboration (scale-invariant, from Stage 2 evidence only) ─────
+
+def _tracks_from_evidence(ev: dict) -> list[dict]:
+    out = []
+    for tr in ev.get("trajectories", []):
+        out.append({
+            "id": int(tr["track_id"]),
+            "frames": [int(f) for f in tr["frames"]],
+            "spike_idx": [int(i) for i in tr.get("acc_flags", [])],
+            "rev_idx":   [int(i) for i in tr.get("rev_flags", [])],
+        })
+    return out
+
 
 def _robust_z(x: np.ndarray) -> np.ndarray:
-    """Median/MAD z-score, NaN/zero-safe."""
     x = np.asarray(x, float)
     if x.size == 0:
         return x
@@ -45,243 +87,119 @@ def _robust_z(x: np.ndarray) -> np.ndarray:
     return (x - med) / (1.4826 * mad + 1e-9)
 
 
-def _tracks_from_evidence(ev: dict) -> list[dict]:
-    """Map s2_trajectory_extractor trajectories → common structure."""
-    out = []
-    for tr in ev.get("trajectories", []):
-        frames = [int(f) for f in tr["frames"]]
-        out.append({
-            "id": int(tr["track_id"]),
-            "frames": frames,
-            "pos":   np.asarray(tr.get("positions", []), float),
-            "speed": np.asarray(tr.get("speed", []), float),
-            "accel": np.asarray(tr.get("accel", []), float),
-            "spike_idx": [int(i) for i in tr.get("acc_flags", [])],
-            "rev_idx":   [int(i) for i in tr.get("rev_flags", [])],
-        })
-    return out
-
-
-def _tracks_from_get_tracks(video_path: str, z_thresh: float) -> tuple[list[dict], float, int]:
-    """Self-computed fallback: centroids → speed/accel → robust-z spikes."""
+def _tracks_from_get_tracks(video_path: str) -> tuple[list[dict], list[dict]]:
+    """Self-computed motion signals when Stage 2 didn't run: centroids → accel
+    spikes (robust-z) + jitter-guarded velocity reversals, plus proximity contacts.
+    All signals are ordinal / relative-to-self, so they carry no pixel-scale units."""
     from tools.tracking import get_tracks
     tr = get_tracks(video_path)
-    fps = tr["fps"]
-    n = tr["meta"]["n_frames"]
     out = []
     for ct in tr["tracks"]:
         f = [int(x) for x in ct["frames"]]
         pos = np.stack([np.asarray(ct["cx"], float), np.asarray(ct["cy"], float)], axis=1)
         if len(pos) < 3:
             continue
-        vel = np.diff(pos, axis=0)                       # (k-1, 2)
+        vel = np.diff(pos, axis=0)
         vmag = np.linalg.norm(vel, axis=1)
-        speed = np.concatenate([[0.0], vmag]) * fps
-        accel = np.concatenate([[0.0], np.diff(speed)])
-        z = _robust_z(np.abs(accel))
-        spikes = [int(i) for i in np.where(z > z_thresh)[0]]
-        # Velocity reversal, jitter-guarded: a real reversal needs BOTH adjacent
-        # velocity vectors to carry meaningful speed (a fraction of the track's
-        # own median), so LK settling-jitter in the first frames isn't counted.
-        vfloor = max(1.0, 0.4 * float(np.median(vmag[vmag > 1e-6])) if np.any(vmag > 1e-6) else 1.0)
-        rev = []
-        for i in range(1, len(vel)):
-            if (np.dot(vel[i], vel[i - 1]) < 0
-                    and vmag[i] > vfloor and vmag[i - 1] > vfloor):
-                rev.append(i + 1)                        # +1: speed offset by one
+        accel = np.concatenate([[0.0], np.diff(np.concatenate([[0.0], vmag]))])
+        spikes = [int(i) for i in np.where(_robust_z(np.abs(accel)) > 3.5)[0]]
+        vfloor = max(1.0, 0.4 * (float(np.median(vmag[vmag > 1e-6])) if np.any(vmag > 1e-6) else 1.0))
+        rev = [i + 1 for i in range(1, len(vel))
+               if np.dot(vel[i], vel[i - 1]) < 0 and vmag[i] > vfloor and vmag[i - 1] > vfloor]
         out.append({"id": int(ct["id"]), "frames": f, "pos": pos,
-                    "speed": speed, "accel": accel,
                     "spike_idx": spikes, "rev_idx": rev})
-    return out, fps, n
-
-
-def _contacts_from_tracks(tracks: list[dict], pad: float = 24.0) -> list[dict]:
-    """Fallback contact detection: rising edge of centroid proximity between pairs."""
-    by_frame: dict[int, dict] = {}
-    for t in tracks:
-        for i, f in enumerate(t["frames"]):
-            by_frame.setdefault(f, {})[t["id"]] = t["pos"][i]
-    active: set = set()
-    events = []
-    for f in sorted(by_frame):
-        present = by_frame[f]
-        ids = sorted(present)
-        touching = set()
+    # proximity contacts (rising edge of centroid closeness)
+    by_frame: dict = {}
+    for t in out:
+        for i, fr in enumerate(t["frames"]):
+            by_frame.setdefault(fr, {})[t["id"]] = t["pos"][i]
+    active, contacts = set(), []
+    for fr in sorted(by_frame):
+        present = by_frame[fr]; ids = sorted(present); touch = set()
         for i in range(len(ids)):
             for j in range(i + 1, len(ids)):
-                d = float(np.linalg.norm(present[ids[i]] - present[ids[j]]))
-                if d <= pad:
-                    pair = (ids[i], ids[j])
-                    touching.add(pair)
+                if float(np.linalg.norm(present[ids[i]] - present[ids[j]])) <= 24.0:
+                    pair = (ids[i], ids[j]); touch.add(pair)
                     if pair not in active:
-                        events.append({"frame": f, "track_a": ids[i], "track_b": ids[j]})
-        active = touching
-    return events
+                        contacts.append({"frame": fr, "track_a": ids[i], "track_b": ids[j]})
+        active = touch
+    return out, contacts
 
 
-# ── Detectors ─────────────────────────────────────────────────────────────────
-
-def _frame_index(track: dict, frame: int) -> Optional[int]:
-    try:
-        return track["frames"].index(frame)
-    except ValueError:
-        return None
-
-
-def _detect_effect_before_cause(tracks, contacts, fps, max_lag, window):
-    """For each contact, check whether either participant's acceleration response
-    LEADS the contact by more than max_lag frames (effect preceding cause)."""
+def _geom_effect_before_cause(tracks, contacts, max_lag=3, window=12) -> int:
+    """Count contacts where a participant's acceleration spike LEADS the contact —
+    a purely ordinal (scale-free) check of effect-before-cause."""
     by_id = {t["id"]: t for t in tracks}
-    violations = []
+    hits = 0
     for c in contacts:
         fc = int(c["frame"])
-        for tid in (c["track_a"], c["track_b"]):
+        for tid in (c.get("track_a"), c.get("track_b")):
             t = by_id.get(tid)
             if not t or not t["spike_idx"]:
                 continue
             spike_frames = [t["frames"][i] for i in t["spike_idx"] if i < len(t["frames"])]
             near = [sf for sf in spike_frames if abs(sf - fc) <= window]
-            if not near:
-                continue
-            sf = min(near, key=lambda s: abs(s - fc))
-            lag = sf - fc                                # negative → effect precedes cause
-            if lag < -max_lag:
-                idx = _frame_index(t, sf)
-                violations.append({
-                    "type": "effect_before_cause", "frame": int(sf), "contact_frame": fc,
-                    "t": round(sf / max(fps, 1e-6), 3), "track": int(tid),
-                    "lead_frames": int(-lag),
-                    "detail": (f"track {tid} accelerates {-lag} frame(s) BEFORE its "
-                               f"contact at frame {fc} (effect precedes cause)"),
-                    "severity": float(min(1.0, 0.4 + (-lag - max_lag) / max(fps * 0.5, 1))),
-                })
-    return violations
+            if near and (min(near, key=lambda s: abs(s - fc)) - fc) < -max_lag:
+                hits += 1
+    return hits
 
 
-def _detect_global_reversal(tracks, contacts, fps, frac_thresh, contact_guard):
-    """Frames where a large fraction of active tracks reverse velocity at once
-    with no nearby contact — a coherent time-reversal signature."""
+def _geom_time_reversal(tracks, contacts, frac_thresh=0.6, guard=4) -> int:
+    """Count frames where a large fraction of active tracks reverse velocity at
+    once with no contact nearby — a scale-free time-reversal signature."""
     contact_frames = {int(c["frame"]) for c in contacts}
-    rev_by_frame: dict[int, int] = {}
-    active_by_frame: dict[int, int] = {}
+    rev_by, act_by = {}, {}
     for t in tracks:
         for f in set(t["frames"]):
-            active_by_frame[f] = active_by_frame.get(f, 0) + 1
+            act_by[f] = act_by.get(f, 0) + 1
         for i in t["rev_idx"]:
             if i < len(t["frames"]):
-                f = t["frames"][i]
-                rev_by_frame[f] = rev_by_frame.get(f, 0) + 1
-    violations = []
-    for f, nrev in sorted(rev_by_frame.items()):
-        active = max(active_by_frame.get(f, 1), 1)
-        frac = nrev / active
-        near_contact = any(abs(f - cf) <= contact_guard for cf in contact_frames)
-        if nrev >= 2 and frac >= frac_thresh and not near_contact:
-            violations.append({
-                "type": "global_time_reversal", "frame": int(f),
-                "t": round(f / max(fps, 1e-6), 3),
-                "n_reversed": int(nrev), "n_active": int(active),
-                "detail": (f"{nrev}/{active} tracks reverse velocity simultaneously at "
-                           f"frame {f} with no contact — segment appears time-reversed"),
-                "severity": float(min(1.0, frac)),
-            })
-    return violations
+                f = t["frames"][i]; rev_by[f] = rev_by.get(f, 0) + 1
+    hits = 0
+    for f, nrev in rev_by.items():
+        frac = nrev / max(act_by.get(f, 1), 1)
+        if nrev >= 2 and frac >= frac_thresh and not any(abs(f - cf) <= guard for cf in contact_frames):
+            hits += 1
+    return hits
 
 
-def _global_motion_series(tracks, n_frames) -> np.ndarray:
-    """Mean track speed per frame across the whole clip (0 where no track present)."""
-    total = np.zeros(n_frames); count = np.zeros(n_frames)
-    for t in tracks:
-        for i, f in enumerate(t["frames"]):
-            if 0 <= f < n_frames and i < len(t["speed"]):
-                total[f] += t["speed"][i]; count[f] += 1
-    with np.errstate(invalid="ignore", divide="ignore"):
-        return np.where(count > 0, total / np.maximum(count, 1), 0.0)
+def _geometry_signals(video_path: str, ev: dict) -> tuple[dict, str]:
+    """Map rule id → geometric event count, from Stage 2 evidence if present else
+    self-computed tracks. Returns (counts, source)."""
+    if ev and ev.get("trajectories"):
+        tracks, contacts, source = _tracks_from_evidence(ev), list(ev.get("contacts", [])), "stage2"
+    else:
+        try:
+            tracks, contacts = _tracks_from_get_tracks(video_path)
+            source = "self-computed"
+        except Exception:  # noqa: BLE001
+            return {}, "none"
+    if not tracks:
+        return {}, source
+    return ({
+        "effect_before_cause": _geom_effect_before_cause(tracks, contacts),
+        "time_reversal":       _geom_time_reversal(tracks, contacts),
+    }, source)
 
 
-def _detect_temporal_drift(tracks, fps, n_frames, min_stall):
-    """Frame duplication (a motion stall amid motion) and dropped/spliced frames
-    (a synchronized jump across most tracks)."""
-    drift = []
-    motion = _global_motion_series(tracks, n_frames)
-    moving = motion[motion > 1e-6]
-    if moving.size >= 4:
-        med = float(np.median(moving))
-        stall_eps = 0.05 * med
-        f = 1
-        while f < n_frames - 1:                          # duplication: near-zero run amid motion
-            if motion[f] <= stall_eps and motion[f] < med:
-                start = f
-                while f < n_frames and motion[f] <= stall_eps:
-                    f += 1
-                run = f - start
-                before = motion[max(0, start - 2):start].max(initial=0.0)
-                after  = motion[f:f + 2].max(initial=0.0)
-                if run >= min_stall and before > med * 0.5 and after > med * 0.5:
-                    drift.append({
-                        "type": "frame_duplication", "frame_start": int(start),
-                        "frame_end": int(f - 1), "t": round(start / max(fps, 1e-6), 3),
-                        "n_frames": int(run),
-                        "detail": (f"{run} frame(s) of near-zero motion (frames "
-                                   f"{start}–{f-1}) between moving frames — likely duplicated"),
-                        "severity": float(min(1.0, 0.3 + 0.1 * run)),
-                    })
-            else:
-                f += 1
+# ── Plot ──────────────────────────────────────────────────────────────────────
 
-    disp_by_frame: dict[int, list] = {}                  # dropped frame: synchronized jump
-    for t in tracks:
-        pos = t["pos"]
-        if len(pos) < 3:
-            continue
-        step = np.linalg.norm(np.diff(pos, axis=0), axis=1)
-        z = _robust_z(step)
-        for i in range(len(step)):
-            if z[i] > 4.0 and step[i] > 1e-3:
-                disp_by_frame.setdefault(int(t["frames"][i + 1]), []).append(int(t["id"]))
-    n_tracks = max(len(tracks), 1)
-    for f, ids in sorted(disp_by_frame.items()):
-        if len(ids) >= 2 and len(ids) / n_tracks >= 0.6:
-            drift.append({
-                "type": "frame_drop", "frame_start": int(f), "frame_end": int(f),
-                "t": round(f / max(fps, 1e-6), 3), "n_tracks": len(ids),
-                "detail": (f"{len(ids)}/{n_tracks} tracks jump simultaneously at frame "
-                           f"{f} — likely a dropped/spliced frame"),
-                "severity": float(min(1.0, len(ids) / n_tracks)),
-            })
-    return drift
-
-
-# ── Timeline plot ─────────────────────────────────────────────────────────────
-
-def _timeline_fig(contacts, fps, effect_v, reversal_v, drift_v, duration):
-    rows = ["Contacts", "Effect→cause", "Time reversal", "Temporal drift"]
-    fig = go.Figure()
-
-    def _scatter(events, row, color, symbol):
-        if not events:
-            return
-        xs = [e.get("t", e.get("frame", 0) / max(fps, 1e-6)) for e in events]
-        fig.add_trace(go.Scatter(
-            x=xs, y=[row] * len(xs), mode="markers",
-            marker=dict(size=13, color=color, symbol=symbol,
-                        line=dict(width=1, color="white")),
-            name=row, hovertemplate="%{y}<br>t = %{x:.2f}s<extra></extra>",
-        ))
-
-    _scatter(contacts, "Contacts", "#1a54c4", "circle")
-    _scatter(effect_v, "Effect→cause", "#E24B4A", "triangle-left")
-    _scatter(reversal_v, "Time reversal", "#d97706", "x")
-    _scatter(drift_v, "Temporal drift", "#7c3aed", "square")
-
+def _rules_fig(results, threshold):
+    labels = [r["rule"]["law"] for r in results]
+    scores = [r.get("score", r["p_yes"] or 0.0) for r in results]
+    colors = ["#E24B4A" if r["fired"] else "#4CAF50" for r in results]
+    fig = go.Figure(go.Bar(
+        x=scores, y=labels, orientation="h", marker_color=colors,
+        text=[f"{s:.2f}" for s in scores], textposition="outside",
+    ))
+    fig.add_vline(x=threshold, line=dict(color="#888", dash="dash", width=1.2),
+                  annotation_text=f"fire ≥ {threshold:.2f}", annotation_position="top")
     fig.update_layout(
-        title=dict(text="Causality Timeline — events & detected violations", font=dict(size=15)),
-        height=330, plot_bgcolor="white", paper_bgcolor="white",
-        xaxis=dict(title="Time (s)", range=[-0.05 * max(duration, 1), duration * 1.05],
-                   showgrid=True, gridcolor="#ebebeb", zeroline=False),
-        yaxis=dict(categoryorder="array", categoryarray=list(reversed(rows)),
-                   showgrid=True, gridcolor="#f2f2f2"),
-        margin=dict(l=110, r=40, t=60, b=50), showlegend=False,
+        title=dict(text="Causality Rules — P(violated) per rule", font=dict(size=15)),
+        xaxis=dict(range=[0, 1.12], title="Model probability the rule is violated",
+                   showgrid=True, gridcolor="#ebebeb"),
+        height=90 + 52 * len(results), plot_bgcolor="white", paper_bgcolor="white",
+        margin=dict(l=10, r=30, t=55, b=40), showlegend=False,
         font=dict(family="IBM Plex Sans, sans-serif", size=13),
     )
     return fig
@@ -290,106 +208,151 @@ def _timeline_fig(contacts, fps, effect_v, reversal_v, drift_v, duration):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
-    cfg           = json.loads(settings) if settings else {}
-    max_lag       = max(1, int(cfg.get("max_causal_lag_frames", 3)))
-    reversal_frac = float(cfg.get("reversal_fraction", 0.6))
-    min_stall     = max(2, int(cfg.get("min_dup_run_frames", 3)))
-    z_thresh      = float(cfg.get("z_threshold", 3.5))
+    cfg          = json.loads(settings) if settings else {}
+    model_key    = cfg.get("model", "qwen2.5-vl-7b")
+    num_frames   = max(4, int(cfg.get("num_frames", 8)))
+    threshold    = float(cfg.get("fire_threshold", 0.5))
+    want_evidence = str(cfg.get("want_evidence", "true")).lower() not in ("false", "0", "no")
     loop = asyncio.get_event_loop()
 
-    yield {"type": "log", "level": "info", "text": "Causality Specialist — gathering kinematic evidence…"}
+    from tools.vlm_local import verify_rule, LOCAL_VLMS
+    if model_key not in LOCAL_VLMS:
+        model_key = "qwen2.5-vl-7b"
+    info = LOCAL_VLMS[model_key]
+    yield {"type": "log", "level": "info",
+           "text": (f"Causality Specialist — VLM rule-checker on {info['label']} "
+                    f"(~{info['vram_gb']} GB, no API key). {len(RULES)} rules.")}
     await asyncio.sleep(0)
 
-    vid = video_id(video_path)
-    ev = EVIDENCE.get(vid, "s2_trajectory_extractor")
-    if ev and ev.get("trajectories"):
-        tracks   = _tracks_from_evidence(ev)
-        fps      = float(ev.get("fps", 30.0))
-        n_frames = int(ev.get("n_frames", 0)) or (max((max(t["frames"]) for t in tracks), default=-1) + 1)
-        contacts = list(ev.get("contacts", []))
-        yield {"type": "log", "level": "info",
-               "text": f"Using Stage 2 trajectories: {len(tracks)} track(s), {len(contacts)} contact(s)."}
-    else:
-        yield {"type": "log", "level": "info",
-               "text": "No Stage 2 evidence — self-computing tracks (run Trajectory Extractor first for richer input)."}
-        await asyncio.sleep(0)
-        try:
-            tracks, fps, n_frames = await loop.run_in_executor(
-                None, lambda: _tracks_from_get_tracks(video_path, z_thresh))
-        except Exception as exc:  # noqa: BLE001
-            yield {"type": "error", "text": f"Could not compute tracks: {exc}"}
-            return
-        contacts = _contacts_from_tracks(tracks)
-        yield {"type": "log", "level": "info",
-               "text": f"Self-computed {len(tracks)} track(s), {len(contacts)} contact(s)."}
-
-    if len(tracks) == 0 or n_frames < 3:
-        yield {"type": "log", "level": "warn",
-               "text": "Not enough tracked motion to assess causality."}
-        yield {"type": "metric", "label": "Causality verdict", "value": "inconclusive",
-               "sub": "no trackable motion"}
-        yield {"type": "severity", "label": "Causality violation severity", "value": 0, "color": "#9e9e9e"}
-        EVIDENCE.put(vid, "s3_causality", {"verdict": "inconclusive", "severity": 0,
-                                           "causality_violations": [], "temporal_drift": []})
-        yield {"type": "done"}
+    frames, fps = load_frames(video_path)
+    if not frames:
+        yield {"type": "error", "text": "Could not read any frames from the video."}
         return
+    keyframes = sample_frames(frames, num_frames)
+    rgb = [cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in keyframes]
 
-    duration = n_frames / max(fps, 1e-6)
+    # Scale-invariant geometric signals (Stage 2 evidence, else self-computed).
+    # These are a CO-DETECTOR for the two motion rules a still-frame VLM can't see.
+    vid = video_id(video_path)
+    geom, geom_src = await loop.run_in_executor(
+        None, lambda: _geometry_signals(video_path, EVIDENCE.get(vid, "s2_trajectory_extractor")))
+    if geom:
+        yield {"type": "log", "level": "info",
+               "text": (f"Geometric motion signals ready ({geom_src}) — they can fire the "
+                        "ordering & reversal rules the VLM cannot see in still frames.")}
+
+    yield {"type": "log", "level": "info",
+           "text": f"Checking {len(RULES)} causality rules over {len(keyframes)} frames "
+                   "(first run loads the model — may take a minute)…"}
     await asyncio.sleep(0)
 
-    # ── Run the three detectors ───────────────────────────────────────────────
-    window     = max(int(fps * 0.75), max_lag + 2)     # search radius around a contact
-    effect_v   = _detect_effect_before_cause(tracks, contacts, fps, max_lag, window)
-    reversal_v = _detect_global_reversal(tracks, contacts, fps, reversal_frac,
-                                         contact_guard=max_lag + 1)
-    drift_v    = _detect_temporal_drift(tracks, fps, n_frames, min_stall)
+    # ── Run each rule: VLM CHECK (token-prob) + VERIFY (evidence) + geometry ──
+    results = []
+    for r in RULES:
+        try:
+            out = await loop.run_in_executor(
+                None, lambda rr=r: verify_rule(rgb, rr["question"], model_key=model_key,
+                                               n_sample=len(rgb), want_evidence=want_evidence))
+        except Exception as exc:  # noqa: BLE001
+            yield {"type": "log", "level": "warn", "text": f"Rule '{r['id']}' failed: {exc}"}
+            out = {"p_yes": None, "evidence": ""}
+        p = out["p_yes"]
+        vlm_fired = p is not None and p >= threshold
+        g = geom.get(r["geom"]) if r["geom"] else None
+        geom_fired = bool(g and g > 0)
+        fired = vlm_fired or geom_fired
+        # effective score: VLM prob, lifted toward certainty when geometry agrees /
+        # supplied by geometry when the VLM was blind to the motion.
+        score = (p or 0.0)
+        if geom_fired:
+            score = max(score, 0.6 + min(0.35, 0.1 * g))
+        results.append({"rule": r, "p_yes": p, "score": score, "fired": fired,
+                        "vlm_fired": vlm_fired, "geom_fired": geom_fired,
+                        "evidence": out["evidence"], "geom_support": g})
 
-    for v in effect_v + reversal_v:
-        yield {"type": "log", "level": "warn", "text": "⚠ " + v["detail"]}
-    for d in drift_v:
-        yield {"type": "log", "level": "warn", "text": "⏱ " + d["detail"]}
-    if not (effect_v or reversal_v or drift_v):
-        yield {"type": "log", "level": "success",
-               "text": "No causality or temporal-drift violations detected."}
-    await asyncio.sleep(0)
+        p_txt = f"{p:.2f}" if p is not None else "n/a"
+        if r["geom"] and geom:
+            gtxt = f" · geometry: {g} event(s)"
+        else:
+            gtxt = ""
+        if fired:
+            src = "VLM+geometry" if (vlm_fired and geom_fired) else ("geometry" if geom_fired else "VLM")
+            yield {"type": "log", "level": "warn",
+                   "text": f"✗ {r['law']} — VIOLATED via {src} (P={p_txt}){gtxt}"
+                           + (f" — {out['evidence']}" if out["evidence"] else "")}
+        else:
+            yield {"type": "log", "level": "info", "text": f"✓ {r['law']} — ok (P={p_txt}){gtxt}"}
+        await asyncio.sleep(0)
 
-    # ── Timeline plot ─────────────────────────────────────────────────────────
-    fig = _timeline_fig(contacts, fps, effect_v, reversal_v, drift_v, duration)
-    yield {"type": "plotly", "data": fig.to_json(),
-           "caption": ("Blue = contacts (causes). Red = an object's motion change that "
-                       "precedes its contact. Orange = synchronized time-reversal. "
-                       "Purple = duplicated/dropped frames.")}
-
-    # ── Score & verdict — each channel contributes up to its own cap ──────────
-    acausal_sev  = sum(v["severity"] for v in effect_v)
-    reversal_sev = sum(v["severity"] for v in reversal_v)
-    drift_sev    = sum(d["severity"] for d in drift_v)
-    severity = int(min(100,
-                       min(acausal_sev,  1.5) / 1.5 * 45 +
-                       min(reversal_sev, 1.5) / 1.5 * 30 +
-                       min(drift_sev,    1.5) / 1.5 * 25))
-    n_viol = len(effect_v) + len(reversal_v) + len(drift_v)
+    # ── Aggregate — severity from how many rules fire and how strongly ────────
+    fired = [r for r in results if r["fired"]]
+    # agreement (both VLM and geometry) nudges a fired rule's weight up
+    weight = sum(min(1.0, r["score"] * (1.15 if (r["vlm_fired"] and r["geom_fired"]) else 1.0))
+                 for r in fired)
+    severity = int(min(100, 100 * weight / (0.8 * len(RULES))))
+    if not fired:                                   # no rule fired → low residual from the max score
+        mx = max((r["score"] or 0.0) for r in results)
+        severity = int(min(100, 100 * mx * 0.4))
     verdict = ("confirmed" if severity >= 50 else
-               "suspected" if severity >= 20 else "rejected")
-    color = "#E24B4A" if severity >= 50 else "#EF9F27" if severity >= 20 else "#4CAF50"
+               "suspected" if severity >= 25 else "rejected")
+    color = "#E24B4A" if severity >= 50 else "#EF9F27" if severity >= 25 else "#4CAF50"
 
-    yield {"type": "metric", "label": "Effect-before-cause", "value": str(len(effect_v)),
-           "sub": "acceleration leads its contact"}
-    yield {"type": "metric", "label": "Time-reversal events", "value": str(len(reversal_v)),
-           "sub": "synchronized velocity flips"}
-    yield {"type": "metric", "label": "Temporal-drift artefacts", "value": str(len(drift_v)),
-           "sub": "duplicated / dropped frames"}
+    # ── Plot + evidence table ─────────────────────────────────────────────────
+    yield {"type": "plotly", "data": _rules_fig(results, threshold).to_json(),
+           "caption": ("Each bar is the model's probability that a causality rule is "
+                       "violated, read from its Yes/No token logits. Red = fired.")}
+
+    def _src(r):
+        return ("VLM+geometry" if (r["vlm_fired"] and r["geom_fired"])
+                else "geometry" if r["geom_fired"] else "VLM")
+
+    def _ev(r):
+        if r["evidence"]:
+            return r["evidence"]
+        if r["geom_fired"]:
+            return f"{r['geom_support']} geometric event(s) — motion the VLM cannot see in stills"
+        return "—"
+
+    if fired:
+        tbl = go.Figure(data=[go.Table(
+            columnwidth=[24, 16, 60],
+            header=dict(values=["<b>Rule violated</b>", "<b>Fired by</b>", "<b>Evidence</b>"],
+                        fill_color="#7c3aed", font=dict(color="white", size=13),
+                        align="left", height=30),
+            cells=dict(values=[
+                [r["rule"]["law"] for r in fired],
+                [_src(r) for r in fired],
+                [_ev(r) for r in fired]],
+                fill_color=[["#f7f4fd", "#ffffff"] * len(fired)],
+                align="left", font=dict(size=12.5), height=30)),
+        ])
+        tbl.update_layout(title=dict(text="Fired Causality Rules — evidence", font=dict(size=15)),
+                          height=110 + 34 * len(fired), margin=dict(l=20, r=20, t=50, b=15),
+                          paper_bgcolor="white", font=dict(family="IBM Plex Sans, sans-serif"))
+        yield {"type": "plotly", "data": tbl.to_json(),
+               "caption": "The rules that fired, whether the VLM or geometry caught it, and why."}
+
+    top = max(fired, key=lambda r: r["score"]) if fired else None
+    yield {"type": "metric", "label": "Rules fired", "value": f"{len(fired)}/{len(RULES)}",
+           "sub": "causality rules violated"}
+    yield {"type": "metric", "label": "Top violation", "value": top["rule"]["law"] if top else "—",
+           "sub": _src(top) if top else "none fired"}
+    n_agree = sum(1 for r in fired if r["vlm_fired"] and r["geom_fired"])
+    yield {"type": "metric", "label": "VLM+geometry agree", "value": str(n_agree),
+           "sub": "rules both methods fired"}
     yield {"type": "metric", "label": "Causality verdict", "value": verdict,
-           "sub": f"{n_viol} violation(s), {len(contacts)} contact(s)"}
+           "sub": f"severity {severity}/100"}
     yield {"type": "severity", "label": "Causality violation severity", "value": severity, "color": color}
 
     EVIDENCE.put(vid, "s3_causality", {
-        "verdict": verdict, "severity": severity,
-        "causality_violations": effect_v + reversal_v,
-        "temporal_drift": drift_v,
-        "n_contacts": len(contacts), "fps": fps, "n_frames": n_frames,
+        "verdict": verdict, "severity": severity, "model": model_key,
+        "rules": [{"id": r["rule"]["id"], "law": r["rule"]["law"],
+                   "p_violated": r["p_yes"], "score": r["score"], "fired": r["fired"],
+                   "fired_by": _src(r) if r["fired"] else None,
+                   "evidence": r["evidence"], "geom_support": r["geom_support"]}
+                  for r in results],
     })
-
-    yield {"type": "log", "level": "success" if severity < 20 else "warn",
-           "text": f"Causality verdict: {verdict} (severity {severity}/100, {n_viol} violation(s))."}
+    yield {"type": "log", "level": "success" if severity < 25 else "warn",
+           "text": f"Causality verdict: {verdict} (severity {severity}/100, "
+                   f"{len(fired)}/{len(RULES)} rules fired)."}
     yield {"type": "done"}

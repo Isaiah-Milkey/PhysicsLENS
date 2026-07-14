@@ -25,29 +25,34 @@ from typing import Optional
 import cv2
 import numpy as np
 
-# key → registry entry. `auc` is the measured AI-vs-real rank AUC from
-# scripts/vlm_multimodel_eval.py (None = not yet measured); `vram_gb` is the
-# approximate bf16 footprint.
+# key → registry entry. `auc` is the measured AI-vs-real rank AUC and
+# `logprob_auc` the token-probability AUC, both from scripts/vlm_multimodel_eval.py
+# (5 AI vs 5 real, multi-frame). `vram_gb` is the approximate bf16 footprint.
+#
+# Measured finding: on this benchmark BIGGER IS WORSE. The 7B is the best judge
+# (0.92); the 14B/32B saturate — they over-flag everything, collapsing AI-vs-real
+# separation to near chance (0.60 / 0.58). Their token-probability AUC (0.78 /
+# 0.62) partially recovers, but neither beats the 7B. Ordered by measured AUC.
 LOCAL_VLMS = {
     "qwen2.5-vl-7b": {
         "hf_id": "Qwen/Qwen2.5-VL-7B-Instruct",
-        "label": "Qwen2.5-VL 7B", "vram_gb": 17, "auc": 0.92,
-    },
-    "qwen2.5-vl-32b": {
-        "hf_id": "Qwen/Qwen2.5-VL-32B-Instruct",
-        "label": "Qwen2.5-VL 32B", "vram_gb": 64, "auc": None,
-    },
-    "internvl3-14b": {
-        "hf_id": "OpenGVLab/InternVL3-14B-hf",
-        "label": "InternVL3 14B", "vram_gb": 30, "auc": None,
+        "label": "Qwen2.5-VL 7B", "vram_gb": 17, "auc": 0.92, "logprob_auc": 0.84,
     },
     "internvl3-8b": {
         "hf_id": "OpenGVLab/InternVL3-8B-hf",
-        "label": "InternVL3 8B", "vram_gb": 18, "auc": 0.70,
+        "label": "InternVL3 8B", "vram_gb": 18, "auc": 0.70, "logprob_auc": None,
+    },
+    "internvl3-14b": {
+        "hf_id": "OpenGVLab/InternVL3-14B-hf",
+        "label": "InternVL3 14B", "vram_gb": 30, "auc": 0.60, "logprob_auc": 0.78,
+    },
+    "qwen2.5-vl-32b": {
+        "hf_id": "Qwen/Qwen2.5-VL-32B-Instruct",
+        "label": "Qwen2.5-VL 32B", "vram_gb": 64, "auc": 0.58, "logprob_auc": 0.62,
     },
     "smolvlm2-2.2b": {
         "hf_id": "HuggingFaceTB/SmolVLM2-2.2B-Instruct",
-        "label": "SmolVLM2 2.2B", "vram_gb": 5, "auc": 0.50,
+        "label": "SmolVLM2 2.2B", "vram_gb": 5, "auc": 0.50, "logprob_auc": None,
     },
 }
 DEFAULT_VLM = "qwen2.5-vl-7b"
@@ -132,6 +137,31 @@ _YESNO_PROMPT = (
 )
 
 
+def _yesno_prob(m: dict, imgs: list, question: str) -> Optional[float]:
+    """P(Yes) / (P(Yes) + P(No)) from the model's next-token distribution for a
+    Yes/No question. Caller must hold _GPU_LOCK. None if neither token has mass."""
+    torch, model, proc = m["torch"], m["model"], m["proc"]
+    inputs = _prep_inputs(m, imgs, question)
+    with torch.no_grad():
+        out = model.generate(**inputs, max_new_tokens=1, do_sample=False,
+                             output_scores=True, return_dict_in_generate=True)
+    probs = torch.softmax(out.scores[0][0].float(), dim=-1)
+    tok = getattr(proc, "tokenizer", proc)
+
+    def _mass(word: str) -> float:
+        ids = set()
+        for v in (word, " " + word, word.lower(), " " + word.lower(), word.upper()):
+            enc = tok.encode(v, add_special_tokens=False)
+            if enc:
+                ids.add(enc[0])
+        return float(sum(probs[i].item() for i in ids))
+
+    p_yes, p_no = _mass("Yes"), _mass("No")
+    if p_yes + p_no < 1e-4:   # model answered neither Yes nor No
+        return None
+    return p_yes / (p_yes + p_no)
+
+
 def plausibility_logprob(frames_rgb: list[np.ndarray], n_sample: int = 8,
                          model_key: str = DEFAULT_VLM) -> Optional[float]:
     """
@@ -142,30 +172,37 @@ def plausibility_logprob(frames_rgb: list[np.ndarray], n_sample: int = 8,
     negligible (model tried to answer something else).
     """
     m = load_local_vlm(model_key)
-    torch, model, proc = m["torch"], m["model"], m["proc"]
     idx = np.linspace(0, len(frames_rgb) - 1, min(n_sample, len(frames_rgb))).astype(int)
     imgs = [_to_pil(frames_rgb[i]) for i in idx]
     with _GPU_LOCK:
-        inputs = _prep_inputs(m, imgs, _YESNO_PROMPT.format(n=len(imgs)))
-        with torch.no_grad():
-            out = model.generate(**inputs, max_new_tokens=1, do_sample=False,
-                                 output_scores=True, return_dict_in_generate=True)
-        probs = torch.softmax(out.scores[0][0].float(), dim=-1)
+        return _yesno_prob(m, imgs, _YESNO_PROMPT.format(n=len(imgs)))
 
-        tok = getattr(proc, "tokenizer", proc)
 
-        def _mass(word: str) -> float:
-            ids = set()
-            for v in (word, " " + word, word.lower(), " " + word.lower(), word.upper()):
-                enc = tok.encode(v, add_special_tokens=False)
-                if enc:
-                    ids.add(enc[0])
-            return float(sum(probs[i].item() for i in ids))
-
-        p_yes, p_no = _mass("Yes"), _mass("No")
-    if p_yes + p_no < 1e-4:   # model answered neither Yes nor No
-        return None
-    return p_yes / (p_yes + p_no)
+def verify_rule(frames_rgb: list[np.ndarray], question: str,
+                model_key: str = DEFAULT_VLM, n_sample: int = 8,
+                want_evidence: bool = True) -> dict:
+    """
+    Check ONE physics rule against the frames, the way a rule-based agent does:
+      • CHECK   — ask the rule as a Yes/No question and read P(Yes) from the
+                  next-token logits (calibrated, not a self-written float).
+      • VERIFY  — if it fires, ask the model for one sentence of concrete visual
+                  evidence (what it sees, which frame) so the rule is auditable.
+    Returns {"p_yes": float|None, "evidence": str}. Because the score is the
+    model's own token probability for "Yes", it needs no pixel-space magnitudes —
+    it is immune to the unknown scale / perspective of the video.
+    """
+    m = load_local_vlm(model_key)
+    idx = np.linspace(0, len(frames_rgb) - 1, min(n_sample, len(frames_rgb))).astype(int)
+    imgs = [_to_pil(frames_rgb[i]) for i in idx]
+    q = question.strip() + " Answer with exactly one word: Yes or No."
+    with _GPU_LOCK:
+        p = _yesno_prob(m, imgs, q)
+    evidence = ""
+    if want_evidence and p is not None and p >= 0.5:
+        ev_prompt = (question.strip() + " If yes, describe in ONE short sentence "
+                     "exactly what you observe and roughly which frame(s) it happens in.")
+        evidence = _generate(imgs, ev_prompt, max_new_tokens=80, model_key=model_key).strip()
+    return {"p_yes": p, "evidence": evidence}
 
 
 def _parse_json(raw: str) -> Optional[dict | list]:
