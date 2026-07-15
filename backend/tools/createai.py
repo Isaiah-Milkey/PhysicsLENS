@@ -23,6 +23,11 @@ except ImportError:
 
 DEFAULT_MODEL = "geminiflash2_5"
 
+# The CreateAI base URL is effectively a constant; default to it so a token
+# entered in the UI works even when .env (which is the only other source of
+# CREATEAI_BASE_URL) isn't present — e.g. on a deployed instance.
+DEFAULT_BASE_URL = "https://api-main.aiml.asu.edu"
+
 # CreateAI routes by provider; omitting model_provider silently falls back to
 # a default route that we measured giving degraded answers on the vision
 # endpoint (probe 2026-07-12: physics question wrong without it, right with).
@@ -66,12 +71,11 @@ async def query_vision(query: str, frame_bgr: np.ndarray, *,
 
     env_token, env_base = credentials()
     token = token or env_token
-    base_url = base_url or env_base
-    if not token or not base_url:
+    base_url = base_url or env_base or DEFAULT_BASE_URL
+    if not token:
         raise RuntimeError(
-            "CreateAI credentials missing — enter a CreateAI token in the "
-            "pipeline's API key field, or set CREATEAI_TOKEN and "
-            "CREATEAI_BASE_URL in the PhysicsLENS .env file."
+            "CreateAI token missing — enter a CreateAI token in the pipeline's "
+            "API key field, or set CREATEAI_TOKEN in the PhysicsLENS .env file."
         )
 
     payload: Dict[str, Any] = {
@@ -135,12 +139,11 @@ async def query_text(query: str, *,
 
     env_token, env_base = credentials()
     token = token or env_token
-    base_url = base_url or env_base
-    if not token or not base_url:
+    base_url = base_url or env_base or DEFAULT_BASE_URL
+    if not token:
         raise RuntimeError(
-            "CreateAI credentials missing — enter a CreateAI token in the "
-            "pipeline's API key field, or set CREATEAI_TOKEN and "
-            "CREATEAI_BASE_URL in the PhysicsLENS .env file."
+            "CreateAI token missing — enter a CreateAI token in the pipeline's "
+            "API key field, or set CREATEAI_TOKEN in the PhysicsLENS .env file."
         )
 
     payload: Dict[str, Any] = {

@@ -79,9 +79,9 @@ def key_status(model_key: str, api_key: str = "") -> tuple[bool, str]:
         ok = bool(api_key or os.environ.get("OPENROUTER_API_KEY"))
         return ok, "OpenRouter key (settings field or OPENROUTER_API_KEY)"
     from tools.createai import credentials
-    tok, base = credentials()
-    return bool((api_key or tok) and base), \
-        "CreateAI token (settings field or .env CREATEAI_TOKEN) + CREATEAI_BASE_URL"
+    tok, _base = credentials()   # base URL defaults in createai, so a token is enough
+    return bool(api_key or tok), \
+        "CreateAI token (settings field or .env CREATEAI_TOKEN)"
 
 
 async def ask_vision(prompt: str, image_bgr: np.ndarray, model_key: str,
