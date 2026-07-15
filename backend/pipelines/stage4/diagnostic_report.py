@@ -88,6 +88,8 @@ SPECIALIST_DISPLAY = {
     "s3_momentum":    "Momentum",
     "s3_friction":    "Friction",
     "s3_fluid":       "Fluid",
+    "s3_gravity":     "Gravity",
+    "s3_causality":   "Causality",
 }
 
 
@@ -172,6 +174,21 @@ def _collect_semantic_findings(video_path: str) -> tuple[list[dict], list[dict],
                     "source": name, "type": "holistic_realism", "label": None,
                     "t": None, "t_end": None, "confidence": h.get("confidence"),
                     "explanation": h.get("explanation", ""), "flagged": True,
+                })
+        elif key == "s3_causality":
+            # Rule-based, not a violations list: each entry is a global
+            # yes/no check (e.g. "effect precedes cause") rather than a
+            # timestamped per-object finding, so t stays None (whole-clip).
+            for r in ev.get("rules", []) or []:
+                if not r.get("fired"):
+                    continue
+                evidence = r.get("evidence") or (
+                    f"{r['geom_support']} geometric event(s) the VLM can't see "
+                    "in stills" if r.get("geom_support") else "")
+                timeline.append({
+                    "source": name, "type": "causality_rule", "label": r.get("law"),
+                    "t": None, "t_end": None, "confidence": r.get("score"),
+                    "explanation": evidence, "flagged": True,
                 })
         else:
             for v in ev.get("violations", []) or []:
@@ -474,9 +491,52 @@ def _build_visual_summary(report: dict) -> str:
 def _build_llm_prompt(report: dict) -> str:
     """
     Convert the unified PhysicsLENS JSON report into a prompt for the LLM.
+
+    The "Timeline of Findings" narrative only exists when Stage 3 specialists
+    have produced explained findings. When `semantic_timeline` is empty we drop
+    that section from the requested format entirely — otherwise the model writes
+    an awkward "no findings yet" placeholder — and instead tell it to ground the
+    diagnosis in the numeric severities/metrics.
     """
     report_text = json.dumps(report, ensure_ascii=False, separators=(",", ":"))
     n_findings = len(report.get("semantic_timeline") or [])
+    has_timeline = n_findings > 0
+
+    if has_timeline:
+        timeline_guidance = (
+            "`semantic_timeline` is the ground truth for this: each entry is one "
+            "Stage 3 specialist's confirmed finding, already timestamped and "
+            "explained in plain language by that specialist's own vision-model "
+            "check (e.g. \"at t=0.85s, the ball's momentum vanishes with no "
+            "visible cause\"). Walk through it in chronological order and narrate "
+            "it as a coherent story of the video's physical failures — do not "
+            "just list the entries verbatim, connect them (e.g. a collision "
+            "finding at t=2.1s and a deformation finding at t=2.15s are probably "
+            "the same event described by two specialists).\n\n"
+        )
+        timeline_rule = (
+            "- Every specific claim about what went wrong and when must trace to "
+            "an entry in semantic_timeline (cite its timestamp) or a metric in "
+            "local_reports — never state a failure that isn't backed by one of "
+            "these.\n"
+        )
+        timeline_section = (
+            "\n## Timeline of Findings\n"
+            "(walk through semantic_timeline chronologically — what happened, "
+            f"when, per which specialist, and why it's a violation; {n_findings} "
+            "finding(s) available.)\n"
+        )
+    else:
+        timeline_guidance = ""
+        timeline_rule = (
+            "- No Stage 3 specialist has produced an explained finding for this "
+            "video, so there is NO timeline to narrate. Do not add a \"Timeline "
+            "of Findings\" section and do not speculate one. Base the diagnosis "
+            "on the numeric severities/metrics in global_summary and "
+            "local_reports, and note plainly that these are numeric-only signals "
+            "without a semantic what/when explanation.\n"
+        )
+        timeline_section = ""
 
     return f"""
 You are a physics diagnostic assistant for AI-generated videos.
@@ -486,28 +546,13 @@ write a concise final diagnosis for a human evaluator that explains, in plain
 language, WHAT physically went wrong in this video and WHEN it happened —
 grounded in the specialists' own VLM-generated explanations, not just scores.
 
-`semantic_timeline` is the ground truth for this: each entry is one Stage 3
-specialist's confirmed finding, already timestamped and explained in plain
-language by that specialist's own vision-model check (e.g. "at t=0.85s, the
-ball's momentum vanishes with no visible cause"). Walk through it in
-chronological order and narrate it as a coherent story of the video's
-physical failures — do not just list the entries verbatim, connect them
-(e.g. a collision finding at t=2.1s and a deformation finding at t=2.15s are
-probably the same event described by two specialists).
-
-`triage_hypotheses` (if present) is where the automated system suspected
+{timeline_guidance}`triage_hypotheses` (if present) is where the automated system suspected
 trouble BEFORE the specialists ran — cite it only as background on why those
 specialists were run, never as a confirmed finding.
 
 Important rules:
 - Do not invent evidence that is not present in the JSON.
-- Every specific claim about what went wrong and when must trace to an entry
-  in semantic_timeline (cite its timestamp) or a metric in local_reports —
-  never state a failure that isn't backed by one of these.
-- If semantic_timeline is empty, say plainly that no specialist has produced
-  an explained finding yet, and that global_summary's severities are numeric
-  only — do not invent a narrative to fill the gap.
-- If a score is described as prototype, first-pass, or placeholder, say that clearly.
+{timeline_rule}- If a score is described as prototype, first-pass, or placeholder, say that clearly.
 - Distinguish between "no issue detected" and "no severity data reported".
 - Use careful language such as "the available diagnostics suggest" rather than overconfident claims.
 
@@ -517,12 +562,7 @@ Please return the answer in this format:
 
 ## Overall Assessment
 ...
-
-## Timeline of Findings
-(walk through semantic_timeline chronologically — what happened, when, per
-which specialist, and why it's a violation; {n_findings} finding(s) available.
-If none, say so explicitly instead of writing this section.)
-
+{timeline_section}
 ## Main Evidence
 ...
 

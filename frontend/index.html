@@ -2656,10 +2656,14 @@ async function driveBatch() {
       const sev = entry.severities[0]?.value;
       if (sev != null) v.maxSev = Math.max(v.maxSev ?? 0, sev);
       if (p.id === "s2_hypothesis_generator") {
-        for (const rp of routedSpecialistsFor(entry)) {
-          if (vs.inQueue.has(rp.id)) continue;
-          vs.queue.push(rp); vs.inQueue.add(rp.id); vs.routedIds.add(rp.id); batchState.total++;
-        }
+        // Insert right after the current position, NOT at the end of the queue:
+        // s4_report may already be queued later (its stage sorts after Stage 2),
+        // and appending would let the report run before a routed specialist ever
+        // executes — the report would see an empty evidence bus. Splicing here
+        // guarantees routed specialists run before anything queued after this point.
+        const toInsert = routedSpecialistsFor(entry).filter(rp => !vs.inQueue.has(rp.id));
+        toInsert.forEach(rp => { vs.inQueue.add(rp.id); vs.routedIds.add(rp.id); batchState.total++; });
+        if (toInsert.length) vs.queue.splice(vs.qi + 1, 0, ...toInsert);
       }
       batchState.done++; setDsProgress(batchState.done, batchState.total); renderDsGrid();
     }
