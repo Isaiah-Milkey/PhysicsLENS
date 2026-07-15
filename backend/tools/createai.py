@@ -107,7 +107,76 @@ async def query_vision(query: str, frame_bgr: np.ndarray, *,
         ) as resp:
             data = await resp.json(content_type=None)
             if resp.status != 200:
-                raise RuntimeError(f"CreateAI HTTP {resp.status}: {str(data)[:300]}")
+                hint = ""
+                if resp.status == 403:
+                    hint = (f" — this token is denied for model \"{model}\" "
+                            "specifically (identity-based policy). Try a "
+                            "different model or a token with broader access.")
+                raise RuntimeError(f"CreateAI HTTP {resp.status}: {str(data)[:300]}{hint}")
+    return data
+
+
+async def query_text(query: str, *,
+                     model: str = DEFAULT_MODEL,
+                     system_prompt: Optional[str] = None,
+                     thinking_level: Optional[str] = None,
+                     timeout_s: float = 90.0,
+                     token: Optional[str] = None,
+                     base_url: Optional[str] = None) -> Dict[str, Any]:
+    """Text-only prompt → CreateAI /query response JSON.
+
+    Same credential handling and provider routing as `query_vision`, minus the
+    image. Sending an explicit `model` + `model_provider` (rather than a bare
+    `{"query": ...}`) routes to the authorized model resource — a bare payload
+    can hit a default route some tokens are denied (403 explicit-deny).
+    Extract the answer with `response_text(...)`.
+    """
+    import aiohttp
+
+    env_token, env_base = credentials()
+    token = token or env_token
+    base_url = base_url or env_base
+    if not token or not base_url:
+        raise RuntimeError(
+            "CreateAI credentials missing — enter a CreateAI token in the "
+            "pipeline's API key field, or set CREATEAI_TOKEN and "
+            "CREATEAI_BASE_URL in the PhysicsLENS .env file."
+        )
+
+    payload: Dict[str, Any] = {
+        "request_source": "override_params",
+        "query": query,
+        "input": query,
+        "model": model,
+        "model_name": model,
+    }
+    provider = _provider_for(model)
+    if provider:
+        payload["model_provider"] = provider
+    model_params: Dict[str, Any] = {}
+    if system_prompt:
+        model_params["system_prompt"] = system_prompt
+    if thinking_level:
+        model_params["thinking_level"] = str(thinking_level).upper()
+    if model_params:
+        payload["model_params"] = model_params
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            base_url.rstrip("/") + "/query",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}",
+                     "Content-Type": "application/json"},
+            timeout=aiohttp.ClientTimeout(total=timeout_s),
+        ) as resp:
+            data = await resp.json(content_type=None)
+            if resp.status != 200:
+                hint = ""
+                if resp.status == 403:
+                    hint = (" — the token is authorized but this model/resource "
+                            "is denied for it (identity-based policy). Check the "
+                            "key has text-generation access, or try another model.")
+                raise RuntimeError(f"CreateAI HTTP {resp.status}: {str(data)[:300]}{hint}")
     return data
 
 

@@ -520,6 +520,13 @@ PIPELINES = {
                   {"value": "true", "label": "True"},
                   {"value": "false", "label": "False"},
              ]},
+             {"id": "summary_model", "label": "LLM summary model (CreateAI text)", "type": "select",
+              "default": "geminiflash2_5",
+              "options": [
+                  {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5 (fast)"},
+                  {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite (fastest)"},
+                  {"value": "geminipro3_1",        "label": "Gemini Pro 3.1 (best quality)"},
+             ]},
              _createai_key_setting(),
         ],
         "run": run_s4_report,

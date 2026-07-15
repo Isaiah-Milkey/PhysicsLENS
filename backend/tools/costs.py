@@ -52,6 +52,11 @@ async def instrument(gen, badge: str = "—") -> AsyncGenerator[dict, None]:
         yield ev
     elapsed = time.perf_counter() - t0
 
+    # Machine-readable duration for the frontend to attach to the run entry
+    # (per-tool timing → per-stage aggregation, benchmarking, export). The
+    # human-readable "Runtime" metric below stays for the cost panel.
+    yield {"type": "timing", "duration_ms": round(elapsed * 1000),
+           "badge": badge}
     yield {"type": "metric", "label": "Runtime", "value": f"{elapsed:.1f}s",
            "sub": "wall clock, whole test"}
     if torch:

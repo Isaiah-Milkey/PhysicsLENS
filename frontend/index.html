@@ -473,6 +473,8 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
 .ds-pipe-actions { display: flex; gap: 6px; margin-bottom: 4px; }
 .ds-mini { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--muted); cursor: pointer; font-family: var(--sans); transition: all 0.15s; }
 .ds-mini:hover { border-color: var(--text); color: var(--text); }
+.bm-toggle .bm-mode.active { background: var(--text); color: #fff; }
+.bm-toggle .bm-mode:not(.active):hover { background: var(--bg); }
 .ds-pipe-list { display: flex; flex-direction: column; gap: 1px; }
 .ds-pipe-stage { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin: 11px 0 3px; }
 .ds-pipe-row { display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 4px; cursor: pointer; transition: background 0.12s; }
@@ -520,6 +522,13 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
   <button class="ds-home-btn active" id="dsHomeBtn">Dataset</button>
   <span class="ds-crumb" id="dsCrumb"></span>
   <nav class="stage-tabs" id="stageTabs"></nav>
+  <label class="ds-mini ds-export-visuals-label" title="Include images/plots/marker-videos in the export (larger files)">
+    <input type="checkbox" id="dsExportVisuals" style="margin-right:5px;vertical-align:-2px" />Include visuals
+  </label>
+  <button class="ds-mini" id="dsExportBtn" title="Export saved run(s) as a JSON file you can re-import later">Export ⭳</button>
+  <button class="ds-mini" id="dsImportBtn" title="Load a previously exported run/batch JSON back into the Dataset view">Import ⭱</button>
+  <input type="file" id="dsImportFile" accept="application/json" hidden />
+  <button class="ds-mini" id="dsBenchmarkBtn" title="Compare severities across every loaded video and pipeline">Benchmark</button>
   <button class="report-btn" id="reportBtn">
     Full Report <span class="report-count" id="reportCount">0</span>
   </button>
@@ -723,7 +732,28 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
       <div class="ds-pipe-list" id="dsPipeList"></div>
     </div>
 
-    <!-- 3 · Run -->
+    <!-- 3 · API keys (session-only, not saved) -->
+    <div class="ds-block">
+      <details id="batchKeyDetails">
+        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">
+          <span class="ds-step" style="margin:0">3 · API keys <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></span>
+          <span style="margin-left:auto;font-size:11px;color:var(--muted)">▾</span>
+        </summary>
+        <div style="margin-top:10px">
+          <label class="setting-label">CreateAI token</label>
+          <input class="setting-input" id="batchCreateaiKey" type="password" autocomplete="off" placeholder="blank = use server .env" />
+          <label class="setting-label" style="margin-top:8px">OpenRouter key</label>
+          <input class="setting-input" id="batchOpenrouterKey" type="password" autocomplete="off" placeholder="blank = use server .env" />
+          <div class="ds-hf-status" id="batchKeyStatus" style="margin-top:8px"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4">
+            🔒 Held in this browser tab only for the session — never saved to disk, never exported.
+            Applied to each test based on its model's provider; blank falls back to the server's <code>.env</code>.
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- 4 · Run -->
     <div class="ds-run-wrap">
       <button class="run-btn" id="dsRunBtn" disabled>
         <div class="spinner"></div>
@@ -769,6 +799,31 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
           <div id="reportHeader"></div>
           <div id="reportStages"></div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cross-video benchmark table modal -->
+<div class="modal-overlay" id="benchmarkModal">
+  <div class="modal-box" style="max-width:min(1200px,92vw)">
+    <div class="modal-hdr">
+      <span class="modal-title" id="benchmarkTitle">Benchmark — Severity by Video × Pipeline</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="bm-toggle" style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <button class="ds-mini bm-mode active" data-mode="severity" style="border:none;border-radius:0">Severity</button>
+          <button class="ds-mini bm-mode" data-mode="duration" style="border:none;border-radius:0">Run time</button>
+        </div>
+        <button class="modal-close" id="benchmarkModalClose">Close</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="benchmarkEmpty" class="report-empty">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-text">No videos loaded. Run a batch or import a saved one first.</div>
+      </div>
+      <div id="benchmarkWrap" style="display:none;overflow-x:auto">
+        <table id="benchmarkTable" style="border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap"></table>
       </div>
     </div>
   </div>
@@ -1105,6 +1160,7 @@ async function runPipeline() {
         entry
       );
     }
+    entry.settings = redactSettings(settingsObj);   // store WITHOUT any entered key
     if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
     try {
       const res = await fetch(`${API}/dataset/run`, { method: "POST", body: form });
@@ -1180,6 +1236,7 @@ async function runPipeline() {
         entry
       );
     }
+    entry.settings = redactSettings(settingsObj);   // store WITHOUT any entered key
     if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
     try {
       const res = await fetch(`${API}/run`, { method: "POST", body: form });
@@ -1264,6 +1321,8 @@ function handleEvent(ev, entry) {
     document.getElementById("resultsPane").classList.add("show");
     renderMarkerVideo(document.getElementById("imageBlocks"), ev);
     entry.markerVideos.push(ev);
+  } else if (ev.type === "timing") {
+    entry.durationMs = ev.duration_ms;
   } else if (ev.type === "done") {
     setStatus("done", "Done"); entry.status = "done";
   } else if (ev.type === "error") {
@@ -1316,7 +1375,7 @@ function appendPlotly(jsonStr, caption, containerId) {
 }
 
 //Jiqing
-function appendJsonResult(title, obj) {
+function renderJsonResultInto(container, title, obj) {
   const wrap = document.createElement("div");
   wrap.className = "image-block";
 
@@ -1343,10 +1402,10 @@ function appendJsonResult(title, obj) {
   wrap.appendChild(label);
   wrap.appendChild(pre);
 
-  document.getElementById("imageBlocks").appendChild(wrap);
+  container.appendChild(wrap);
 }
 
-function appendLLMSummary(title, markdown) {
+function renderLLMSummaryInto(container, title, markdown) {
   const wrap = document.createElement("div");
   wrap.className = "image-block";
 
@@ -1374,7 +1433,15 @@ function appendLLMSummary(title, markdown) {
   wrap.appendChild(label);
   wrap.appendChild(pre);
 
-  document.getElementById("imageBlocks").appendChild(wrap);
+  container.appendChild(wrap);
+}
+
+function appendJsonResult(title, obj) {
+  renderJsonResultInto(document.getElementById("imageBlocks"), title, obj);
+}
+
+function appendLLMSummary(title, markdown) {
+  renderLLMSummaryInto(document.getElementById("imageBlocks"), title, markdown);
 }
 
 function appendVideo(b64, mime, caption) {
@@ -1742,7 +1809,9 @@ function renderReport() {
     if (!stageEntries.length) return;
 
     const group = document.createElement("div"); group.className = "rsg";
-    const includedCount = stageEntries.filter(e => !e.excluded).length;
+    const includedEntries = stageEntries.filter(e => !e.excluded);
+    const includedCount = includedEntries.length;
+    const stageDur = sumDur(includedEntries);
 
     group.innerHTML = `<div class="rsg-header">
       <div class="rsg-num" style="background:${stage.color}">${stage.num}</div>
@@ -1750,6 +1819,7 @@ function renderReport() {
         <div class="rsg-name">${stage.name}</div>
         <div class="rsg-sub">${stage.subtitle}</div>
       </div>
+      ${stageDur != null ? `<span class="rsg-count" title="Total server run time for this stage">⏱ ${fmtDur(stageDur)}</span>` : ""}
       <span class="rsg-count">${includedCount} result${includedCount!==1?'s':''}</span>
     </div>`;
 
@@ -1772,6 +1842,7 @@ function renderReport() {
         <span class="rte-status-pill ${statusClass}">${statusText}</span>
         ${entry.excluded ? '<span class="rte-excl-tag">Excluded</span>' : ''}
         ${entry.comment  ? `<span class="rte-comment-preview" title="${entry.comment.replace(/"/g,'&quot;')}">✎ ${entry.comment}</span>` : ''}
+        ${entry.durationMs != null ? `<span class="rte-ts" title="Server-measured run time">⏱ ${fmtDur(entry.durationMs)}</span>` : ''}
         <span class="rte-ts">${entry.timestamp}</span>
       </div>
       <div class="rte-detail${showDetails?' show':''}">
@@ -1876,6 +1947,10 @@ function populateEntryDetail(entry, body) {
   // Marker videos (Event Localizer)
   (entry.markerVideos || []).forEach(mv => renderMarkerVideo(body, mv));
 
+  // Unified JSON result + LLM summary (e.g. the Diagnostic Report)
+  (entry.results || []).forEach(r => renderJsonResultInto(body, r.title || "Unified Diagnostic JSON", r.report || r));
+  (entry.llmSummaries || []).forEach(s => renderLLMSummaryInto(body, s.title || "LLM Diagnostic Summary", s.markdown || ""));
+
   // Logs
   if (entry.logs.length) {
     const details = document.createElement("details");
@@ -1925,6 +2000,7 @@ function renderPipelineHistory(pid) {
       ${mainSev ? `<div class="rte-sev-row"><div class="rte-sev-dot" style="background:${mainSev.color}"></div><span class="rte-sev-pct" style="color:${mainSev.color}">${mainSev.value}%</span></div>` : ""}
       <span class="hist-name">${entry.pipelineName}</span>
       <span class="rte-status-pill ${statusCls}">${statusText}</span>
+      ${entry.durationMs != null ? `<span class="hist-ts" title="Server-measured run time">⏱ ${fmtDur(entry.durationMs)}</span>` : ""}
       <span class="hist-ts">${entry.timestamp}</span>
       <span class="hist-chevron">▶</span>
     </div>
@@ -2012,8 +2088,10 @@ function restoreEntryToOutputPane(entry) {
     ib.appendChild(wrap);
   });
   (entry.markerVideos || []).forEach(mv => renderMarkerVideo(ib, mv));
+  (entry.results || []).forEach(r => renderJsonResultInto(ib, r.title || "Unified Diagnostic JSON", r.report || r));
+  (entry.llmSummaries || []).forEach(s => renderLLMSummaryInto(ib, s.title || "LLM Diagnostic Summary", s.markdown || ""));
 
-  if (entry.metrics.length || entry.severities.length || entry.images.length || entry.plots.length || entry.videos.length || (entry.markerVideos||[]).length)
+  if (entry.metrics.length || entry.severities.length || entry.images.length || entry.plots.length || entry.videos.length || (entry.markerVideos||[]).length || (entry.results||[]).length || (entry.llmSummaries||[]).length)
     document.getElementById("resultsPane").classList.add("show");
 
   lastEntry = entry;
@@ -2027,8 +2105,70 @@ let dsVideos = [];           // {id, name, status, runs:[entry], maxSev}
 let dsSelected = new Set();   // selected pipeline ids
 let dsBusy = false;
 
+// Batch API keys — held in memory for THIS browser session only. Never written
+// to localStorage/disk, and redacted out of anything we store on run entries or
+// export (see redactSettings). Blank → the server's .env credential is used.
+let batchKeys = { createai: "", openrouter: "" };
+
+// Blank out secret-looking fields in a settings object before we store/export
+// it, so an entered API key never lands on disk. The real key still goes to the
+// server in the live request; only the retained copy is redacted.
+function redactSettings(obj) {
+  const out = {};
+  for (const k in obj) {
+    out[k] = (/(api[_-]?key|token|secret|password)/i.test(k) && obj[k]) ? "" : obj[k];
+  }
+  return out;
+}
+
+// Which provider's key a pipeline needs, inferred from its (default) model.
+function providerOfModel(modelVal) {
+  if (typeof modelVal === "string") {
+    if (modelVal.startsWith("openrouter:")) return "openrouter";
+    if (modelVal.startsWith("createai:"))   return "createai";
+    return null;                       // a local model (e.g. qwen2.5-vl-7b) → no key
+  }
+  return undefined;                    // no model field at all (e.g. s4_report → CreateAI-only)
+}
+
+// Inject the session batch key into a pipeline's settings when it takes an
+// api_key and the user hasn't already supplied one. Mutates settingsObj in place.
+function applyBatchKeys(p, settingsObj) {
+  if (!(p.settings || []).some(s => s.id === "api_key") || settingsObj.api_key) return;
+  const prov = providerOfModel(settingsObj.model ?? settingsObj.naming_model);
+  const key = prov === "openrouter" ? batchKeys.openrouter
+            : (prov === "createai" || prov === undefined) ? batchKeys.createai
+            : "";                      // prov === null → local model, no key
+  if (key) settingsObj.api_key = key;
+}
+
+function updateBatchKeyStatus() {
+  const el = document.getElementById("batchKeyStatus");
+  if (!el) return;
+  const set = [];
+  if (batchKeys.createai)   set.push("CreateAI");
+  if (batchKeys.openrouter) set.push("OpenRouter");
+  el.textContent = set.length
+    ? `Using entered ${set.join(" + ")} key${set.length > 1 ? "s" : ""} this session (not saved).`
+    : "No keys entered — batch runs use the server's .env credentials.";
+}
+
 function nowTs() { return new Date().toTimeString().slice(0, 8); }
 function sevColorFor(v) { return v > 50 ? "#E24B4A" : v > 25 ? "#EF9F27" : "#4CAF50"; }
+// Server-measured per-run duration (ms) → compact label. "" when unknown
+// (e.g. an old export or a still-running entry with no timing event yet).
+function fmtDur(ms) {
+  if (ms == null || !isFinite(ms)) return "";
+  const s = ms / 1000;
+  if (s < 1)   return `${Math.round(ms)}ms`;
+  if (s < 60)  return `${s.toFixed(s < 10 ? 1 : 0)}s`;
+  const m = Math.floor(s / 60), rem = Math.round(s % 60);
+  return `${m}m${rem.toString().padStart(2, "0")}s`;
+}
+function sumDur(entries) {
+  const vals = entries.map(e => e.durationMs).filter(v => v != null && isFinite(v));
+  return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+}
 
 // ── View switch (grid ⇆ per-video detail) ──────────────────────────────────────
 // The single "Dataset" button doubles as the home/back control — clicking it from
@@ -2236,7 +2376,7 @@ async function runDatasetBatch() {
     for (const p of pipes) {
       const entry = makeDsEntry(p);
       v.runs.push(entry);
-      try { await streamRunById(v.id, p, entry, vSignals); }
+      try { await streamRunById(v.id, p, entry, vSignals, v); }
       catch (err) { entry.status = "error"; entry.logs.push({ level: "error", text: String(err), ts: nowTs() }); }
       const sev = entry.severities[0]?.value;
       if (sev != null) v.maxSev = Math.max(v.maxSev ?? 0, sev);
@@ -2258,19 +2398,44 @@ function makeDsEntry(p) {
     id: "ds" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
     stageId: stage.id, stageCls: stage.cls, stageNum: stage.num, stageName: stage.name, stageSubtitle: stage.subtitle,
     pipelineId: p.id, pipelineName: p.name, timestamp: nowTs(), status: "running",
-    logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [], excluded: false, comment: "",
+    logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [],
+    results: [], llmSummaries: [], excluded: false, comment: "",
   };
 }
 function dsDefaultSettings(p) {
   const out = {}; (p.settings || []).forEach(s => { out[s.id] = s.default; }); return out;
 }
 
-async function streamRunById(fileId, p, entry, vSignals) {
+async function streamRunById(fileId, p, entry, vSignals, video) {
   const form = new FormData();
   form.append("pipeline_id", p.id);
   form.append("file_id", fileId);
   let settingsObj = dsDefaultSettings(p);
   if (p.id === "s2_event_localizer") settingsObj.stage1_signals = Object.values(vSignals || {});
+  // Final Diagnosis needs this video's own prior runs — same forwarding the
+  // single-video/detail-mode run paths already do (exclude the s4_report
+  // entry itself, already pushed onto video.runs before this call).
+  if (p.id === "s4_report") {
+    settingsObj.previous_results = (video?.runs || [])
+      .filter(r => !r.excluded && r.pipelineId !== "s4_report")
+      .map(r => ({
+        id: r.id, stageId: r.stageId, stageName: r.stageName, stageNum: r.stageNum,
+        pipelineId: r.pipelineId, pipelineName: r.pipelineName,
+        timestamp: r.timestamp, status: r.status,
+        metrics: r.metrics || [], severities: r.severities || [],
+        logs: r.logs || [], comment: r.comment || "", excluded: r.excluded || false,
+      }));
+    settingsObj.video_name = video?.name || "uploaded video";
+    entry.logs.push({
+      level: settingsObj.previous_results.length ? "info" : "warn",
+      text: settingsObj.previous_results.length
+        ? `Forwarding ${settingsObj.previous_results.length} previous test result(s) into the final diagnosis.`
+        : "No previous test results found yet — run some earlier tests first.",
+      ts: nowTs(),
+    });
+  }
+  applyBatchKeys(p, settingsObj);                 // inject session key (if any) before sending
+  entry.settings = redactSettings(settingsObj);   // store WITHOUT the key
   if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
 
   const res = await fetch(`${API}/dataset/run`, { method: "POST", body: form });
@@ -2304,10 +2469,286 @@ function applyEventToEntry(ev, entry) {
     case "video":        entry.videos.push({ data: ev.data, mime: ev.mime, caption: ev.caption }); break;
     case "marker_video": entry.markerVideos.push(ev); break;
     case "signal":       (entry._signals ??= {})[ev.source] = { source: ev.source, source_name: ev.source_name || ev.source, fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [], severity: ev.severity, type_severities: ev.type_severities }; break;
+    case "result":        (entry.results ??= []).push(ev); break;
+    case "llm_summary":   (entry.llmSummaries ??= []).push(ev); break;
+    case "timing":       entry.durationMs = ev.duration_ms; break;
     case "done":         entry.status = "done"; break;
     case "error":        entry.logs.push({ level: "error", text: ev.text, ts: nowTs() }); entry.status = "error"; break;
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  EXPORT / IMPORT — save runs to a JSON file, reload them later for
+//  benchmarking. No server-side storage: the file IS the save (per-video or
+//  whole batch). Imported videos have no backing upload, so video preview is
+//  unavailable for them (previewAvailable: false) — everything else (logs,
+//  metrics, severities, settings used) round-trips exactly.
+// ════════════════════════════════════════════════════════════════════════════
+const PL_EXPORT_SCHEMA = "physicslens_export";
+
+function _exportEntry(entry, includeVisuals) {
+  const out = {
+    id: entry.id, stageId: entry.stageId, stageName: entry.stageName, stageNum: entry.stageNum,
+    pipelineId: entry.pipelineId, pipelineName: entry.pipelineName,
+    timestamp: entry.timestamp, status: entry.status,
+    durationMs: entry.durationMs ?? null,
+    metrics: entry.metrics || [], severities: entry.severities || [],
+    logs: entry.logs || [], comment: entry.comment || "", excluded: !!entry.excluded,
+    settings: entry.settings || {},
+    results: entry.results || [], llmSummaries: entry.llmSummaries || [],
+  };
+  if (includeVisuals) {
+    out.images = entry.images || []; out.plots = entry.plots || [];
+    out.videos = entry.videos || []; out.markerVideos = entry.markerVideos || [];
+  } else {
+    out.imageCount = (entry.images || []).length;
+    out.plotCount = (entry.plots || []).length;
+    out.videoCount = (entry.videos || []).length;
+    out.markerVideoCount = (entry.markerVideos || []).length;
+  }
+  return out;
+}
+
+function _exportVideo(v, includeVisuals) {
+  return {
+    name: v.name, status: v.status, maxSev: v.maxSev ?? null,
+    runs: (v.runs || []).map(e => _exportEntry(e, includeVisuals)),
+  };
+}
+
+function _downloadJson(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function exportDsData() {
+  const includeVisuals = document.getElementById("dsExportVisuals").checked;
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+
+  if (dsDetailVideo) {   // inside a per-video report -> export just this video
+    const payload = {
+      schema: PL_EXPORT_SCHEMA, version: 1, kind: "video",
+      exported_at: new Date().toISOString(), visuals_included: includeVisuals,
+      videos: [_exportVideo(dsDetailVideo, includeVisuals)],
+    };
+    _downloadJson(payload, `physicslens_${dsDetailVideo.name.replace(/[^\w.-]+/g, "_")}_${ts}.json`);
+    return;
+  }
+  if (!dsVideos.length) { alert("No videos loaded — nothing to export."); return; }
+  const payload = {
+    schema: PL_EXPORT_SCHEMA, version: 1, kind: "batch",
+    exported_at: new Date().toISOString(), visuals_included: includeVisuals,
+    videos: dsVideos.map(v => _exportVideo(v, includeVisuals)),
+  };
+  _downloadJson(payload, `physicslens_batch_${dsVideos.length}videos_${ts}.json`);
+}
+
+async function importDsFile(file) {
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch { alert("Could not parse that file as JSON."); return; }
+  if (!data || data.schema !== PL_EXPORT_SCHEMA || !Array.isArray(data.videos)) {
+    alert("That doesn't look like a PhysicsLENS export file (missing/unrecognized schema)."); return;
+  }
+  data.videos.forEach(vExp => {
+    const id = "imported-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const runs = (vExp.runs || []).map((r, i) => ({
+      id: r.id || `${id}-r${i}`, stageId: r.stageId, stageName: r.stageName, stageNum: r.stageNum,
+      pipelineId: r.pipelineId, pipelineName: r.pipelineName,
+      timestamp: r.timestamp, status: r.status || "done",
+      durationMs: r.durationMs ?? null,
+      metrics: r.metrics || [], severities: r.severities || [],
+      logs: r.logs || [], comment: r.comment || "", excluded: !!r.excluded,
+      settings: r.settings || {},
+      results: r.results || [], llmSummaries: r.llmSummaries || [],
+      images: r.images || [], plots: r.plots || [],
+      videos: r.videos || [], markerVideos: r.markerVideos || [],
+    }));
+    dsVideos.push({
+      id, name: vExp.name || "imported video", status: vExp.status || "done",
+      runs, maxSev: vExp.maxSev ?? null, previewAvailable: false,
+    });
+  });
+  setMode("dataset");
+  renderDsGrid();
+  updateDsRunBtn();
+  const n = data.videos.length;
+  alert(`Imported ${n} video${n === 1 ? "" : "s"}`
+       + (data.visuals_included ? "" : " (numeric-only export — no saved images/plots)")
+       + `. Video preview isn't available for imported entries (only the original upload has the file).`);
+}
+
+// ── Cross-video benchmark table (built fresh from current dsVideos each open) ──
+function openBenchmark() {
+  const wrap = document.getElementById("benchmarkWrap");
+  const empty = document.getElementById("benchmarkEmpty");
+  if (!dsVideos.length) {
+    empty.style.display = "flex"; wrap.style.display = "none";
+  } else {
+    empty.style.display = "none"; wrap.style.display = "block";
+    renderBenchmarkTable();
+  }
+  document.getElementById("benchmarkModal").classList.add("show");
+}
+
+function _escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+let benchMode = "severity";   // "severity" | "duration"
+
+// The latest non-excluded run per (video, pipeline). Shared by both modes.
+function _latestByPipe(v) {
+  const byPipe = {};
+  (v.runs || []).forEach(r => {
+    if (r.excluded) return;
+    const prev = byPipe[r.pipelineId];
+    if (!prev || r.timestamp >= prev.timestamp) byPipe[r.pipelineId] = r;
+  });
+  return byPipe;
+}
+
+function renderBenchmarkTable() {
+  document.getElementById("benchmarkTitle").textContent =
+    benchMode === "duration" ? "Benchmark — Run Time by Stage / Tool (server-measured)"
+                             : "Benchmark — Severity by Video × Pipeline";
+  const table = document.getElementById("benchmarkTable");
+  const td = "padding:6px 10px";
+
+  // Pipeline columns present across all loaded videos, with their stage.
+  const pipeMeta = new Map();   // pid -> {name, stageId}
+  dsVideos.forEach(v => (v.runs || []).forEach(r => {
+    if (!r.excluded) pipeMeta.set(r.pipelineId, { name: r.pipelineName || r.pipelineId, stageId: r.stageId });
+  }));
+  // Group + order pipelines by STAGES order (unknown stages bucket last).
+  const groups = STAGES.map(st => ({
+    stage: st,
+    pipes: [...pipeMeta.entries()].filter(([, m]) => m.stageId === st.id),
+  })).filter(g => g.pipes.length);
+  const orphan = [...pipeMeta.entries()].filter(([, m]) => !STAGES.some(s => s.id === m.stageId));
+  if (orphan.length) groups.push({ stage: { name: "Other", color: "#888", num: "" }, pipes: orphan });
+
+  if (benchMode === "severity") {
+    const cols = groups.flatMap(g => g.pipes);
+    const thead = `<thead>
+      <tr>
+        <th rowspan="2" style="${td};text-align:left;border-bottom:2px solid var(--border);position:sticky;left:0;background:var(--surface)">Video</th>
+        ${groups.map(g => `<th colspan="${g.pipes.length}" style="${td};text-align:center;border-bottom:1px solid var(--border);color:#fff;background:${g.stage.color}">${_escHtml(g.stage.name)}</th>`).join("")}
+      </tr>
+      <tr>${cols.map(([, m]) => `<th style="${td};border-bottom:2px solid var(--border);font-weight:500">${_escHtml(m.name)}</th>`).join("")}</tr>
+    </thead>`;
+    const rows = dsVideos.map(v => {
+      const byPipe = _latestByPipe(v);
+      const cells = cols.map(([pid]) => {
+        const r = byPipe[pid];
+        if (!r) return `<td style="${td};text-align:center;color:var(--muted)">—</td>`;
+        const sev = Math.max(0, ...(r.severities || []).map(s => +s.value || 0), 0);
+        const err = r.status === "error";
+        return `<td style="${td};text-align:center;cursor:pointer" title="Latest run · click to open report">
+          <span style="display:inline-block;min-width:38px;padding:2px 6px;border-radius:4px;font-weight:600;color:#fff;background:${err ? "#777" : sevColorFor(sev)}">${err ? "ERR" : Math.round(sev) + "%"}</span>
+        </td>`;
+      }).join("");
+      return `<tr class="bm-row" data-vid="${_escHtml(v.id)}" style="border-bottom:1px solid var(--border)">
+        <td style="${td};font-weight:500;position:sticky;left:0;background:var(--surface)">${_escHtml(v.name)}</td>${cells}
+      </tr>`;
+    }).join("");
+    table.innerHTML = thead + `<tbody>${rows}</tbody>`;
+  } else {
+    // Duration mode: per-tool cells + a Σ subtotal per stage + a grand total,
+    // plus a footer summing each column across all videos (dataset cost).
+    const flatPipes = groups.flatMap(g => g.pipes.map(([pid, m]) => ({ pid, m, stageId: g.stage.id })));
+    const thead = `<thead>
+      <tr>
+        <th rowspan="2" style="${td};text-align:left;border-bottom:2px solid var(--border);position:sticky;left:0;background:var(--surface)">Video</th>
+        ${groups.map(g => `<th colspan="${g.pipes.length + 1}" style="${td};text-align:center;border-bottom:1px solid var(--border);color:#fff;background:${g.stage.color}">${_escHtml(g.stage.name)}</th>`).join("")}
+        <th rowspan="2" style="${td};text-align:center;border-bottom:2px solid var(--border);background:var(--surface)">Total</th>
+      </tr>
+      <tr>
+        ${groups.map(g => g.pipes.map(([, m]) => `<th style="${td};border-bottom:2px solid var(--border);font-weight:500">${_escHtml(m.name)}</th>`).join("") + `<th style="${td};border-bottom:2px solid var(--border);font-weight:600;color:${g.stage.color}">Σ ${g.stage.num || ""}</th>`).join("")}
+      </tr>
+    </thead>`;
+    const colTotals = {};   // pid -> summed ms across videos
+    let grandColTotal = 0;
+    const rows = dsVideos.map(v => {
+      const byPipe = _latestByPipe(v);
+      let vidTotal = null;
+      const cellHtml = groups.map(g => {
+        let stageTotal = null;
+        const pipeCells = g.pipes.map(([pid]) => {
+          const r = byPipe[pid];
+          const ms = r && r.durationMs != null ? r.durationMs : null;
+          if (ms != null) {
+            stageTotal = (stageTotal || 0) + ms;
+            colTotals[pid] = (colTotals[pid] || 0) + ms;
+          }
+          return `<td style="${td};text-align:center;color:${ms == null ? "var(--muted)" : "var(--text)"}">${ms == null ? "—" : fmtDur(ms)}</td>`;
+        }).join("");
+        if (stageTotal != null) vidTotal = (vidTotal || 0) + stageTotal;
+        return pipeCells + `<td style="${td};text-align:center;font-weight:600;color:${g.stage.color}">${stageTotal == null ? "—" : fmtDur(stageTotal)}</td>`;
+      }).join("");
+      if (vidTotal != null) grandColTotal += vidTotal;
+      return `<tr class="bm-row" data-vid="${_escHtml(v.id)}" style="border-bottom:1px solid var(--border)">
+        <td style="${td};font-weight:500;position:sticky;left:0;background:var(--surface)">${_escHtml(v.name)}</td>
+        ${cellHtml}
+        <td style="${td};text-align:center;font-weight:700">${vidTotal == null ? "—" : fmtDur(vidTotal)}</td>
+      </tr>`;
+    }).join("");
+    // Footer: total time per tool + per stage across the whole dataset.
+    const footCells = groups.map(g => {
+      let stageSum = 0, any = false;
+      const pipeF = g.pipes.map(([pid]) => {
+        const t = colTotals[pid];
+        if (t != null) { stageSum += t; any = true; }
+        return `<td style="${td};text-align:center;font-weight:600">${t == null ? "—" : fmtDur(t)}</td>`;
+      }).join("");
+      return pipeF + `<td style="${td};text-align:center;font-weight:700;color:${g.stage.color}">${any ? fmtDur(stageSum) : "—"}</td>`;
+    }).join("");
+    const tfoot = `<tfoot><tr style="border-top:2px solid var(--border);background:var(--bg)">
+      <td style="${td};font-weight:700;position:sticky;left:0;background:var(--bg)">All videos Σ</td>
+      ${footCells}
+      <td style="${td};text-align:center;font-weight:800">${grandColTotal ? fmtDur(grandColTotal) : "—"}</td>
+    </tr></tfoot>`;
+    table.innerHTML = thead + `<tbody>${rows}</tbody>` + tfoot;
+  }
+
+  table.querySelectorAll(".bm-row").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const v = dsVideos.find(x => x.id === tr.dataset.vid);
+      if (!v) return;
+      document.getElementById("benchmarkModal").classList.remove("show");
+      openVideoReport(v);
+    });
+  });
+}
+
+document.getElementById("dsExportBtn").addEventListener("click", exportDsData);
+document.getElementById("dsImportBtn").addEventListener("click", () => document.getElementById("dsImportFile").click());
+document.getElementById("dsImportFile").addEventListener("change", (e) => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (file) importDsFile(file);
+});
+// Batch API keys (session-only; kept in the batchKeys object, never persisted).
+document.getElementById("batchCreateaiKey").addEventListener("input", e => {
+  batchKeys.createai = e.target.value.trim(); updateBatchKeyStatus();
+});
+document.getElementById("batchOpenrouterKey").addEventListener("input", e => {
+  batchKeys.openrouter = e.target.value.trim(); updateBatchKeyStatus();
+});
+updateBatchKeyStatus();
+
+document.getElementById("dsBenchmarkBtn").addEventListener("click", openBenchmark);
+document.querySelectorAll(".bm-mode").forEach(b => b.addEventListener("click", () => {
+  benchMode = b.dataset.mode;
+  document.querySelectorAll(".bm-mode").forEach(x => x.classList.toggle("active", x === b));
+  if (dsVideos.length) renderBenchmarkTable();
+}));
+document.getElementById("benchmarkModalClose").addEventListener("click", () => document.getElementById("benchmarkModal").classList.remove("show"));
+document.getElementById("benchmarkModal").addEventListener("click", e => { if (e.target.id === "benchmarkModal") document.getElementById("benchmarkModal").classList.remove("show"); });
 
 // ── Per-video report modal (reuses populateEntryDetail / renderMarkerVideo) ─────
 function openVideoReport(v) {
@@ -2315,10 +2756,17 @@ function openVideoReport(v) {
   setMode("ds-detail");
   document.getElementById("dsCrumb").textContent = "› " + v.name;
 
-  // Load video into the detail player
+  // Load video into the detail player. Imported (not freshly uploaded/run)
+  // videos have no server-side file behind their id — skip src so the
+  // <video> just stays empty instead of 404ing, and label the header.
   const vid = document.getElementById("dsDetailVid");
-  vid.src = `${API}/dataset/file/${v.id}`;
-  document.getElementById("dsDetailName").textContent = v.name;
+  if (v.previewAvailable === false) {
+    vid.removeAttribute("src"); vid.load();
+  } else {
+    vid.src = `${API}/dataset/file/${v.id}`;
+  }
+  document.getElementById("dsDetailName").textContent =
+    v.name + (v.previewAvailable === false ? "  (imported — no video preview)" : "");
   // Wire controls for the detail player
   const btnPlay = document.getElementById("dsBtnPlay");
   const scrub   = document.getElementById("dsVidScrub");

@@ -21,7 +21,6 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from typing import AsyncGenerator, Any
 
-import requests
 
 import plotly.graph_objects as go
 
@@ -270,15 +269,6 @@ def _build_visual_summary(report: dict) -> str:
 
     return fig.to_json()
 
-def _createai_url() -> str:
-    """CreateAI /query endpoint. Computed lazily (not at import time) so it
-    reflects .env after tools.createai's load_dotenv has run."""
-    from tools.createai import credentials
-    base = credentials()[1] or os.getenv("CREATEAI_API_URL") or "https://api-main.aiml.asu.edu"
-    base = base.rstrip("/")
-    return base if base.endswith("/query") else base + "/query"
-
-
 def _build_llm_prompt(report: dict) -> str:
     """
     Convert the unified PhysicsLENS JSON report into a prompt for the LLM.
@@ -321,99 +311,6 @@ Here is the PhysicsLENS JSON report:
 """.strip()
 
 
-def _extract_createai_text(data: dict) -> str:
-    """
-    Extract the model's text answer from the CreateAI API response.
-
-    Different APIs wrap the text differently, so this function tries several
-    common response shapes. If none match, it returns the raw JSON as text
-    so we can debug the response format.
-    """
-
-    # Common simple formats
-    for key in ["response", "answer", "text", "output", "result"]:
-        if isinstance(data.get(key), str):
-            return data[key]
-
-    # Some APIs return {"data": "..."}
-    if isinstance(data.get("data"), str):
-        return data["data"]
-
-    # Some APIs return {"data": {"response": "..."}}
-    if isinstance(data.get("data"), dict):
-        nested = data["data"]
-        for key in ["response", "answer", "text", "output", "result"]:
-            if isinstance(nested.get(key), str):
-                return nested[key]
-
-    # OpenAI-like chat format
-    try:
-        return data["choices"][0]["message"]["content"]
-    except Exception:
-        pass
-
-    # OpenAI-like completion format
-    try:
-        return data["choices"][0]["text"]
-    except Exception:
-        pass
-
-    # Fallback: return the full response for debugging
-    return json.dumps(data, indent=2, ensure_ascii=False)
-
-
-def _call_createai_summary_sync(report: dict, api_key: str = "") -> str:
-    """
-    Send the unified PhysicsLENS report to CreateAI and return the LLM summary.
-
-    `api_key`, if given (from the pipeline's settings field), overrides the
-    .env credential. Falls back through tools.createai.credentials() (the
-    same CREATEAI_TOKEN every other PhysicsLENS CreateAI caller uses — this
-    also guarantees .env has been loaded, since this module doesn't load it
-    itself), then the legacy CREATEAI_API_KEY for backward compatibility.
-
-    This function is synchronous because requests.post(...) is blocking.
-    In run(), we call it using asyncio.to_thread(...) so it does not block
-    the async event stream.
-    """
-    if not api_key:
-        from tools.createai import credentials
-        api_key = credentials()[0] or os.getenv("CREATEAI_API_KEY")
-
-    if not api_key:
-        raise RuntimeError(
-            "No CreateAI key — enter one in this pipeline's API key setting, "
-            "or set CREATEAI_TOKEN in the PhysicsLENS .env file."
-        )
-
-    prompt = _build_llm_prompt(report)
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    payload = {
-        "query": prompt,
-    }
-
-    response = requests.post(
-        _createai_url(),
-        headers=headers,
-        json=payload,
-        timeout=90,
-    )
-
-    if not response.ok:
-        raise RuntimeError(
-            f"CreateAI API call failed with status {response.status_code}: "
-            f"{response.text[:1000]}"
-        )
-
-    data = response.json()
-    return _extract_createai_text(data)
-
-
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg = json.loads(settings) if settings else {}
 
@@ -422,6 +319,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     video_name = cfg.get("video_name", "uploaded video")
     use_llm_summary = str(cfg.get("use_llm_summary", "false")).lower() == "true"
     api_key = str(cfg.get("api_key", "")).strip()
+    summary_model = str(cfg.get("summary_model") or "geminiflash2_5").strip()
 
     yield {
         "type": "log",
@@ -477,20 +375,25 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         yield {
             "type": "log",
             "level": "info",
-            "text": "Sending unified diagnostic JSON to CreateAI for LLM summary.",
+            "text": f"Requesting LLM summary from CreateAI ({summary_model}).",
         }
 
         try:
-            llm_summary = await asyncio.to_thread(_call_createai_summary_sync, report, api_key)
+            from tools.createai import query_text, response_text
+            data = await query_text(_build_llm_prompt(report),
+                                    model=summary_model,
+                                    token=api_key or None)
+            llm_summary = response_text(data) or json.dumps(data, indent=2)
 
             yield {
                 "type": "log",
                 "level": "info",
-                "text": f"CreateAI responded successfully. LLM summary length: {len(llm_summary)} characters.",
+                "text": f"CreateAI responded ({summary_model}). Summary length: {len(llm_summary)} characters.",
             }
 
             report["llm_summary"] = {
                 "provider": "CreateAI",
+                "model": summary_model,
                 "summary": llm_summary,
             }
 
