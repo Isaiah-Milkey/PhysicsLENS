@@ -477,11 +477,25 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
 .bm-toggle .bm-mode:not(.active):hover { background: var(--bg); }
 .ds-pipe-list { display: flex; flex-direction: column; gap: 1px; }
 .ds-pipe-stage { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin: 11px 0 3px; }
-.ds-pipe-row { display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 4px; cursor: pointer; transition: background 0.12s; }
+.ds-pipe-row { display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 4px; transition: background 0.12s; }
 .ds-pipe-row:hover { background: var(--bg); }
+.ds-pipe-main { display: flex; align-items: center; gap: 9px; flex: 1; cursor: pointer; min-width: 0; }
 .ds-pipe-row input { accent-color: var(--s2); cursor: pointer; flex-shrink: 0; }
-.ds-pipe-name { font-size: 13px; flex: 1; }
+.ds-pipe-name { font-size: 13px; flex: 1; min-width: 0; }
 .ds-pipe-badge { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+.ds-pipe-gear { font-size: 12px; color: var(--muted); background: none; border: 1px solid transparent; cursor: pointer; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; line-height: 1; }
+.ds-pipe-gear:hover { color: var(--text); border-color: var(--border); }
+.ds-pipe-gear.on { color: var(--s2); border-color: var(--s2); }
+.ds-pipe-settings { display: none; padding: 8px 8px 10px 24px; margin: 0 0 4px; border-left: 2px solid var(--border); }
+.ds-pipe-settings.show { display: block; }
+.ds-pipe-settings .setting-row { margin-bottom: 8px; }
+.ds-pipe-settings .setting-label { font-size: 11px; }
+.ds-pipe-settings .setting-input, .ds-pipe-settings .setting-select { font-size: 12px; padding: 5px 7px; }
+.ds-set-note { font-size: 10px; color: var(--muted); margin: 2px 0 8px; line-height: 1.4; }
+.ds-set-reset { font-size: 10px; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 4px; padding: 3px 9px; cursor: pointer; font-family: var(--sans); }
+.ds-set-reset:hover { color: var(--text); border-color: var(--text); }
+.ds-route-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 6px; padding: 9px 10px; margin-bottom: 10px; }
+.ds-route-box .setting-label { color: var(--s2); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; font-size: 10px; }
 
 .ds-run-wrap { padding: 1rem 1.25rem; margin-top: auto; }
 .ds-progress-wrap { margin-top: 12px; }
@@ -724,11 +738,12 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
 
     <!-- 2 · Tests -->
     <div class="ds-block">
-      <div class="ds-step">2 · Select tests</div>
+      <div class="ds-step">2 · Select tests <span id="dsCustomCount" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--s2);font-size:10px;margin-left:4px"></span></div>
       <div class="ds-pipe-actions">
         <button class="ds-mini" id="dsPipeAll">Select all</button>
         <button class="ds-mini" id="dsPipeNone">Clear</button>
       </div>
+      <div class="ds-set-note" style="margin:2px 0 6px">Click ⚙ on a test to pick its model or tune its settings for this batch.</div>
       <div class="ds-pipe-list" id="dsPipeList"></div>
     </div>
 
@@ -974,40 +989,56 @@ function renderSettings(defs) {
   const form    = document.getElementById("settingsForm");
   if (!defs || !defs.length) { section.classList.remove("show"); return; }
   section.classList.add("show");
-  form.innerHTML = "";
-  defs.forEach(s => {
+  buildSettingsFields(form, defs, {});
+}
+
+// Build a settings form into any container. `values` (optional) pre-fills fields,
+// falling back to each def's `default`. Every control carries data-sid=<id> so
+// readSettingsFields() can read it back. Shared by the single-video settings
+// panel and the per-tool batch settings panels.
+function buildSettingsFields(container, defs, values) {
+  values = values || {};
+  container.innerHTML = "";
+  (defs || []).forEach(s => {
     const row = document.createElement("div"); row.className = "setting-row";
     const lbl = document.createElement("label"); lbl.className = "setting-label"; lbl.textContent = s.label;
     row.appendChild(lbl);
+    const has = Object.prototype.hasOwnProperty.call(values, s.id);
+    const val = has ? values[s.id] : s.default;
     let el;
     if (s.type === "select") {
       el = document.createElement("select"); el.className = "setting-select";
       (s.options || []).forEach(opt => {
         const o = document.createElement("option"); o.value = opt.value; o.textContent = opt.label;
-        if (opt.value == s.default) o.selected = true;
+        if (opt.value == val) o.selected = true;
         el.appendChild(o);
       });
     } else {
       el = document.createElement("input"); el.className = "setting-input";
       el.type  = s.type === "password" ? "password" : s.type === "number" ? "number" : "text";
-      el.value = s.default ?? "";
+      el.value = val ?? "";
       if (s.min !== undefined) el.min  = s.min;
       if (s.max !== undefined) el.max  = s.max;
       if (s.type === "number") el.step = "any";
       if (s.type === "password") el.placeholder = "sk-or-…";
     }
     el.dataset.sid = s.id;
-    row.appendChild(el); form.appendChild(row);
+    row.appendChild(el); container.appendChild(row);
   });
 }
 
-function collectSettings() {
+// Read a settings form built by buildSettingsFields back into a plain object.
+function readSettingsFields(container) {
   const out = {};
-  document.querySelectorAll("#settingsForm [data-sid]").forEach(el => {
+  container.querySelectorAll("[data-sid]").forEach(el => {
     const raw = el.value;
     out[el.dataset.sid] = el.type === "number" ? parseFloat(raw) : raw;
   });
-  return JSON.stringify(out);
+  return out;
+}
+
+function collectSettings() {
+  return JSON.stringify(readSettingsFields(document.getElementById("settingsForm")));
 }
 
 // ── Video upload ───────────────────────────────────────────────────────────────
@@ -2110,6 +2141,61 @@ let dsBusy = false;
 // export (see redactSettings). Blank → the server's .env credential is used.
 let batchKeys = { createai: "", openrouter: "" };
 
+// Per-tool setting overrides for batch runs, keyed by pipeline id — e.g. run the
+// Deformation Specialist on Gemini 3.1 Pro while everything else uses the default.
+// Session-only (never localStorage); the exact settings a run actually used are
+// still captured per-run in entry.settings, and the whole config round-trips in
+// the batch export (redacted). "__"-prefixed keys are frontend-only orchestration
+// (hypothesis→specialist routing) and are stripped before hitting the backend.
+let batchSettings = {};   // { pipelineId: { settingId: value, __route?, __routeN? } }
+
+// Hypothesis-generator specialist id → Stage 3 pipeline id (see SPECIALISTS in
+// physics_hypothesis_generator.py; pipeline ids are just "s3_<specialist>").
+const SPECIALIST_PIPES = {
+  collision: "s3_collision", gravity: "s3_gravity", momentum: "s3_momentum",
+  friction: "s3_friction", deformation: "s3_deformation", fluid: "s3_fluid",
+  causality: "s3_causality",
+};
+
+// Effective batch settings for a pipeline: defaults overlaid with session
+// overrides, minus the frontend-only "__" orchestration keys.
+function batchSettingsFor(p) {
+  const out = dsDefaultSettings(p);
+  const ov = batchSettings[p.id] || {};
+  for (const k in ov) if (!k.startsWith("__")) out[k] = ov[k];
+  return out;
+}
+
+// After the Hypothesis Generator runs for a video, decide which specialists its
+// routing config says to run next. "off" → none; "auto" → the top-N ranked
+// specialists from its result; a specific pipeline id → force that one.
+function routedSpecialistsFor(hypEntry) {
+  const cfg = batchSettings["s2_hypothesis_generator"] || {};
+  const route = cfg.__route || "auto";          // default: auto-run the top specialists
+  if (route === "off") return [];
+  if (route !== "auto") {                        // forced specific specialist
+    const fp = allPipelines[route];
+    return fp && !fp.dummy ? [fp] : [];
+  }
+  const n = Math.max(1, parseInt(cfg.__routeN, 10) || 3);
+  const res = (hypEntry.results || []).find(r => Array.isArray(r.hypotheses));
+  const picks = [];
+  for (const h of (res ? res.hypotheses : [])) {
+    const p = allPipelines[SPECIALIST_PIPES[h.specialist]];
+    if (p && !p.dummy && !picks.some(x => x.id === p.id)) picks.push(p);
+    if (picks.length >= n) break;
+  }
+  return picks;
+}
+
+// Batch config for export/round-trip (selection + per-tool overrides), with any
+// secret-looking fields blanked defensively (batch panels omit key fields anyway).
+function exportBatchConfig() {
+  const settings = {};
+  for (const pid in batchSettings) settings[pid] = redactSettings(batchSettings[pid]);
+  return { selected: [...dsSelected], settings };
+}
+
 // Blank out secret-looking fields in a settings object before we store/export
 // it, so an entered API key never lands on disk. The real key still goes to the
 // server in the live request; only the retained copy is redacted.
@@ -2206,14 +2292,124 @@ function renderDsPipeList() {
     h.textContent = `Stage ${stage.num} · ${stage.name}`; h.style.color = stage.color;
     host.appendChild(h);
     pipes.forEach(p => {
-      const row = document.createElement("label"); row.className = "ds-pipe-row";
-      row.innerHTML = `<input type="checkbox" data-pid="${p.id}"><span class="ds-pipe-name">${p.name}</span><span class="ds-pipe-badge">${p.badge}</span>`;
+      // A tool is "customizable" if it exposes any non-key settings, or is the
+      // Hypothesis Generator (which also gets the specialist-routing control).
+      const cfgDefs = (p.settings || []).filter(s => s.type !== "password" && s.id !== "api_key");
+      const hasCfg = cfgDefs.length || p.id === "s2_hypothesis_generator";
+      const row = document.createElement("div"); row.className = "ds-pipe-row";
+      row.innerHTML =
+        `<label class="ds-pipe-main"><input type="checkbox" data-pid="${p.id}">` +
+        `<span class="ds-pipe-name">${p.name}</span><span class="ds-pipe-badge">${p.badge}</span></label>` +
+        (hasCfg ? `<button class="ds-pipe-gear" type="button" title="Customize model &amp; settings">⚙</button>` : "");
       const cb = row.querySelector("input");
       cb.addEventListener("change", () => { cb.checked ? dsSelected.add(p.id) : dsSelected.delete(p.id); updateDsRunBtn(); });
       host.appendChild(row);
+      if (hasCfg) {
+        const panel = document.createElement("div"); panel.className = "ds-pipe-settings"; panel.dataset.pid = p.id;
+        host.appendChild(panel);
+        const gear = row.querySelector(".ds-pipe-gear");
+        gear.addEventListener("click", () => {
+          const open = panel.classList.toggle("show");
+          gear.classList.toggle("on", open);
+          if (open && !panel.dataset.built) { buildBatchSettingsPanel(panel, p, cfgDefs); panel.dataset.built = "1"; }
+        });
+      }
     });
   });
   host.dataset.built = "1";
+}
+
+// Build one tool's per-batch settings panel: the full (non-key) settings form
+// pre-filled with the session override or defaults, plus — for the Hypothesis
+// Generator — the "auto-run specialist" routing control. All changes persist
+// into batchSettings for this session.
+function buildBatchSettingsPanel(panel, p, cfgDefs) {
+  panel.innerHTML = "";
+  const saved = batchSettings[p.id] || {};
+
+  if (p.id === "s2_hypothesis_generator") {
+    const box = document.createElement("div"); box.className = "ds-route-box";
+    box.innerHTML = `<label class="setting-label">After ranking, auto-run specialist</label>`;
+    const sel = document.createElement("select"); sel.className = "setting-select"; sel.dataset.route = "1";
+    const opts = [["off", "Off — just rank"], ["auto", "Auto — top-ranked specialist(s)"]];
+    Object.values(SPECIALIST_PIPES).forEach(pipeId => {
+      const sp = allPipelines[pipeId];
+      if (sp && !sp.dummy) opts.push([pipeId, `Force: ${sp.name}`]);
+    });
+    opts.forEach(([v, l]) => {
+      const o = document.createElement("option"); o.value = v; o.textContent = l;
+      if ((saved.__route || "auto") === v) o.selected = true; sel.appendChild(o);
+    });
+    box.appendChild(sel);
+    const nRow = document.createElement("div"); nRow.className = "setting-row"; nRow.style.marginTop = "8px";
+    nRow.innerHTML = `<label class="setting-label">Auto: how many top specialists</label>`;
+    const nIn = document.createElement("input"); nIn.className = "setting-input"; nIn.type = "number";
+    nIn.min = "1"; nIn.max = "7"; nIn.step = "1"; nIn.dataset.routen = "1"; nIn.value = saved.__routeN ?? 3;
+    nRow.appendChild(nIn); box.appendChild(nRow);
+    const note = document.createElement("div"); note.className = "ds-set-note";
+    note.textContent = "Routed specialists use their own settings below / defaults. Select them as tests too and they won't run twice.";
+    box.appendChild(note);
+    panel.appendChild(box);
+    const syncN = () => { nRow.style.display = sel.value === "auto" ? "" : "none"; };
+    syncN();
+    sel.addEventListener("change", () => { syncN(); persistBatchPanel(panel, p); });
+    nIn.addEventListener("input", () => persistBatchPanel(panel, p));
+  }
+
+  const fields = document.createElement("div");
+  buildSettingsFields(fields, cfgDefs, saved);
+  panel.appendChild(fields);
+  fields.addEventListener("change", () => persistBatchPanel(panel, p));
+  fields.addEventListener("input", () => persistBatchPanel(panel, p));
+
+  if ((p.settings || []).some(s => s.id === "api_key")) {
+    const keyNote = document.createElement("div"); keyNote.className = "ds-set-note";
+    keyNote.innerHTML = "🔑 API keys are set once in section 3 (session-only) and applied by provider.";
+    panel.appendChild(keyNote);
+  }
+
+  const foot = document.createElement("div"); foot.style.marginTop = "4px";
+  const reset = document.createElement("button"); reset.type = "button"; reset.className = "ds-set-reset";
+  reset.textContent = "Reset to defaults";
+  reset.addEventListener("click", () => {
+    delete batchSettings[p.id];
+    panel.dataset.built = "";
+    buildBatchSettingsPanel(panel, p, cfgDefs);
+    panel.dataset.built = "1";
+    updateBatchSettingsBadge();
+  });
+  foot.appendChild(reset); panel.appendChild(foot);
+}
+
+// Persist a panel's current values (including routing pseudo-keys) into the
+// session batchSettings store.
+function persistBatchPanel(panel, p) {
+  const vals = readSettingsFields(panel);   // reads every data-sid field in the panel
+  const routeSel = panel.querySelector("[data-route]");
+  const routeN = panel.querySelector("[data-routen]");
+  if (routeSel) vals.__route = routeSel.value;
+  if (routeN) vals.__routeN = Math.max(1, parseInt(routeN.value, 10) || 1);
+  batchSettings[p.id] = vals;
+  updateBatchSettingsBadge();
+}
+
+// Rebuild the pipeline checklist from scratch and re-apply the current dsSelected
+// state (used after importing a batch config). Panels rebuild lazily from
+// batchSettings the next time their ⚙ is opened.
+function refreshDsPipeList() {
+  const host = document.getElementById("dsPipeList");
+  if (!host) return;
+  host.dataset.built = "";
+  renderDsPipeList();
+  host.querySelectorAll("input[data-pid]").forEach(cb => { cb.checked = dsSelected.has(cb.dataset.pid); });
+}
+
+// Reflect how many tools have custom settings on the "Select tests" step.
+function updateBatchSettingsBadge() {
+  const el = document.getElementById("dsCustomCount");
+  if (!el) return;
+  const n = Object.keys(batchSettings).length;
+  el.textContent = n ? `${n} customized` : "";
 }
 document.getElementById("dsPipeAll").addEventListener("click", () => {
   document.querySelectorAll("#dsPipeList input").forEach(cb => { cb.checked = true; dsSelected.add(cb.dataset.pid); });
@@ -2362,24 +2558,45 @@ function dsThumbFallback(card, v) {
 document.getElementById("dsRunBtn").addEventListener("click", runDatasetBatch);
 async function runDatasetBatch() {
   if (dsBusy) return;
-  const pipes = [...dsSelected].map(id => allPipelines[id]).filter(Boolean);
+  // Run in stage order so evidence flows correctly (e.g. the Hypothesis
+  // Generator runs before any specialist it routes to, s4_report runs last).
+  const ORDER = STAGES.flatMap(s => s.pipelines);
+  const pipes = [...dsSelected].map(id => allPipelines[id]).filter(Boolean)
+                  .sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
   if (!pipes.length || !dsVideos.length) return;
   dsBusy = true;
   const btn = document.getElementById("dsRunBtn"); btn.classList.add("loading"); btn.disabled = true;
   document.getElementById("dsProgressWrap").style.display = "block";
-  const total = dsVideos.length * pipes.length; let done = 0;
+  let total = dsVideos.length * pipes.length; let done = 0;
   setDsProgress(0, total);
 
   for (const v of dsVideos) {
     v.status = "running"; v.runs = []; v.maxSev = null; renderDsGrid();
     const vSignals = {};   // per-video Stage 1 signals → Event Localizer
-    for (const p of pipes) {
+    // The queue can grow mid-video: the Hypothesis Generator may route into
+    // specialists that weren't explicitly selected. inQueue dedupes so a
+    // specialist that's both selected and routed only runs once.
+    const queue = [...pipes];
+    const inQueue = new Set(queue.map(p => p.id));
+    const routedIds = new Set();
+    for (let qi = 0; qi < queue.length; qi++) {
+      const p = queue[qi];
       const entry = makeDsEntry(p);
+      if (routedIds.has(p.id)) {
+        entry.routedFrom = "s2_hypothesis_generator";
+        entry.logs.push({ level: "info", text: "Auto-selected by the Hypothesis Generator's routing.", ts: nowTs() });
+      }
       v.runs.push(entry);
       try { await streamRunById(v.id, p, entry, vSignals, v); }
       catch (err) { entry.status = "error"; entry.logs.push({ level: "error", text: String(err), ts: nowTs() }); }
       const sev = entry.severities[0]?.value;
       if (sev != null) v.maxSev = Math.max(v.maxSev ?? 0, sev);
+      if (p.id === "s2_hypothesis_generator") {
+        for (const rp of routedSpecialistsFor(entry)) {
+          if (inQueue.has(rp.id)) continue;
+          queue.push(rp); inQueue.add(rp.id); routedIds.add(rp.id); total++;
+        }
+      }
       done++; setDsProgress(done, total); renderDsGrid();
     }
     v.status = v.runs.some(e => e.status === "error") ? "error" : "done";
@@ -2410,7 +2627,7 @@ async function streamRunById(fileId, p, entry, vSignals, video) {
   const form = new FormData();
   form.append("pipeline_id", p.id);
   form.append("file_id", fileId);
-  let settingsObj = dsDefaultSettings(p);
+  let settingsObj = batchSettingsFor(p);   // defaults + this batch's per-tool overrides
   if (p.id === "s2_event_localizer") settingsObj.stage1_signals = Object.values(vSignals || {});
   // Final Diagnosis needs this video's own prior runs — same forwarding the
   // single-video/detail-mode run paths already do (exclude the s4_report
@@ -2492,6 +2709,7 @@ function _exportEntry(entry, includeVisuals) {
     pipelineId: entry.pipelineId, pipelineName: entry.pipelineName,
     timestamp: entry.timestamp, status: entry.status,
     durationMs: entry.durationMs ?? null,
+    routedFrom: entry.routedFrom || null,
     metrics: entry.metrics || [], severities: entry.severities || [],
     logs: entry.logs || [], comment: entry.comment || "", excluded: !!entry.excluded,
     settings: entry.settings || {},
@@ -2541,6 +2759,7 @@ function exportDsData() {
   const payload = {
     schema: PL_EXPORT_SCHEMA, version: 1, kind: "batch",
     exported_at: new Date().toISOString(), visuals_included: includeVisuals,
+    batch_config: exportBatchConfig(),
     videos: dsVideos.map(v => _exportVideo(v, includeVisuals)),
   };
   _downloadJson(payload, `physicslens_batch_${dsVideos.length}videos_${ts}.json`);
@@ -2560,6 +2779,7 @@ async function importDsFile(file) {
       pipelineId: r.pipelineId, pipelineName: r.pipelineName,
       timestamp: r.timestamp, status: r.status || "done",
       durationMs: r.durationMs ?? null,
+      routedFrom: r.routedFrom || null,
       metrics: r.metrics || [], severities: r.severities || [],
       logs: r.logs || [], comment: r.comment || "", excluded: !!r.excluded,
       settings: r.settings || {},
@@ -2572,12 +2792,24 @@ async function importDsFile(file) {
       runs, maxSev: vExp.maxSev ?? null, previewAvailable: false,
     });
   });
+  // Restore the batch config (tool selection + per-tool overrides + routing) so
+  // an imported batch can be re-run with the same settings it was saved with.
+  let cfgRestored = false;
+  const bc = data.batch_config;
+  if (bc && typeof bc === "object") {
+    if (bc.settings && typeof bc.settings === "object") batchSettings = { ...bc.settings };
+    if (Array.isArray(bc.selected)) dsSelected = new Set(bc.selected);
+    refreshDsPipeList();
+    updateBatchSettingsBadge();
+    cfgRestored = true;
+  }
   setMode("dataset");
   renderDsGrid();
   updateDsRunBtn();
   const n = data.videos.length;
   alert(`Imported ${n} video${n === 1 ? "" : "s"}`
        + (data.visuals_included ? "" : " (numeric-only export — no saved images/plots)")
+       + (cfgRestored ? " and its batch settings" : "")
        + `. Video preview isn't available for imported entries (only the original upload has the file).`);
 }
 
