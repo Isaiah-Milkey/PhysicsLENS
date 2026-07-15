@@ -52,21 +52,27 @@ async def instrument(gen, badge: str = "—") -> AsyncGenerator[dict, None]:
         yield ev
     elapsed = time.perf_counter() - t0
 
-    # Machine-readable duration for the frontend to attach to the run entry
-    # (per-tool timing → per-stage aggregation, benchmarking, export). The
-    # human-readable "Runtime" metric below stays for the cost panel.
-    yield {"type": "timing", "duration_ms": round(elapsed * 1000),
-           "badge": badge}
-    yield {"type": "metric", "label": "Runtime", "value": f"{elapsed:.1f}s",
-           "sub": "wall clock, whole test"}
+    # Peak GPU memory (MB) for this run — high-water mark, not additive. Measured
+    # once here and reused for both the machine-readable timing event and the
+    # human-readable metric. None when no CUDA device is present.
+    peak_mb = None
     if torch:
         try:
-            peak_gb = torch.cuda.max_memory_allocated() / 2**30
-            yield {"type": "metric", "label": "Peak GPU memory",
-                   "value": f"{peak_gb:.1f} GB",
-                   "sub": "CUDA peak allocated this run"}
+            peak_mb = round(torch.cuda.max_memory_allocated() / 2**20)
         except Exception:  # noqa: BLE001
-            pass
+            peak_mb = None
+
+    # Machine-readable duration + peak GPU for the frontend to attach to the run
+    # entry (per-tool timing/GPU → per-stage aggregation, benchmarking, export).
+    # The human-readable metrics below stay for the cost panel.
+    yield {"type": "timing", "duration_ms": round(elapsed * 1000),
+           "gpu_mb": peak_mb, "badge": badge}
+    yield {"type": "metric", "label": "Runtime", "value": f"{elapsed:.1f}s",
+           "sub": "wall clock, whole test"}
+    if peak_mb is not None:
+        yield {"type": "metric", "label": "Peak GPU memory",
+               "value": f"{peak_mb / 1024:.1f} GB",
+               "sub": "CUDA peak allocated this run"}
     yield {"type": "metric", "label": "Cost tier", "value": badge,
            "sub": TIER_DESC.get(badge, "")}
 

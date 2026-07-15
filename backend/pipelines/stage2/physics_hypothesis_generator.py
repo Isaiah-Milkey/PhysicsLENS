@@ -284,9 +284,10 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
                "sub": f"{h['source']}" + (f" · t={h['t_window'][0]}–{h['t_window'][1]}s"
                                           if h.get("t_window") else "")}
 
-    top_conf = ranked[0]["confidence"] if ranked else 0.0
-    yield {"type": "severity", "label": "Failure-hypothesis confidence",
-           "value": int(round(100 * top_conf)), "color": _sev_color(100 * top_conf)}
+    # No severity is emitted: this is a router/ranker, not a suspicion detector.
+    # Its "top-hypothesis confidence" was effectively always ~100% and polluted
+    # the cross-video benchmark's severity column, so it's reported only as
+    # per-specialist confidence metrics and the result payload — never a % score.
 
     yield {"type": "result", "status": "ok",
            "hypotheses": ranked, "evidence_summary": ev_lines,

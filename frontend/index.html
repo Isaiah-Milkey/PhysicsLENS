@@ -777,6 +777,11 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
       <div class="ds-progress-wrap" id="dsProgressWrap" style="display:none">
         <div class="ds-progress-track"><div class="ds-progress-fill" id="dsProgressFill"></div></div>
         <div class="ds-progress-text" id="dsProgressText">0 / 0</div>
+        <div class="ds-run-ctrls" id="dsRunCtrls" style="display:none;gap:6px;margin-top:8px">
+          <button class="ds-mini" id="dsPauseBtn">⏸ Pause</button>
+          <button class="ds-mini" id="dsResumeBtn" style="display:none">▶ Resume</button>
+          <button class="ds-mini" id="dsAbortBtn" style="color:#c0392b;border-color:#c0392b">✕ Abort</button>
+        </div>
       </div>
     </div>
   </aside>
@@ -828,6 +833,7 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
         <div class="bm-toggle" style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
           <button class="ds-mini bm-mode active" data-mode="severity" style="border:none;border-radius:0">Severity</button>
           <button class="ds-mini bm-mode" data-mode="duration" style="border:none;border-radius:0">Run time</button>
+          <button class="ds-mini bm-mode" data-mode="gpu" style="border:none;border-radius:0">GPU</button>
         </div>
         <button class="modal-close" id="benchmarkModalClose">Close</button>
       </div>
@@ -1354,6 +1360,7 @@ function handleEvent(ev, entry) {
     entry.markerVideos.push(ev);
   } else if (ev.type === "timing") {
     entry.durationMs = ev.duration_ms;
+    entry.gpuMb = ev.gpu_mb ?? null;
   } else if (ev.type === "done") {
     setStatus("done", "Done"); entry.status = "done";
   } else if (ev.type === "error") {
@@ -2135,6 +2142,9 @@ function restoreEntryToOutputPane(entry) {
 let dsVideos = [];           // {id, name, status, runs:[entry], maxSev}
 let dsSelected = new Set();   // selected pipeline ids
 let dsBusy = false;
+let dsAbort   = null;    // AbortController for the current in-flight tool
+let dsControl = null;    // pending user action while a tool runs: "pause" | "abort"
+let batchState = null;   // resumable batch cursor; non-null while running or paused
 
 // Batch API keys — held in memory for THIS browser session only. Never written
 // to localStorage/disk, and redacted out of anything we store on run entries or
@@ -2254,6 +2264,12 @@ function fmtDur(ms) {
 function sumDur(entries) {
   const vals = entries.map(e => e.durationMs).filter(v => v != null && isFinite(v));
   return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+}
+// Server-measured peak GPU memory (MB) → compact label. "" when unknown
+// (CPU-only run, old export, or a still-running entry).
+function fmtGpu(mb) {
+  if (mb == null || !isFinite(mb)) return "";
+  return mb < 1024 ? `${Math.round(mb)}MB` : `${(mb / 1024).toFixed(1)}GB`;
 }
 
 // ── View switch (grid ⇆ per-video detail) ──────────────────────────────────────
@@ -2487,7 +2503,8 @@ function addVideo(id, name) {
 }
 function setDsMainTitle(txt) { document.getElementById("dsMainTitle").textContent = txt; }
 function updateDsRunBtn() {
-  document.getElementById("dsRunBtn").disabled = dsBusy || !dsVideos.length || !dsSelected.size;
+  // Disabled while running, and while a paused batch is pending (use Resume/Abort).
+  document.getElementById("dsRunBtn").disabled = dsBusy || !!batchState || !dsVideos.length || !dsSelected.size;
   document.getElementById("dsClearBtn").style.display = dsVideos.length ? "inline-block" : "none";
 }
 document.getElementById("dsClearBtn").addEventListener("click", () => {
@@ -2554,55 +2571,136 @@ function dsThumbFallback(card, v) {
   m.replaceWith(fb);
 }
 
-// ── Batch run (sequential: video × selected pipelines) ─────────────────────────
+// ── Batch run: resumable driver with Pause/Resume + hard Abort ─────────────────
+// A batch is a cursor over (video → tool queue). Pause and Abort both cancel the
+// in-flight tool via AbortController; the difference is what happens after —
+// Pause keeps the cursor so Resume re-runs the cancelled tool and continues,
+// Abort discards it. Resume works only within this browser session.
+// (dsAbort / dsControl / batchState are declared with the other dataset state.)
+
 document.getElementById("dsRunBtn").addEventListener("click", runDatasetBatch);
+document.getElementById("dsPauseBtn").addEventListener("click", () => {
+  if (!dsBusy) return;
+  dsControl = "pause";
+  document.getElementById("dsPauseBtn").disabled = true;
+  if (dsAbort) dsAbort.abort();                 // stop the current tool now
+});
+document.getElementById("dsResumeBtn").addEventListener("click", () => {
+  if (!dsBusy && batchState) driveBatch();
+});
+document.getElementById("dsAbortBtn").addEventListener("click", () => {
+  if (!dsBusy && !batchState) return;
+  dsControl = "abort";
+  if (dsAbort) dsAbort.abort();
+  if (!dsBusy) finishBatch("aborted");          // aborting while already paused
+});
+
 async function runDatasetBatch() {
-  if (dsBusy) return;
+  if (dsBusy || batchState) return;
   // Run in stage order so evidence flows correctly (e.g. the Hypothesis
   // Generator runs before any specialist it routes to, s4_report runs last).
   const ORDER = STAGES.flatMap(s => s.pipelines);
   const pipes = [...dsSelected].map(id => allPipelines[id]).filter(Boolean)
                   .sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
   if (!pipes.length || !dsVideos.length) return;
-  dsBusy = true;
-  const btn = document.getElementById("dsRunBtn"); btn.classList.add("loading"); btn.disabled = true;
+  dsVideos.forEach(v => { v.status = "queued"; v.runs = []; v.maxSev = null; });
+  renderDsGrid();
+  batchState = { pipes, vi: 0, done: 0, total: dsVideos.length * pipes.length, video: null };
   document.getElementById("dsProgressWrap").style.display = "block";
-  let total = dsVideos.length * pipes.length; let done = 0;
-  setDsProgress(0, total);
+  setDsProgress(0, batchState.total);
+  await driveBatch();
+}
 
-  for (const v of dsVideos) {
-    v.status = "running"; v.runs = []; v.maxSev = null; renderDsGrid();
-    const vSignals = {};   // per-video Stage 1 signals → Event Localizer
-    // The queue can grow mid-video: the Hypothesis Generator may route into
-    // specialists that weren't explicitly selected. inQueue dedupes so a
-    // specialist that's both selected and routed only runs once.
-    const queue = [...pipes];
-    const inQueue = new Set(queue.map(p => p.id));
-    const routedIds = new Set();
-    for (let qi = 0; qi < queue.length; qi++) {
-      const p = queue[qi];
+// Run/continue the batch from batchState. Returns when the batch completes, is
+// paused, or is aborted. The per-video cursor (queue, qi, vSignals) lives in
+// batchState.video so a Resume picks up exactly where it left off.
+async function driveBatch() {
+  if (!batchState) return;
+  dsBusy = true; dsControl = null;
+  setBatchControls("running");
+  const btn = document.getElementById("dsRunBtn"); btn.classList.add("loading"); btn.disabled = true;
+  const { pipes } = batchState;
+
+  for (; batchState.vi < dsVideos.length; batchState.vi++) {
+    const v = dsVideos[batchState.vi];
+    if (!batchState.video || batchState.video.v !== v) {
+      v.status = "running"; v.runs = []; v.maxSev = null; renderDsGrid();
+      const queue = [...pipes];
+      batchState.video = { v, queue, inQueue: new Set(queue.map(p => p.id)), routedIds: new Set(), qi: 0, vSignals: {} };
+    }
+    const vs = batchState.video;
+    for (; vs.qi < vs.queue.length; vs.qi++) {
+      // Stop cleanly between tools (Pause/Abort requested after the previous
+      // tool finished rather than being cancelled mid-run).
+      if (dsControl) { finishBatch(dsControl === "abort" ? "aborted" : "paused"); return; }
+      const p = vs.queue[vs.qi];
       const entry = makeDsEntry(p);
-      if (routedIds.has(p.id)) {
+      if (vs.routedIds.has(p.id)) {
         entry.routedFrom = "s2_hypothesis_generator";
         entry.logs.push({ level: "info", text: "Auto-selected by the Hypothesis Generator's routing.", ts: nowTs() });
       }
       v.runs.push(entry);
-      try { await streamRunById(v.id, p, entry, vSignals, v); }
-      catch (err) { entry.status = "error"; entry.logs.push({ level: "error", text: String(err), ts: nowTs() }); }
+      dsAbort = new AbortController();
+      try {
+        await streamRunById(v.id, p, entry, vs.vSignals, v, dsAbort.signal);
+      } catch (err) {
+        if (dsControl || err.name === "AbortError") {
+          // User cancelled this tool: drop its partial entry so Resume re-runs it
+          // from scratch (qi is left pointing at it).
+          v.runs.pop(); renderDsGrid();
+          finishBatch(dsControl === "abort" ? "aborted" : "paused");
+          return;
+        }
+        entry.status = "error"; entry.logs.push({ level: "error", text: String(err), ts: nowTs() });
+      } finally { dsAbort = null; }
       const sev = entry.severities[0]?.value;
       if (sev != null) v.maxSev = Math.max(v.maxSev ?? 0, sev);
       if (p.id === "s2_hypothesis_generator") {
         for (const rp of routedSpecialistsFor(entry)) {
-          if (inQueue.has(rp.id)) continue;
-          queue.push(rp); inQueue.add(rp.id); routedIds.add(rp.id); total++;
+          if (vs.inQueue.has(rp.id)) continue;
+          vs.queue.push(rp); vs.inQueue.add(rp.id); vs.routedIds.add(rp.id); batchState.total++;
         }
       }
-      done++; setDsProgress(done, total); renderDsGrid();
+      batchState.done++; setDsProgress(batchState.done, batchState.total); renderDsGrid();
     }
     v.status = v.runs.some(e => e.status === "error") ? "error" : "done";
+    batchState.video = null;
     renderDsGrid();
   }
-  dsBusy = false; btn.classList.remove("loading"); updateDsRunBtn();
+  finishBatch("done");
+}
+
+// Wind the driver down: "paused" keeps the cursor for Resume; "aborted"/"done"
+// discard it. Updates the controls and any unsettled video statuses.
+function finishBatch(outcome) {
+  dsBusy = false;
+  document.getElementById("dsRunBtn").classList.remove("loading");
+  if (outcome === "paused") {
+    setBatchControls("paused");
+  } else {
+    if (outcome === "aborted") {
+      dsVideos.forEach(v => { if (v.status === "running" || v.status === "queued")
+        v.status = (v.runs && v.runs.length) ? (v.runs.some(e => e.status === "error") ? "error" : "done") : "queued"; });
+    }
+    batchState = null; dsControl = null;
+    setBatchControls("idle");
+    renderDsGrid();
+  }
+  updateDsRunBtn();
+}
+
+// Show the right controls for the driver's phase (running / paused / idle).
+function setBatchControls(phase) {
+  const ctrls  = document.getElementById("dsRunCtrls");
+  const pause  = document.getElementById("dsPauseBtn");
+  const resume = document.getElementById("dsResumeBtn");
+  const runTxt = document.getElementById("dsRunBtn").querySelector(".btn-text");
+  if (phase === "idle") { ctrls.style.display = "none"; runTxt.textContent = "Run batch"; return; }
+  ctrls.style.display = "flex";
+  const running = phase === "running";
+  pause.style.display  = running ? "inline-block" : "none"; pause.disabled = false;
+  resume.style.display = running ? "none" : "inline-block";
+  runTxt.textContent   = running ? "Running…" : "Paused";
 }
 function setDsProgress(done, total) {
   document.getElementById("dsProgressFill").style.width = total ? (done / total * 100) + "%" : "0";
@@ -2623,7 +2721,7 @@ function dsDefaultSettings(p) {
   const out = {}; (p.settings || []).forEach(s => { out[s.id] = s.default; }); return out;
 }
 
-async function streamRunById(fileId, p, entry, vSignals, video) {
+async function streamRunById(fileId, p, entry, vSignals, video, signal) {
   const form = new FormData();
   form.append("pipeline_id", p.id);
   form.append("file_id", fileId);
@@ -2655,7 +2753,7 @@ async function streamRunById(fileId, p, entry, vSignals, video) {
   entry.settings = redactSettings(settingsObj);   // store WITHOUT the key
   if (Object.keys(settingsObj).length) form.append("settings", JSON.stringify(settingsObj));
 
-  const res = await fetch(`${API}/dataset/run`, { method: "POST", body: form });
+  const res = await fetch(`${API}/dataset/run`, { method: "POST", body: form, signal });
   const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
   while (true) {
     const { done, value } = await reader.read(); if (done) break;
@@ -2688,7 +2786,7 @@ function applyEventToEntry(ev, entry) {
     case "signal":       (entry._signals ??= {})[ev.source] = { source: ev.source, source_name: ev.source_name || ev.source, fps: ev.fps, n_frames: ev.n_frames, signals: ev.signals || [], severity: ev.severity, type_severities: ev.type_severities }; break;
     case "result":        (entry.results ??= []).push(ev); break;
     case "llm_summary":   (entry.llmSummaries ??= []).push(ev); break;
-    case "timing":       entry.durationMs = ev.duration_ms; break;
+    case "timing":       entry.durationMs = ev.duration_ms; entry.gpuMb = ev.gpu_mb ?? null; break;
     case "done":         entry.status = "done"; break;
     case "error":        entry.logs.push({ level: "error", text: ev.text, ts: nowTs() }); entry.status = "error"; break;
   }
@@ -2709,6 +2807,7 @@ function _exportEntry(entry, includeVisuals) {
     pipelineId: entry.pipelineId, pipelineName: entry.pipelineName,
     timestamp: entry.timestamp, status: entry.status,
     durationMs: entry.durationMs ?? null,
+    gpuMb: entry.gpuMb ?? null,
     routedFrom: entry.routedFrom || null,
     metrics: entry.metrics || [], severities: entry.severities || [],
     logs: entry.logs || [], comment: entry.comment || "", excluded: !!entry.excluded,
@@ -2779,6 +2878,7 @@ async function importDsFile(file) {
       pipelineId: r.pipelineId, pipelineName: r.pipelineName,
       timestamp: r.timestamp, status: r.status || "done",
       durationMs: r.durationMs ?? null,
+      gpuMb: r.gpuMb ?? null,
       routedFrom: r.routedFrom || null,
       metrics: r.metrics || [], severities: r.severities || [],
       logs: r.logs || [], comment: r.comment || "", excluded: !!r.excluded,
@@ -2848,6 +2948,7 @@ function _latestByPipe(v) {
 function renderBenchmarkTable() {
   document.getElementById("benchmarkTitle").textContent =
     benchMode === "duration" ? "Benchmark — Run Time by Stage / Tool (server-measured)"
+    : benchMode === "gpu"    ? "Benchmark — Peak GPU Memory by Stage / Tool (server-measured)"
                              : "Benchmark — Severity by Video × Pipeline";
   const table = document.getElementById("benchmarkTable");
   const td = "padding:6px 10px";
@@ -2891,59 +2992,65 @@ function renderBenchmarkTable() {
     }).join("");
     table.innerHTML = thead + `<tbody>${rows}</tbody>`;
   } else {
-    // Duration mode: per-tool cells + a Σ subtotal per stage + a grand total,
-    // plus a footer summing each column across all videos (dataset cost).
-    const flatPipes = groups.flatMap(g => g.pipes.map(([pid, m]) => ({ pid, m, stageId: g.stage.id })));
+    // Numeric mode: Run time (sum) or GPU peak (high-water max). Same layout —
+    // per-tool cells + a stage subtotal + a grand total, plus a footer
+    // aggregating each column across all videos. `comb` picks sum vs max.
+    const isGpu  = benchMode === "gpu";
+    const valOf  = r => { const x = isGpu ? (r ? r.gpuMb : null) : (r ? r.durationMs : null);
+                          return (x != null && isFinite(x)) ? x : null; };
+    const fmtV   = isGpu ? fmtGpu : fmtDur;
+    const comb   = isGpu ? Math.max : ((a, b) => a + b);          // GPU peak vs summed time
+    const merge  = (acc, v) => v == null ? acc : (acc == null ? v : comb(acc, v));
+    const aggSym = isGpu ? "▲" : "Σ";                              // high-water vs sum
     const thead = `<thead>
       <tr>
         <th rowspan="2" style="${td};text-align:left;border-bottom:2px solid var(--border);position:sticky;left:0;background:var(--surface)">Video</th>
         ${groups.map(g => `<th colspan="${g.pipes.length + 1}" style="${td};text-align:center;border-bottom:1px solid var(--border);color:#fff;background:${g.stage.color}">${_escHtml(g.stage.name)}</th>`).join("")}
-        <th rowspan="2" style="${td};text-align:center;border-bottom:2px solid var(--border);background:var(--surface)">Total</th>
+        <th rowspan="2" style="${td};text-align:center;border-bottom:2px solid var(--border);background:var(--surface)">${isGpu ? "Peak" : "Total"}</th>
       </tr>
       <tr>
-        ${groups.map(g => g.pipes.map(([, m]) => `<th style="${td};border-bottom:2px solid var(--border);font-weight:500">${_escHtml(m.name)}</th>`).join("") + `<th style="${td};border-bottom:2px solid var(--border);font-weight:600;color:${g.stage.color}">Σ ${g.stage.num || ""}</th>`).join("")}
+        ${groups.map(g => g.pipes.map(([, m]) => `<th style="${td};border-bottom:2px solid var(--border);font-weight:500">${_escHtml(m.name)}</th>`).join("") + `<th style="${td};border-bottom:2px solid var(--border);font-weight:600;color:${g.stage.color}">${aggSym} ${g.stage.num || ""}</th>`).join("")}
       </tr>
     </thead>`;
-    const colTotals = {};   // pid -> summed ms across videos
-    let grandColTotal = 0;
+    const colTotals = {};   // pid -> aggregated value across videos
+    let grandColTotal = null;
     const rows = dsVideos.map(v => {
       const byPipe = _latestByPipe(v);
       let vidTotal = null;
       const cellHtml = groups.map(g => {
         let stageTotal = null;
         const pipeCells = g.pipes.map(([pid]) => {
-          const r = byPipe[pid];
-          const ms = r && r.durationMs != null ? r.durationMs : null;
-          if (ms != null) {
-            stageTotal = (stageTotal || 0) + ms;
-            colTotals[pid] = (colTotals[pid] || 0) + ms;
+          const val = valOf(byPipe[pid]);
+          if (val != null) {
+            stageTotal = merge(stageTotal, val);
+            colTotals[pid] = merge(colTotals[pid] ?? null, val);
           }
-          return `<td style="${td};text-align:center;color:${ms == null ? "var(--muted)" : "var(--text)"}">${ms == null ? "—" : fmtDur(ms)}</td>`;
+          return `<td style="${td};text-align:center;color:${val == null ? "var(--muted)" : "var(--text)"}">${val == null ? "—" : fmtV(val)}</td>`;
         }).join("");
-        if (stageTotal != null) vidTotal = (vidTotal || 0) + stageTotal;
-        return pipeCells + `<td style="${td};text-align:center;font-weight:600;color:${g.stage.color}">${stageTotal == null ? "—" : fmtDur(stageTotal)}</td>`;
+        vidTotal = merge(vidTotal, stageTotal);
+        return pipeCells + `<td style="${td};text-align:center;font-weight:600;color:${g.stage.color}">${stageTotal == null ? "—" : fmtV(stageTotal)}</td>`;
       }).join("");
-      if (vidTotal != null) grandColTotal += vidTotal;
+      grandColTotal = merge(grandColTotal, vidTotal);
       return `<tr class="bm-row" data-vid="${_escHtml(v.id)}" style="border-bottom:1px solid var(--border)">
         <td style="${td};font-weight:500;position:sticky;left:0;background:var(--surface)">${_escHtml(v.name)}</td>
         ${cellHtml}
-        <td style="${td};text-align:center;font-weight:700">${vidTotal == null ? "—" : fmtDur(vidTotal)}</td>
+        <td style="${td};text-align:center;font-weight:700">${vidTotal == null ? "—" : fmtV(vidTotal)}</td>
       </tr>`;
     }).join("");
-    // Footer: total time per tool + per stage across the whole dataset.
+    // Footer: aggregate per tool + per stage across the whole dataset.
     const footCells = groups.map(g => {
-      let stageSum = 0, any = false;
+      let stageSum = null;
       const pipeF = g.pipes.map(([pid]) => {
-        const t = colTotals[pid];
-        if (t != null) { stageSum += t; any = true; }
-        return `<td style="${td};text-align:center;font-weight:600">${t == null ? "—" : fmtDur(t)}</td>`;
+        const t = colTotals[pid] ?? null;
+        stageSum = merge(stageSum, t);
+        return `<td style="${td};text-align:center;font-weight:600">${t == null ? "—" : fmtV(t)}</td>`;
       }).join("");
-      return pipeF + `<td style="${td};text-align:center;font-weight:700;color:${g.stage.color}">${any ? fmtDur(stageSum) : "—"}</td>`;
+      return pipeF + `<td style="${td};text-align:center;font-weight:700;color:${g.stage.color}">${stageSum == null ? "—" : fmtV(stageSum)}</td>`;
     }).join("");
     const tfoot = `<tfoot><tr style="border-top:2px solid var(--border);background:var(--bg)">
-      <td style="${td};font-weight:700;position:sticky;left:0;background:var(--bg)">All videos Σ</td>
+      <td style="${td};font-weight:700;position:sticky;left:0;background:var(--bg)">All videos ${aggSym}</td>
       ${footCells}
-      <td style="${td};text-align:center;font-weight:800">${grandColTotal ? fmtDur(grandColTotal) : "—"}</td>
+      <td style="${td};text-align:center;font-weight:800">${grandColTotal == null ? "—" : fmtV(grandColTotal)}</td>
     </tr></tfoot>`;
     table.innerHTML = thead + `<tbody>${rows}</tbody>` + tfoot;
   }
