@@ -16,10 +16,10 @@ env/
 .env.*
 
 # Temp video files (written by backend during pipeline runs)
-*.mp4
-*.mov
-*.avi
-*.tmp
+# *.mp4
+# *.mov
+# *.avi
+# *.tmp
 
 # Pytest / coverage
 .pytest_cache/

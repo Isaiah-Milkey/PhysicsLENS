@@ -3,6 +3,19 @@
 Web interface for evaluating physics accuracy in AI-generated video.  
 Structured as a four-stage medical diagnostic workflow.
 
+## Internal Hosting URL
+
+Live internal instance — auto-deployed from `main`:
+
+```
+https://10.218.107.89:8000
+```
+
+> [!IMPORTANT]
+> - On first visit your browser shows **"Your connection is not private"** because the TLS certificate is **self-signed**. Click **Advanced → Proceed to 10.218.107.89** — the traffic is still encrypted; the warning only means the cert isn't issued by a public authority. One click per machine.
+> - You must be on the **ASU network / VPN** to reach this internal IP.
+> - This site **auto-updates from `main`** — it checks GitHub every 5 minutes, so any pushed commit goes live automatically within ~5 minutes. No manual redeploy needed.
+
 ---
 
 ## Architecture
@@ -25,29 +38,36 @@ analogous to a clinical pathway:
 physicslens/
 ├── backend/
 │   ├── main.py                      # FastAPI server + pipeline registry
-│   ├── requirements.txt
+│   ├── dataset_api.py               # Batch eval router: upload / HF download / run-by-id
+│   ├── requirements.txt             # base / CPU-only deps (no torch)
 │   ├── requirements-gpu.txt         # torch, transformers, SAM3, etc.
 │   ├── pipelines/
 │   │   ├── stage1/                  # Screening
 │   │   │   ├── temporal_smoothness.py           ✅ verified
 │   │   │   ├── optical_flow_irregularities.py   ✅ verified
 │   │   │   ├── camera_motion.py                 🔵 implemented
-│   │   │   ├── embedding_biomarkers.py           🔵 implemented
-│   │   │   └── vlm_suspicion.py                 🔵 implemented
+│   │   │   ├── embedding_biomarkers.py          ✅ verified
+│   │   │   └── vlm_suspicion.py                 ✅ verified
 │   │   ├── stage2/                  # Failure localisation & hypothesis testing
-│   │   │   ├── object_tracker.py                🔵 implemented
-│   │   │   ├── trajectory_extractor.py          🔶 stub
-│   │   │   ├── event_localizer.py               🔶 stub
-│   │   │   ├── physics_hypothesis_generator.py  🔶 stub
-│   │   │   └── hypothesis_ranker.py             🔶 stub
+│   │   │   ├── object_tracker.py                🔵 implemented (SAM3 subject masks + Gemini naming; LK fallback)
+│   │   │   ├── event_localizer.py               🔵 implemented
+│   │   │   ├── trajectory_extractor.py          🔵 implemented (reuses tracker masks; static-track filter)
+│   │   │   └── physics_hypothesis_generator.py  🔵 implemented (VLM triage → ranks Stage 3 specialists;
+│   │   │                                           absorbed the former hypothesis_ranker.py — removed)
 │   │   ├── stage3/                  # Specialist evaluation (one file per failure type)
-│   │   │   ├── collision_specialist.py          🔶 stub
-│   │   │   ├── gravity_specialist.py            🔶 stub
-│   │   │   ├── momentum_specialist.py           🔶 stub
-│   │   │   ├── friction_specialist.py           🔶 stub
-│   │   │   ├── deformation_specialist.py        🔶 stub
-│   │   │   ├── contact_specialist.py            🔶 stub
-│   │   │   ├── fluid_specialist.py              ✅ verified (runs the 5 grounded checks below)
+│   │   │   ├── deformation_specialist.py        🔵 implemented (DINOv2 drift detects shape/appearance
+│   │   │   │                                       change + vanish; VLM explains — absorbed the former
+│   │   │   │                                       consistency_specialist, removed)
+│   │   │   ├── collision_specialist.py          🔵 implemented (contact episodes, restitution, phantom
+│   │   │   │                                       bounces; absorbed contact_specialist — unregistered)
+│   │   │   ├── gravity_specialist.py            🔵 implemented (parabola fits on free-flight
+│   │   │   │                                       segments; anti-gravity/float/Galileo/apex
+│   │   │   │                                       checks, VLM-confirmed; optional absolute-g)
+│   │   │   ├── momentum_specialist.py           🔵 implemented (motion signature + VLM mass proxy;
+│   │   │   │                                       flags causeless momentum jumps & bad transfer)
+│   │   │   ├── friction_specialist.py           🔵 implemented
+│   │   │   ├── contact_specialist.py            (merged into collision_specialist; kept for reference)
+│   │   │   ├── fluid_specialist.py              ✅ verified (runs the 5 grounded water checks below)
 │   │   │   ├── causality_specialist.py          🔶 stub
 │   │   │   ├── water_incompressibility.py       ✅ component of Fluid Specialist + benchmark
 │   │   │   ├── water_mass_conservation.py       ✅ component of Fluid Specialist + benchmark
@@ -57,23 +77,38 @@ physicslens/
 │   │   │   ├── water_vlm_judge.py               🔵 implemented (SOTA comparator)
 │   │   │   └── water_vbench_flow.py             ✅ verified (SOTA comparator)
 │   │   └── stage4/                  # Final diagnosis outputs
-│   │       ├── physics_consistency_scorer.py    🔶 stub
-│   │       ├── severity_assessor.py             🔶 stub
-│   │       ├── physics_breakdown_timer.py       🔶 stub
-│   │       ├── failure_explainer.py             🔶 stub
-│   │       ├── diagnostic_report.py             🔶 stub
-│   │       └── water_benchmark.py               ✅ verified (homemade vs SOTA)
+│   │       ├── diagnostic_report.py             🔵 implemented (only non-water Stage 4 pipeline —
+│   │       │                                       physics_consistency_scorer.py, severity_assessor.py,
+│   │       │                                       physics_breakdown_timer.py, and failure_explainer.py
+│   │       │                                       were unimplemented stubs, removed)
+│   │       ├── diagnostic_report_old.py         (previous version, kept for reference)
+│   │       └── water_benchmark.py               ✅ verified (homemade water tests vs SOTA comparators)
 │   ├── tools/                       # Shared utilities
 │   │   ├── video.py
 │   │   ├── flow.py
-│   │   ├── embeddings.py
-│   │   └── vlm.py
+│   │   ├── tracking.py              # Cached Shi-Tomasi+LK tracks (one canonical set per video)
+│   │   ├── evidence.py             # Cross-stage evidence bus (Stage 2→3→4 data passing)
+│   │   ├── evidence_planner.py      # Stage-3 pre-step: agent/rules plan → auto-fetch missing Stage-2 evidence
+│   │   ├── embeddings.py            # DINOv2 / CLIP / SigLIP — L2-normalised, batched, cached
+│   │   ├── sam3.py                  # SAM3 video segmentation (gated facebook/sam3; GPU)
+│   │   ├── createai.py              # ASU CreateAI client (Gemini vision; subject naming, judging)
+│   │   ├── locate_anything.py       # NVIDIA LocateAnything-3B open-set detection (GPU, optional)
+│   │   └── vlm.py                   # OpenRouter multi-frame suspicion scoring
 │   ├── scripts/
-│   │   └── check_models.py          # Sanity-check ML model availability
+│   │   ├── check_models.py          # Sanity-check ML model availability
+│   │   ├── test_vlm_scoring.py      # Unit tests — VLM JSON parsing + payload build
+│   │   ├── test_vlm_pipeline.py     # Integration test — VLM suspicion pipeline
+│   │   ├── test_object_tracker.py   # Object-tracker smoke test
+│   │   └── vlm_failure_mode_eval.py # multi-frame vs single-frame AUC eval (+ .json results)
 │   └── archive_files/               # Old flat pipelines, kept for reference
 ├── frontend/
 │   └── index.html                   # Self-contained UI — no build step
-└── test_videos/
+└── test_videos/                     # Real vs AI-generated clips (note: *.mp4 is gitignored)
+    ├── README.md                    # describes the set + the matched real/AI demo pair
+    ├── real/
+    │   ├── physics_iq/              # real Physics-IQ benchmark footage
+    │   └── wikimedia/               # short real clips
+    └── ai_generated/               # text/image-to-video model output
 ```
 
 | Status | Meaning |
@@ -214,7 +249,38 @@ The UI auto-loads the pipeline list from `GET /pipelines` on startup.
 
 ## UI overview
 
-- **Left pane** — stage selector, test list, settings, run button
-- **Right pane → Report tab** — live output for the selected test; restores the last result when you switch between tests
-- **Right pane → Previous Reports tab** — full run history for the selected test, collapsible per-run detail
-- **Full Report button** (top right) — modal with a cross-test diagnostic report grouped by stage
+The tool has a single unified **Dataset** view — there's no separate single-video
+mode. You load **one or many** videos the same way; one video is just a batch of
+one. The top-bar **Dataset** button is the home/back control: from a per-video
+report it returns to the grid.
+
+**Grid view** (home)
+
+1. **Add videos** — either:
+   - **Upload** — drag-drop videos of any format (mp4, webm, mov, gif, …), or click
+     *choose a folder* to add a whole directory (non-video files are ignored).
+   - **HuggingFace** — enter a dataset repo id (+ optional subfolder, max count, and a
+     token for gated/private repos). The backend lists and downloads every video file
+     in the repo, streaming progress as it goes.
+2. **Select tests** — a multi-select checklist of the live (non-stub) pipelines, grouped by stage.
+3. **Run batch** — each video runs the selected pipelines sequentially. A progress
+   bar tracks `done / total` jobs. (Optional — you can also open a single video and
+   run individual tests from its report without running a batch first.)
+
+**Per-video report** (click any card)
+
+Opens a full-screen stage view for that video — the same stage tabs, test list,
+settings, run button, metrics, plots, overlay videos, and marker viewers used
+throughout the tool. On open it **auto-loads every test that already ran**: result
+dots mark which tests have data, the first completed stage/test is selected, and
+its report is shown immediately. Any test can be re-run individually from here.
+
+Each video card shows status and the worst severity across its tests. Because every
+pipeline runs against the *same* on-disk file, the per-video track cache and evidence
+bus are shared across the batch automatically. All of this is backed by the
+`/dataset/*` API in `dataset_api.py`.
+
+> **Any video format.** `tools/video.load_frames` decodes standard containers
+> (mp4, webm, mov, avi, mkv, …) through OpenCV/ffmpeg, and animated GIFs through
+> Pillow (OpenCV's `VideoCapture` is unreliable on GIFs, especially on Windows).
+> Every pipeline accepts any of these.

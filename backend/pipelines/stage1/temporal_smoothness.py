@@ -34,18 +34,28 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
            "text": f"{n} frames @ {fps:.1f} fps — detecting {num_kp} keypoints…"}
     await asyncio.sleep(0)
 
-    gray0 = frame_to_gray(frames[0])
-    pts0  = detect_keypoints(gray0, n=num_kp)
+    # Seek the first frame with detectable corners (skip a featureless lead-in,
+    # e.g. a solid intro frame in AI-generated clips) instead of erroring out.
+    start, pts0, gray0 = 0, None, None
+    while start <= n - 3:
+        gray0 = frame_to_gray(frames[start])
+        pts0  = detect_keypoints(gray0, n=num_kp)
+        if pts0 is not None and len(pts0) > 0:
+            break
+        start += 1
     if pts0 is None or len(pts0) == 0:
-        yield {"type": "error", "text": "No keypoints found in first frame."}
+        yield {"type": "error", "text": "No keypoints found in any frame."}
         return
+    if start > 0:
+        yield {"type": "log", "level": "warn",
+               "text": f"First {start} frame(s) featureless — tracking started later."}
 
     nk       = len(pts0)
     tracks   = [[pts0[i, 0].tolist()] for i in range(nk)]
     curr_pts = [pts0[i : i + 1] for i in range(nk)]
 
     prev_gray = gray0
-    for f in range(1, n):
+    for f in range(start + 1, n):
         curr_gray = frame_to_gray(frames[f])
         for ki in range(nk):
             if curr_pts[ki] is None:
@@ -84,8 +94,8 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         acc = np.diff(vel,  axis=0) * fps
         vm  = np.linalg.norm(vel, axis=1)
         am  = np.linalg.norm(acc, axis=1)
-        t_v = [i / fps for i in range(1, 1 + len(vm))]
-        t_a = [i / fps for i in range(2, 2 + len(am))]
+        t_v = [(start + i) / fps for i in range(1, 1 + len(vm))]
+        t_a = [(start + i) / fps for i in range(2, 2 + len(am))]
 
         fig.add_trace(go.Scatter(
             x=t_v, y=vm.tolist(), mode="lines", name=f"kp {ki}",
@@ -102,7 +112,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         ), row=2, col=1)
 
         for si in np.where(am > acc_thresh)[0]:
-            flagged.add(si + 2)
+            flagged.add(si + 2 + start)
         all_accs.append(am)
 
     # Threshold reference line
@@ -150,7 +160,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     acc_by_frame: dict[int, float] = {}
     for am in all_accs:
         for j, a in enumerate(am):
-            fr = j + 2
+            fr = j + 2 + start
             if a > acc_thresh:
                 acc_by_frame[fr] = max(acc_by_frame.get(fr, 0.0), float(a))
     signals = [
