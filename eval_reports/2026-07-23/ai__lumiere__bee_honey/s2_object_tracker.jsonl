@@ -1,0 +1,22 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "48 frames @ 9.6 fps (480\u00d7480) loaded."}
+{"type": "log", "level": "info", "text": "Naming scene objects with VLM (createai:geminipro3_1)\u2026"}
+{"type": "log", "level": "success", "text": "VLM identified: bee, glass jar, honey, wooden surface"}
+{"type": "log", "level": "info", "text": "Loading SAM3 and segmenting\u2026"}
+{"type": "log", "level": "info", "text": "\"bee\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"glass jar\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"honey\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"wooden surface\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "success", "text": "Tracking 3 object(s): glass jar, bee, wooden surface"}
+{"type": "log", "level": "info", "text": "DINOv2 appearance-drift analysis\u2026"}
+{"type": "log", "level": "info", "text": "Appearance drift computed for 3 object(s)."}
+{"type": "log", "level": "info", "text": "Building plots\u2026"}
+{"type": "plotly", "data": "<stripped 28532 chars>", "caption": "Centroid-Y trajectory of each named object (top). DINOv2 appearance drift \u2014 flat = stable, spikes = identity jump (bottom)."}
+{"type": "metric", "label": "Objects tracked", "value": "3", "sub": "glass jar, bee, wooden surface"}
+{"type": "metric", "label": "Persistent objects", "value": "3", "sub": "present \u226550% of video"}
+{"type": "metric", "label": "Mean track length", "value": "48", "sub": "frames (video = 48)"}
+{"type": "metric", "label": "Mean appearance drift", "value": "0.237", "sub": "cosine dist to frame 0 (DINOv2)"}
+{"type": "metric", "label": "Peak drift", "value": "0.445", "sub": "max identity deviation across objects"}
+{"type": "severity", "label": "Tracking instability score", "value": 27, "color": "#EF9F27"}
+{"type": "log", "level": "success", "text": "3 object(s) tracked (glass jar, bee, wooden surface); 3 persistent; mean drift 0.237."}
+{"type": "done"}

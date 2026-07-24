@@ -1,0 +1,18 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 2 subject(s) from the evidence bus."}
+{"type": "log", "level": "warn", "text": "\u201ccheckered floor\u201d: 1 deformation change-point(s) detected (peak 0.315 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201ccheckered floor\u201d @ t=0.99s (drift 0.315) \u2192 changed (90%): The object spontaneously appears in the second frame without being present in the first."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 78416 chars>", "caption": "\u201ccheckered floor\u201d @ t=0.99s \u2014 changed (90%) per createai:geminipro3_1, drift 0.315"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 232888 chars>", "caption": "\u201ccheckered floor\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201cgolden sphere\u201d: shape/appearance stable (peak consecutive drift 0.101, vs first 0.182, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 83512 chars>", "caption": "\u201cgolden sphere\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 15.157894736842104, "n_frames": 48, "severity": 76, "type_severities": {"object_morph": 76, "object_vanish": 0}, "signals": [{"frame": 15, "signal_type": "object_morph", "score": 0.9}]}
+{"type": "plotly", "data": "<stripped 14703 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201ccheckered floor\u201d", "value": "CHANGED", "sub": "90% @ t=0.99s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201cgolden sphere\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "Change-points checked", "value": "1", "sub": "1 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 76, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["checkered floor", "golden sphere"], "verdicts": [{"label": "checkered floor", "kind": "gradual", "t": 0.99, "drift": 0.315, "verdict": "changed", "confidence": 0.9, "explanation": "The object spontaneously appears in the second frame without being present in the first."}], "vanish_events": [], "severity": 76}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 76%."}
+{"type": "done"}

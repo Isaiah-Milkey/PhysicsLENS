@@ -1,0 +1,26 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 4 subject(s) from the evidence bus."}
+{"type": "log", "level": "warn", "text": "\u201csink\u201d: 1 deformation change-point(s) detected (peak 0.375 > 0.3)."}
+{"type": "log", "level": "info", "text": "\u201csink\u201d @ t=0.58s (drift 0.375) \u2192 consistent (95%): The robotic arm and the object it holds simply rotate and change perspective slightly, maintaining their overall structure and identity."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 60636 chars>", "caption": "\u201csink\u201d @ t=0.58s \u2014 consistent (95%) per createai:geminipro3_1, drift 0.375"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 180572 chars>", "caption": "\u201csink\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201cfaucet\u201d: shape/appearance stable (peak consecutive drift 0.134, vs first 0.201, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 75904 chars>", "caption": "\u201cfaucet\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm #1\u201d: 1 deformation change-point(s) detected (peak 0.690 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm #1\u201d @ t=6.24s (drift 0.690) \u2192 changed (99%): The tracked object transforms from a white robotic arm into a dark, metallic object with a completely different shape and texture."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 23696 chars>", "caption": "\u201crobotic arm #1\u201d @ t=6.24s \u2014 changed (99%) per createai:geminipro3_1, drift 0.690"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 73884 chars>", "caption": "\u201crobotic arm #1\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crobotic arm #2\u201d: shape/appearance stable (peak consecutive drift 0.062, vs first 0.100, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 143212 chars>", "caption": "\u201crobotic arm #2\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 6.889952153110048, "n_frames": 48, "severity": 84, "type_severities": {"object_morph": 84, "object_vanish": 0}, "signals": [{"frame": 43, "signal_type": "object_morph", "score": 0.99}]}
+{"type": "plotly", "data": "<stripped 22704 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201csink\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cfaucet\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201crobotic arm #1\u201d", "value": "CHANGED", "sub": "99% @ t=6.241s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201crobotic arm #2\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "Change-points checked", "value": "2", "sub": "1 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 84, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["sink", "faucet", "robotic arm #1", "robotic arm #2"], "verdicts": [{"label": "sink", "kind": "gradual", "t": 0.581, "drift": 0.375, "verdict": "consistent", "confidence": 0.95, "explanation": "The robotic arm and the object it holds simply rotate and change perspective slightly, maintaining their overall structure and identity."}, {"label": "robotic arm #1", "kind": "gradual", "t": 6.241, "drift": 0.69, "verdict": "changed", "confidence": 0.99, "explanation": "The tracked object transforms from a white robotic arm into a dark, metallic object with a completely different shape and texture."}], "vanish_events": [], "severity": 84}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 84%."}
+{"type": "done"}

@@ -1,0 +1,15 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: glass pitcher, kitchen counter, robotic arm on the left, robotic arm on the right, ice maker; acceleration spikes (severity 35)"}
+{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 90% (t=3.4\u20133.77s): The glass pitcher appears to change shape and distort implausibly across the frames."}
+{"type": "log", "level": "warn", "text": "#2 Momentum \u2014 70% (t=3.4\u20133.43s): The sudden rapid movement of the left robotic arm corresponds with the flagged acceleration spike."}
+{"type": "log", "level": "warn", "text": "#3 Collision & Contact \u2014 50%: quantitative evidence (see summary)"}
+{"type": "log", "level": "info", "text": "#4 Causality \u2014 35%: quantitative evidence (see summary)"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 127784 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7215 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Deformation", "value": "90%", "sub": "vlm \u00b7 t=3.4\u20133.77s"}
+{"type": "metric", "label": "Momentum", "value": "70%", "sub": "vlm \u00b7 t=3.4\u20133.43s"}
+{"type": "metric", "label": "Collision & Contact", "value": "50%", "sub": "heuristic"}
+{"type": "metric", "label": "Causality", "value": "35%", "sub": "heuristic"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.9, "reason": "The glass pitcher appears to change shape and distort implausibly across the frames.", "t_window": [3.4, 3.77], "source": "vlm"}, {"specialist": "momentum", "confidence": 0.7, "reason": "The sudden rapid movement of the left robotic arm corresponds with the flagged acceleration spike.", "t_window": [3.4, 3.43], "source": "vlm"}, {"specialist": "collision", "confidence": 0.5, "reason": "quantitative evidence (see summary)", "t_window": null, "source": "heuristic"}, {"specialist": "causality", "confidence": 0.35, "reason": "quantitative evidence (see summary)", "t_window": null, "source": "heuristic"}], "evidence_summary": ["- tracked subjects: glass pitcher, kitchen counter, robotic arm on the left, robotic arm on the right, ice maker", "- acceleration spikes (severity 35)"], "keyframe_ts": [3.4, 3.43, 3.73, 3.77]}
+{"type": "done"}

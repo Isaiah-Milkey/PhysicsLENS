@@ -1,0 +1,13 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "75 frames sampled (every 2) \u2014 loading dinov2\u2026"}
+{"type": "log", "level": "info", "text": "Encoding whole-frame embeddings with DINOv2 (dinov2-base, cuda, batched)\u2026"}
+{"type": "log", "level": "info", "text": "Embeddings: (75, 768) \u2014 computing latent dynamics\u2026"}
+{"type": "plotly", "data": "<stripped 15331 chars>", "caption": "Latent velocity (top) and acceleration (bottom). Red shaded regions = frames with abrupt embedding shifts."}
+{"type": "signal", "source": "s1_embeddings", "source_name": "Embedding (DINOV2)", "fps": 30.0, "n_frames": 150, "severity": 36, "type_severities": {"embedding_jump": 36}, "signals": [{"frame": 4, "signal_type": "embedding_jump", "score": 1.627}, {"frame": 6, "signal_type": "embedding_jump", "score": 1.842}, {"frame": 8, "signal_type": "embedding_jump", "score": 1.124}, {"frame": 30, "signal_type": "embedding_jump", "score": 1.288}, {"frame": 32, "signal_type": "embedding_jump", "score": 1.889}, {"frame": 34, "signal_type": "embedding_jump", "score": 1.165}, {"frame": 36, "signal_type": "embedding_jump", "score": 1.043}, {"frame": 38, "signal_type": "embedding_jump", "score": 1.077}, {"frame": 40, "signal_type": "embedding_jump", "score": 1.657}]}
+{"type": "metric", "label": "Flagged frames", "value": "9", "sub": "of 75 sampled"}
+{"type": "metric", "label": "Peak latent acc", "value": "0.9445", "sub": "\u2016\u0394\u00b2z\u2016"}
+{"type": "metric", "label": "Mean latent vel", "value": "0.1457", "sub": "\u2016\u0394z\u2016"}
+{"type": "metric", "label": "Embedding dim", "value": "768", "sub": "dinov2"}
+{"type": "severity", "label": "Embedding anomaly score", "value": 36, "color": "#EF9F27"}
+{"type": "log", "level": "warn", "text": "9 frame(s) with abrupt embedding shifts."}
+{"type": "done"}

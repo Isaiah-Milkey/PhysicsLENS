@@ -1,0 +1,21 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 5 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "8 contact episode(s) across 10 subject pair(s) (dilated-mask adjacency \u2265 0.02)."}
+{"type": "log", "level": "info", "text": "Contact: \u201ctiled wall\u201d \u00d7 \u201crobotic arm #1\u201d t=2.36\u20132.36s (peak raw overlap 1%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201ctiled wall\u201d \u00d7 \u201crobotic arm #2\u201d t=0.00\u20132.36s (peak raw overlap 2%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201ctiled wall\u201d \u00d7 \u201crobotic arm #2\u201d t=3.06\u20134.44s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201ctiled wall\u201d \u00d7 \u201crobotic arm #2\u201d t=5.14\u20136.53s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201crobotic arm #1\u201d \u00d7 \u201cmetal sink\u201d t=0.00\u20130.00s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201crobotic arm #1\u201d \u00d7 \u201cmetal sink\u201d t=4.58\u20136.53s (peak raw overlap 1%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201crobotic arm #1\u201d \u00d7 \u201cfaucet\u201d t=2.22\u20132.22s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201crobotic arm #1\u201d \u00d7 \u201cfaucet\u201d t=4.44\u20134.44s (peak raw overlap 0%)."}
+{"type": "signal", "source": "s3_collision", "source_name": "Collision & Contact", "fps": 7.2, "n_frames": 48, "severity": 0, "type_severities": {"interpenetration": 0, "energy_gain": 0, "phantom_bounce": 0}, "signals": []}
+{"type": "plotly", "data": "<stripped 42429 chars>", "caption": "Top: pair overlap (orange = contact, red = interpenetration threshold). Bottom: vertical velocity; dotted red lines mark violations."}
+{"type": "metric", "label": "Contact episodes", "value": "8", "sub": "10 subject pair(s) analyzed"}
+{"type": "metric", "label": "Interpenetrations", "value": "0", "sub": "of 0 candidate(s) after VLM review"}
+{"type": "metric", "label": "Energy-gain bounces", "value": "0", "sub": "restitution > 1.1"}
+{"type": "metric", "label": "Phantom bounces", "value": "0", "sub": "direction reversal with no contact"}
+{"type": "severity", "label": "Collision violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "subjects": ["tiled wall", "robotic arm #1", "metal sink", "faucet", "robotic arm #2"], "episodes": [{"f_start": 17, "f_end": 17, "peak_overlap": 0.02832965415746873, "peak_frame": 17, "peak_raw": 0.008967991169977926, "peak_raw_frame": 17, "pair": ["tiled wall", "robotic arm #1"], "t_start": 2.361, "t_end": 2.361}, {"f_start": 0, "f_end": 17, "peak_overlap": 0.08870003416467373, "peak_frame": 5, "peak_raw": 0.021096686026648444, "peak_raw_frame": 5, "pair": ["tiled wall", "robotic arm #2"], "t_start": 0.0, "t_end": 2.361}, {"f_start": 22, "f_end": 32, "peak_overlap": 0.04398905638109543, "peak_frame": 22, "peak_raw": 0.0, "peak_raw_frame": 22, "pair": ["tiled wall", "robotic arm #2"], "t_start": 3.056, "t_end": 4.444}, {"f_start": 37, "f_end": 47, "peak_overlap": 0.07410575427682738, "peak_frame": 46, "peak_raw": 0.0, "peak_raw_frame": 37, "pair": ["tiled wall", "robotic arm #2"], "t_start": 5.139, "t_end": 6.528}, {"f_start": 0, "f_end": 0, "peak_overlap": 0.02373237586478676, "peak_frame": 0, "peak_raw": 0.0, "peak_raw_frame": 0, "pair": ["robotic arm #1", "metal sink"], "t_start": 0.0, "t_end": 0.0}, {"f_start": 33, "f_end": 47, "peak_overlap": 0.08735862393967955, "peak_frame": 46, "peak_raw": 0.012599469496021221, "peak_raw_frame": 47, "pair": ["robotic arm #1", "metal sink"], "t_start": 4.583, "t_end": 6.528}, {"f_start": 16, "f_end": 16, "peak_overlap": 0.03485254691689008, "peak_frame": 16, "peak_raw": 0.0, "peak_raw_frame": 16, "pair": ["robotic arm #1", "faucet"], "t_start": 2.222, "t_end": 2.222}, {"f_start": 32, "f_end": 32, "peak_overlap": 0.05586206896551724, "peak_frame": 32, "peak_raw": 0.0, "peak_raw_frame": 32, "pair": ["robotic arm #1", "faucet"], "t_start": 4.444, "t_end": 4.444}], "violations": [], "severity": 0}
+{"type": "log", "level": "success", "text": "Collision physics look plausible."}
+{"type": "done"}

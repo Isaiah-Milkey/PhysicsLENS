@@ -1,0 +1,34 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 6 subject(s) from the evidence bus."}
+{"type": "log", "level": "warn", "text": "\u201cbottle #1\u201d: 1 deformation change-point(s) detected (peak 0.487 > 0.3)."}
+{"type": "log", "level": "info", "text": "\u201cbottle #1\u201d @ t=0.31s (drift 0.379) \u2192 consistent (95%): The bottle maintains its overall shape, cap structure, and label appearance between the two frames, showing only minor pose variations."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 21488 chars>", "caption": "\u201cbottle #1\u201d @ t=0.31s \u2014 consistent (95%) per createai:geminipro3_1, drift 0.379"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 59584 chars>", "caption": "\u201cbottle #1\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crobotic arm #1\u201d: shape/appearance stable (peak consecutive drift 0.082, vs first 0.076, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 50608 chars>", "caption": "\u201crobotic arm #1\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cglass #1\u201d: 1 deformation change-point(s) detected (peak 0.348 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cglass #1\u201d @ t=6.72s (drift 0.348) \u2192 changed (90%): The plastic bottle changes shape from being visibly crushed on one side to having a more regular, cylindrical form."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 24140 chars>", "caption": "\u201cglass #1\u201d @ t=6.72s \u2014 changed (90%) per createai:geminipro3_1, drift 0.348"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 74264 chars>", "caption": "\u201cglass #1\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crobotic arm #2\u201d: shape/appearance stable (peak consecutive drift 0.083, vs first 0.153, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 149932 chars>", "caption": "\u201crobotic arm #2\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201cglass #2\u201d: shape/appearance stable (peak consecutive drift 0.043, vs first 0.131, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 100892 chars>", "caption": "\u201cglass #2\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cbottle #2\u201d: 1 deformation change-point(s) detected (peak 0.557 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cbottle #2\u201d @ t=7.18s (drift 0.557) \u2192 changed (99%): The object drastically shrinks and changes shape from a tall, blocky form to a small, amorphous blob."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 18332 chars>", "caption": "\u201cbottle #2\u201d @ t=7.18s \u2014 changed (99%) per createai:geminipro3_1, drift 0.557"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 57008 chars>", "caption": "\u201cbottle #2\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 6.545454545454546, "n_frames": 48, "severity": 84, "type_severities": {"object_morph": 84, "object_vanish": 0}, "signals": [{"frame": 44, "signal_type": "object_morph", "score": 0.9}, {"frame": 47, "signal_type": "object_morph", "score": 0.99}]}
+{"type": "plotly", "data": "<stripped 27576 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201cbottle #1\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201crobotic arm #1\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cglass #1\u201d", "value": "CHANGED", "sub": "90% @ t=6.722s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201crobotic arm #2\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cglass #2\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cbottle #2\u201d", "value": "CHANGED", "sub": "99% @ t=7.181s (createai:geminipro3_1)"}
+{"type": "metric", "label": "Change-points checked", "value": "3", "sub": "2 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 84, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["bottle #1", "robotic arm #1", "glass #1", "robotic arm #2", "glass #2", "bottle #2"], "verdicts": [{"label": "bottle #1", "kind": "spike", "t": 0.306, "drift": 0.379, "verdict": "consistent", "confidence": 0.95, "explanation": "The bottle maintains its overall shape, cap structure, and label appearance between the two frames, showing only minor pose variations."}, {"label": "glass #1", "kind": "gradual", "t": 6.722, "drift": 0.348, "verdict": "changed", "confidence": 0.9, "explanation": "The plastic bottle changes shape from being visibly crushed on one side to having a more regular, cylindrical form."}, {"label": "bottle #2", "kind": "gradual", "t": 7.181, "drift": 0.557, "verdict": "changed", "confidence": 0.99, "explanation": "The object drastically shrinks and changes shape from a tall, blocky form to a small, amorphous blob."}], "vanish_events": [], "severity": 84}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 84%."}
+{"type": "done"}

@@ -1,0 +1,18 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 2 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "\u201cgreen sand patch\u201d: shape/appearance stable (peak consecutive drift 0.113, vs first 0.240, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 363792 chars>", "caption": "\u201cgreen sand patch\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cblue ball\u201d: 1 deformation change-point(s) detected (peak 0.730 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cblue ball\u201d @ t=0.10s (drift 0.431) \u2192 changed (90%): The object's surface texture changes from smooth to vertically streaked, and the pattern of the white lines fundamentally alters between the two frames."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 39520 chars>", "caption": "\u201cblue ball\u201d @ t=0.10s \u2014 changed (90%) per createai:geminipro3_1, drift 0.431"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 172780 chars>", "caption": "\u201cblue ball\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 9.6, "n_frames": 48, "severity": 76, "type_severities": {"object_morph": 76, "object_vanish": 0}, "signals": [{"frame": 1, "signal_type": "object_morph", "score": 0.9}]}
+{"type": "plotly", "data": "<stripped 13196 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201cgreen sand patch\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cblue ball\u201d", "value": "CHANGED", "sub": "90% @ t=0.104s (createai:geminipro3_1)"}
+{"type": "metric", "label": "Change-points checked", "value": "1", "sub": "1 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 76, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["green sand patch", "blue ball"], "verdicts": [{"label": "blue ball", "kind": "spike", "t": 0.104, "drift": 0.431, "verdict": "changed", "confidence": 0.9, "explanation": "The object's surface texture changes from smooth to vertically streaked, and the pattern of the white lines fundamentally alters between the two frames."}], "vanish_events": [], "severity": 76}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 76%."}
+{"type": "done"}

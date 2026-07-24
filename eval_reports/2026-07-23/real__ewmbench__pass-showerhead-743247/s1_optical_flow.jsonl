@@ -1,0 +1,14 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "155 frames @ 30.0 fps \u2014 initialising 30 tracks\u2026"}
+{"type": "log", "level": "info", "text": "Optical flow\u2026 60/155 frames"}
+{"type": "log", "level": "info", "text": "Optical flow\u2026 120/155 frames"}
+{"type": "log", "level": "info", "text": "Plotting results\u2026"}
+{"type": "plotly", "data": "<stripped 19490 chars>", "caption": "Top: flow magnitude (red spike lines). Bottom: directional consistency."}
+{"type": "signal", "source": "s1_optical_flow", "source_name": "Optical Flow", "fps": 30.0, "n_frames": 155, "severity": 19, "type_severities": {"flow_spike": 0, "flow_chaos": 19}, "signals": [{"frame": 17, "signal_type": "flow_chaos", "score": 0.54}, {"frame": 19, "signal_type": "flow_chaos", "score": 0.625}, {"frame": 20, "signal_type": "flow_chaos", "score": 0.963}, {"frame": 143, "signal_type": "flow_chaos", "score": 0.694}, {"frame": 145, "signal_type": "flow_chaos", "score": 0.614}, {"frame": 146, "signal_type": "flow_chaos", "score": 0.531}, {"frame": 147, "signal_type": "flow_chaos", "score": 0.593}, {"frame": 148, "signal_type": "flow_chaos", "score": 0.504}, {"frame": 149, "signal_type": "flow_chaos", "score": 0.519}, {"frame": 150, "signal_type": "flow_chaos", "score": 0.688}, {"frame": 152, "signal_type": "flow_chaos", "score": 0.695}, {"frame": 154, "signal_type": "flow_chaos", "score": 0.566}]}
+{"type": "metric", "label": "Flagged frames", "value": "12", "sub": "spike or chaotic direction"}
+{"type": "metric", "label": "Peak flow", "value": "2.6", "sub": "px/frame"}
+{"type": "metric", "label": "Mean flow", "value": "0.9", "sub": "px/frame"}
+{"type": "metric", "label": "Mean dir consistency", "value": "0.47", "sub": "0 = random \u00b7 1 = uniform"}
+{"type": "severity", "label": "Optical flow anomaly score", "value": 19, "color": "#EF9F27"}
+{"type": "log", "level": "warn", "text": "12 direction-chaos frame(s) detected."}
+{"type": "done"}

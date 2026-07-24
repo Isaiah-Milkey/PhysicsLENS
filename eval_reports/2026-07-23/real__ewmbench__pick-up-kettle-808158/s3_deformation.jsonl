@@ -1,0 +1,31 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 5 subject(s) from the evidence bus."}
+{"type": "log", "level": "warn", "text": "\u201cglass pitcher\u201d: 1 deformation change-point(s) detected (peak 0.496 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cglass pitcher\u201d @ t=3.82s (drift 0.496) \u2192 changed (90%): The container's overall shape and structural details, particularly near the top, deform unnaturally between the frames."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 35540 chars>", "caption": "\u201cglass pitcher\u201d @ t=3.82s \u2014 changed (90%) per createai:geminipro3_1, drift 0.496"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 109388 chars>", "caption": "\u201cglass pitcher\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201ckitchen counter\u201d: 1 deformation change-point(s) detected (peak 0.324 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201ckitchen counter\u201d @ t=4.58s (drift 0.324) \u2192 changed (80%): The object's overall shape and proportions have morphed from a flatter, wider form to a taller, more cylindrical shape."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 75064 chars>", "caption": "\u201ckitchen counter\u201d @ t=4.58s \u2014 changed (80%) per createai:geminipro3_1, drift 0.324"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 222344 chars>", "caption": "\u201ckitchen counter\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crobotic arm on the left\u201d: shape/appearance stable (peak consecutive drift 0.060, vs first 0.146, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 147288 chars>", "caption": "\u201crobotic arm on the left\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm on the right\u201d: 1 deformation change-point(s) detected (peak 0.561 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm on the right\u201d @ t=3.82s (drift 0.561) \u2192 changed (95%): The bottle morphs from a relatively slender shape into a significantly thicker, distorted form with new texture details like a white dot appearing."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 30700 chars>", "caption": "\u201crobotic arm on the right\u201d @ t=3.82s \u2014 changed (95%) per createai:geminipro3_1, drift 0.561"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 92900 chars>", "caption": "\u201crobotic arm on the right\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201cice maker\u201d: shape/appearance stable (peak consecutive drift 0.017, vs first 0.059, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 101632 chars>", "caption": "\u201cice maker\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 9.171974522292993, "n_frames": 48, "severity": 81, "type_severities": {"object_morph": 81, "object_vanish": 0}, "signals": [{"frame": 35, "signal_type": "object_morph", "score": 0.9}, {"frame": 42, "signal_type": "object_morph", "score": 0.8}, {"frame": 35, "signal_type": "object_morph", "score": 0.95}]}
+{"type": "plotly", "data": "<stripped 27928 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201cglass pitcher\u201d", "value": "CHANGED", "sub": "90% @ t=3.816s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201ckitchen counter\u201d", "value": "CHANGED", "sub": "80% @ t=4.579s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201crobotic arm on the left\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201crobotic arm on the right\u201d", "value": "CHANGED", "sub": "95% @ t=3.816s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201cice maker\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "Change-points checked", "value": "3", "sub": "3 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 81, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["glass pitcher", "kitchen counter", "robotic arm on the left", "robotic arm on the right", "ice maker"], "verdicts": [{"label": "glass pitcher", "kind": "gradual", "t": 3.816, "drift": 0.496, "verdict": "changed", "confidence": 0.9, "explanation": "The container's overall shape and structural details, particularly near the top, deform unnaturally between the frames."}, {"label": "kitchen counter", "kind": "gradual", "t": 4.579, "drift": 0.324, "verdict": "changed", "confidence": 0.8, "explanation": "The object's overall shape and proportions have morphed from a flatter, wider form to a taller, more cylindrical shape."}, {"label": "robotic arm on the right", "kind": "gradual", "t": 3.816, "drift": 0.561, "verdict": "changed", "confidence": 0.95, "explanation": "The bottle morphs from a relatively slender shape into a significantly thicker, distorted form with new texture details like a white dot appearing."}], "vanish_events": [], "severity": 81}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 81%."}
+{"type": "done"}

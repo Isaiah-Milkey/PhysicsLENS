@@ -1,0 +1,15 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 3 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "1 contact episode(s) across 3 subject pair(s) (dilated-mask adjacency \u2265 0.02)."}
+{"type": "log", "level": "info", "text": "Contact: \u201crobotic arm on the left\u201d \u00d7 \u201cglass being poured into\u201d t=4.58\u20134.58s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Restitution OK \u2014 \u201crobotic arm on the left\u201d bounce off \u201cglass being poured into\u201d @ t=4.58s: e = 0.23 (in 14, out -3 px/s)."}
+{"type": "signal", "source": "s3_collision", "source_name": "Collision & Contact", "fps": 7.2, "n_frames": 48, "severity": 0, "type_severities": {"interpenetration": 0, "energy_gain": 0, "phantom_bounce": 0}, "signals": []}
+{"type": "plotly", "data": "<stripped 21214 chars>", "caption": "Top: pair overlap (orange = contact, red = interpenetration threshold). Bottom: vertical velocity; dotted red lines mark violations."}
+{"type": "metric", "label": "Contact episodes", "value": "1", "sub": "3 subject pair(s) analyzed"}
+{"type": "metric", "label": "Interpenetrations", "value": "0", "sub": "of 0 candidate(s) after VLM review"}
+{"type": "metric", "label": "Energy-gain bounces", "value": "0", "sub": "restitution > 1.1"}
+{"type": "metric", "label": "Phantom bounces", "value": "0", "sub": "direction reversal with no contact"}
+{"type": "severity", "label": "Collision violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "subjects": ["robotic arm on the left", "robotic arm on the right", "glass being poured into"], "episodes": [{"f_start": 33, "f_end": 33, "peak_overlap": 0.02044683822062637, "peak_frame": 33, "peak_raw": 0.0, "peak_raw_frame": 33, "pair": ["robotic arm on the left", "glass being poured into"], "t_start": 4.583, "t_end": 4.583}], "violations": [], "severity": 0}
+{"type": "log", "level": "success", "text": "Collision physics look plausible."}
+{"type": "done"}

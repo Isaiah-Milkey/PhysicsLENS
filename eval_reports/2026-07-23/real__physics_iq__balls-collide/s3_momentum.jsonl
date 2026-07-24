@@ -1,0 +1,18 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "3 subject(s) from Object Tracker evidence (sam3 mode): \u201cwooden table\u201d, \u201cyellow tennis ball\u201d, \u201cblue ball\u201d"}
+{"type": "log", "level": "info", "text": "VLM relative-mass ranking applied: wooden table=10, yellow tennis ball=1, blue ball=1"}
+{"type": "log", "level": "info", "text": "\u201cwooden table\u201d: momentum score 74 \u2014 vmax 1073 px/s, path 365 px, arc h 89 px (sym 0.00), smooth 0.61, m\u0302 2.99"}
+{"type": "log", "level": "info", "text": "\u201cyellow tennis ball\u201d: momentum score 67 \u2014 vmax 1224 px/s, path 644 px, arc h 112 px (sym 0.00), smooth 0.46, m\u0302 0.00"}
+{"type": "log", "level": "info", "text": "\u201cblue ball\u201d: momentum score 63 \u2014 vmax 961 px/s, path 710 px, arc h 130 px (sym 0.00), smooth 0.59, m\u0302 0.00"}
+{"type": "log", "level": "info", "text": "2 contact episode(s) between subjects."}
+{"type": "signal", "source": "s3_momentum", "source_name": "Momentum", "fps": 6.0, "n_frames": 48, "severity": 0, "type_severities": {"momentum_jump": 0, "transfer_anomaly": 0}, "signals": []}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 98836 chars>", "caption": "Trajectory overlay \u2014 each subject's centroid path."}
+{"type": "plotly", "data": "<stripped 16714 chars>", "caption": "Orange bands = contact episodes (momentum may change); dotted red = flagged momentum anomalies."}
+{"type": "metric", "label": "\u201cwooden table\u201d momentum score", "value": "74", "sub": "vmax 1073 px/s \u00b7 m\u0302 2.99 \u00b7 smooth 0.61"}
+{"type": "metric", "label": "\u201cyellow tennis ball\u201d momentum score", "value": "67", "sub": "vmax 1224 px/s \u00b7 m\u0302 0.00 \u00b7 smooth 0.46"}
+{"type": "metric", "label": "\u201cblue ball\u201d momentum score", "value": "63", "sub": "vmax 961 px/s \u00b7 m\u0302 0.00 \u00b7 smooth 0.59"}
+{"type": "metric", "label": "Momentum anomalies", "value": "0", "sub": "0 VLM-confirmed \u00b7 2 contact episode(s)"}
+{"type": "severity", "label": "Momentum violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "fingerprints": {"wooden table": {"max_speed_px_s": 1073.3, "avg_speed_px_s": 67.8, "max_accel_px_s2": 3219.9, "path_length_px": 365.4, "straightness": 0.006, "arc_height_px": 89.3, "arc_range_px": 158.4, "arc_symmetry": 0.0, "curvature_deg": 63.3, "smoothness": 0.615, "duration_s": 7.83, "mass_weight": 2.993, "momentum_score": 74}, "yellow tennis ball": {"max_speed_px_s": 1223.7, "avg_speed_px_s": 142.0, "max_accel_px_s2": 5032.4, "path_length_px": 644.4, "straightness": 0.211, "arc_height_px": 111.6, "arc_range_px": 329.4, "arc_symmetry": 0.0, "curvature_deg": 27.2, "smoothness": 0.463, "duration_s": 5.17, "mass_weight": 0.002, "momentum_score": 67}, "blue ball": {"max_speed_px_s": 960.7, "avg_speed_px_s": 151.8, "max_accel_px_s2": 2434.6, "path_length_px": 710.1, "straightness": 0.089, "arc_height_px": 130.2, "arc_range_px": 306.4, "arc_symmetry": 0.0, "curvature_deg": 28.1, "smoothness": 0.59, "duration_s": 5.17, "mass_weight": 0.004, "momentum_score": 63}}, "mass_weights": {"wooden table": 2.993, "yellow tennis ball": 0.002, "blue ball": 0.004}, "violations": [], "contact_episodes": [{"pair": ["wooden table", "yellow tennis ball"], "f_start": 16, "f_end": 47, "t_start": 2.667, "t_end": 7.833}, {"pair": ["wooden table", "blue ball"], "f_start": 16, "f_end": 47, "t_start": 2.667, "t_end": 7.833}], "severity": 0}
+{"type": "log", "level": "success", "text": "Motion signatures look physically plausible."}
+{"type": "done"}

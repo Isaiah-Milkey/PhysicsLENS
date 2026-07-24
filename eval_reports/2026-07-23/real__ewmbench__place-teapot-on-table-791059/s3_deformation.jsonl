@@ -1,0 +1,31 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 5 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "\u201cwooden table\u201d: shape/appearance stable (peak consecutive drift 0.183, vs first 0.217, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 230368 chars>", "caption": "\u201cwooden table\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm on the left\u201d: 1 deformation change-point(s) detected (peak 0.318 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm on the left\u201d @ t=4.28s (drift 0.318) \u2192 changed (95%): The gripper's fingers morph, changing from two distinct prongs to a deformed, multi-pronged structure."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 42048 chars>", "caption": "\u201crobotic arm on the left\u201d @ t=4.28s \u2014 changed (95%) per createai:geminipro3_1, drift 0.318"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 123644 chars>", "caption": "\u201crobotic arm on the left\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cglass cup\u201d: 1 deformation change-point(s) detected (peak 0.347 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cglass cup\u201d @ t=4.09s (drift 0.347) \u2192 changed (90%): A large dark hole or indentation has inexplicably appeared on the surface of the object in the AFTER frame."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 26388 chars>", "caption": "\u201cglass cup\u201d @ t=4.09s \u2014 changed (90%) per createai:geminipro3_1, drift 0.347"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 76492 chars>", "caption": "\u201cglass cup\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crobotic arm on the right\u201d: shape/appearance stable (peak consecutive drift 0.015, vs first 0.031, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 187340 chars>", "caption": "\u201crobotic arm on the right\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cglass pitcher with brown lid\u201d: 1 deformation change-point(s) detected (peak 0.437 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cglass pitcher with brown lid\u201d @ t=3.82s (drift 0.437) \u2192 changed (95%): A prominent handle suddenly appears on the left side of the pitcher in the after frame."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 32904 chars>", "caption": "\u201cglass pitcher with brown lid\u201d @ t=3.82s \u2014 changed (95%) per createai:geminipro3_1, drift 0.437"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 94620 chars>", "caption": "\u201cglass pitcher with brown lid\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 10.992366412213741, "n_frames": 48, "severity": 81, "type_severities": {"object_morph": 81, "object_vanish": 0}, "signals": [{"frame": 47, "signal_type": "object_morph", "score": 0.95}, {"frame": 45, "signal_type": "object_morph", "score": 0.9}, {"frame": 42, "signal_type": "object_morph", "score": 0.95}]}
+{"type": "plotly", "data": "<stripped 27687 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201cwooden table\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201crobotic arm on the left\u201d", "value": "CHANGED", "sub": "95% @ t=4.276s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201cglass cup\u201d", "value": "CHANGED", "sub": "90% @ t=4.094s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201crobotic arm on the right\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cglass pitcher with brown lid\u201d", "value": "CHANGED", "sub": "95% @ t=3.821s (createai:geminipro3_1)"}
+{"type": "metric", "label": "Change-points checked", "value": "3", "sub": "3 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 81, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["wooden table", "robotic arm on the left", "glass cup", "robotic arm on the right", "glass pitcher with brown lid"], "verdicts": [{"label": "robotic arm on the left", "kind": "gradual", "t": 4.276, "drift": 0.318, "verdict": "changed", "confidence": 0.95, "explanation": "The gripper's fingers morph, changing from two distinct prongs to a deformed, multi-pronged structure."}, {"label": "glass cup", "kind": "gradual", "t": 4.094, "drift": 0.347, "verdict": "changed", "confidence": 0.9, "explanation": "A large dark hole or indentation has inexplicably appeared on the surface of the object in the AFTER frame."}, {"label": "glass pitcher with brown lid", "kind": "gradual", "t": 3.821, "drift": 0.437, "verdict": "changed", "confidence": 0.95, "explanation": "A prominent handle suddenly appears on the left side of the pitcher in the after frame."}], "vanish_events": [], "severity": 81}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 81%."}
+{"type": "done"}

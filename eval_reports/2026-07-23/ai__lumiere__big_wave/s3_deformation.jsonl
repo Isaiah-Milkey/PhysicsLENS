@@ -1,0 +1,20 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 2 subject(s) from the evidence bus."}
+{"type": "log", "level": "warn", "text": "\u201ccrashing waves\u201d: 1 deformation change-point(s) detected (peak 0.640 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201ccrashing waves\u201d @ t=4.90s (drift 0.640) \u2192 changed (99%): The object transforms from a stylized painting to a photorealistic rendering of water."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 132508 chars>", "caption": "\u201ccrashing waves\u201d @ t=4.90s \u2014 changed (99%) per createai:geminipro3_1, drift 0.640"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 402500 chars>", "caption": "\u201ccrashing waves\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cmountain peak\u201d: 1 deformation change-point(s) detected (peak 0.748 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cmountain peak\u201d @ t=4.06s (drift 0.342) \u2192 changed (80%): The object's shape has unnaturally elongated and morphed, developing a rounded head and a more fragmented tail section that does not resemble rigid rotation or natural deformation."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 48800 chars>", "caption": "\u201cmountain peak\u201d @ t=4.06s \u2014 changed (80%) per createai:geminipro3_1, drift 0.342"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 163040 chars>", "caption": "\u201cmountain peak\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 9.6, "n_frames": 48, "severity": 84, "type_severities": {"object_morph": 84, "object_vanish": 0}, "signals": [{"frame": 47, "signal_type": "object_morph", "score": 0.99}, {"frame": 39, "signal_type": "object_morph", "score": 0.8}]}
+{"type": "plotly", "data": "<stripped 15062 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201ccrashing waves\u201d", "value": "CHANGED", "sub": "99% @ t=4.896s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201cmountain peak\u201d", "value": "CHANGED", "sub": "80% @ t=4.062s (createai:geminipro3_1)"}
+{"type": "metric", "label": "Change-points checked", "value": "2", "sub": "2 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 84, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["crashing waves", "mountain peak"], "verdicts": [{"label": "crashing waves", "kind": "gradual", "t": 4.896, "drift": 0.64, "verdict": "changed", "confidence": 0.99, "explanation": "The object transforms from a stylized painting to a photorealistic rendering of water."}, {"label": "mountain peak", "kind": "spike", "t": 4.062, "drift": 0.342, "verdict": "changed", "confidence": 0.8, "explanation": "The object's shape has unnaturally elongated and morphed, developing a rounded head and a more fragmented tail section that does not resemble rigid rotation or natural deformation."}], "vanish_events": [], "severity": 84}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 84%."}
+{"type": "done"}

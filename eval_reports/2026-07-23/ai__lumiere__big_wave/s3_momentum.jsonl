@@ -1,0 +1,16 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "2 subject(s) from Object Tracker evidence (sam3 mode): \u201ccrashing waves\u201d, \u201cmountain peak\u201d"}
+{"type": "log", "level": "info", "text": "VLM relative-mass ranking applied: crashing waves=1, mountain peak=10"}
+{"type": "log", "level": "info", "text": "\u201ccrashing waves\u201d: momentum score 67 \u2014 vmax 1148 px/s, path 299 px, arc h 139 px (sym 0.00), smooth 0.38, m\u0302 1.68"}
+{"type": "log", "level": "info", "text": "\u201cmountain peak\u201d: momentum score 63 \u2014 vmax 1590 px/s, path 445 px, arc h 166 px (sym 0.00), smooth 0.30, m\u0302 0.32"}
+{"type": "log", "level": "info", "text": "1 contact episode(s) between subjects."}
+{"type": "signal", "source": "s3_momentum", "source_name": "Momentum", "fps": 9.6, "n_frames": 48, "severity": 0, "type_severities": {"momentum_jump": 0, "transfer_anomaly": 0}, "signals": []}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 99576 chars>", "caption": "Trajectory overlay \u2014 each subject's centroid path."}
+{"type": "plotly", "data": "<stripped 14865 chars>", "caption": "Orange bands = contact episodes (momentum may change); dotted red = flagged momentum anomalies."}
+{"type": "metric", "label": "\u201ccrashing waves\u201d momentum score", "value": "67", "sub": "vmax 1148 px/s \u00b7 m\u0302 1.68 \u00b7 smooth 0.38"}
+{"type": "metric", "label": "\u201cmountain peak\u201d momentum score", "value": "63", "sub": "vmax 1590 px/s \u00b7 m\u0302 0.32 \u00b7 smooth 0.30"}
+{"type": "metric", "label": "Momentum anomalies", "value": "0", "sub": "0 VLM-confirmed \u00b7 1 contact episode(s)"}
+{"type": "severity", "label": "Momentum violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "fingerprints": {"crashing waves": {"max_speed_px_s": 1147.9, "avg_speed_px_s": 81.1, "max_accel_px_s2": 5652.0, "path_length_px": 299.4, "straightness": 0.123, "arc_height_px": 138.8, "arc_range_px": 71.4, "arc_symmetry": 0.0, "curvature_deg": 24.7, "smoothness": 0.381, "duration_s": 4.9, "mass_weight": 1.679, "momentum_score": 67}, "mountain peak": {"max_speed_px_s": 1590.5, "avg_speed_px_s": 123.3, "max_accel_px_s2": 7891.4, "path_length_px": 444.9, "straightness": 0.107, "arc_height_px": 165.8, "arc_range_px": 135.0, "arc_symmetry": 0.0, "curvature_deg": 15.3, "smoothness": 0.302, "duration_s": 4.69, "mass_weight": 0.321, "momentum_score": 63}}, "mass_weights": {"crashing waves": 1.679, "mountain peak": 0.321}, "violations": [], "contact_episodes": [{"pair": ["crashing waves", "mountain peak"], "f_start": 0, "f_end": 45, "t_start": 0.0, "t_end": 4.688}], "severity": 0}
+{"type": "log", "level": "success", "text": "Motion signatures look physically plausible."}
+{"type": "done"}

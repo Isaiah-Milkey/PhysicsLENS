@@ -1,0 +1,11 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: cardboard box, food packages #1, food packages #2, food packages #3, food packages #4, food packages #5; 12 inter-object contact event(s)"}
+{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 90% (t=1.33\u20132.33s): The cardboard box undergoes an implausible shape change, squashing or morphing, when touched by the robotic gripper."}
+{"type": "log", "level": "warn", "text": "#2 Collision & Contact \u2014 70% (t=1.33\u20132.33s): The robotic gripper appears to interpenetrate the cardboard box rather than making a solid contact."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 150272 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7151 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Deformation", "value": "90%", "sub": "heuristic+vlm \u00b7 t=1.33\u20132.33s"}
+{"type": "metric", "label": "Collision & Contact", "value": "70%", "sub": "heuristic+vlm \u00b7 t=1.33\u20132.33s"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.9, "reason": "The cardboard box undergoes an implausible shape change, squashing or morphing, when touched by the robotic gripper.", "t_window": [1.33, 2.33], "source": "heuristic+vlm"}, {"specialist": "collision", "confidence": 0.7, "reason": "The robotic gripper appears to interpenetrate the cardboard box rather than making a solid contact.", "t_window": [1.33, 2.33], "source": "heuristic+vlm"}], "evidence_summary": ["- tracked subjects: cardboard box, food packages #1, food packages #2, food packages #3, food packages #4, food packages #5", "- 12 inter-object contact event(s)"], "keyframe_ts": [1.33, 1.37, 1.4, 2.33]}
+{"type": "done"}

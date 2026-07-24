@@ -1,0 +1,22 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "456 frames @ 30.0 fps"}
+{"type": "log", "level": "info", "text": "Zone grid: 3\u00d73, 33 pts/zone \u2192 ~297 pts/frame"}
+{"type": "log", "level": "info", "text": "Processing\u2026 60/455 frames"}
+{"type": "log", "level": "info", "text": "Processing\u2026 120/455 frames"}
+{"type": "log", "level": "info", "text": "Processing\u2026 180/455 frames"}
+{"type": "log", "level": "info", "text": "Processing\u2026 240/455 frames"}
+{"type": "log", "level": "info", "text": "Processing\u2026 300/455 frames"}
+{"type": "log", "level": "info", "text": "Processing\u2026 360/455 frames"}
+{"type": "log", "level": "info", "text": "Processing\u2026 420/455 frames"}
+{"type": "log", "level": "info", "text": "Computing motion scores\u2026"}
+{"type": "plotly", "data": "<stripped 72098 chars>", "caption": "Per-frame camera motion score (bold blue). The score measures high-frequency tremor in the camera path \u2014 smooth pans, orbits and zooms score near zero even when fast. Compare with the faint teal camera-speed line: high speed + low score = intentional movement. Red shading = frames above the threshold (excessive movement)."}
+{"type": "plotly", "data": "<stripped 7729 chars>", "caption": "Average motion-model residual per zone (3\u00d73 grid, absolute pixel scale \u2014 all-green means the whole frame moves like one rigid camera). Localised red zones = motion that no camera move explains: moving subjects, parallax, or AI warping artefacts."}
+{"type": "image", "data": "<stripped 1011748 chars>", "mime": "image/png", "caption": "Worst frame at t = 7.84s (frame 235, score = 0.702). Arrows = per-point optical flow: green = fits the global camera model, red = outlier (subject motion / parallax / artefact). Cyan bold arrow = global camera motion (3\u00d7 scaled)."}
+{"type": "metric", "label": "Mean motion score", "value": "0.149", "sub": "0 = perfectly stable \u00b7 1 = excessive movement"}
+{"type": "metric", "label": "Peak motion score", "value": "0.702", "sub": "at t = 7.84s (frame 235)"}
+{"type": "metric", "label": "Excessive motion duration", "value": "0.5s", "sub": "3% of video \u00b7 1 segment(s)"}
+{"type": "metric", "label": "Camera tremor", "value": "0.75 px/frame", "sub": "high-frequency jitter (intentional speed: 1.0 px/frame)"}
+{"type": "log", "level": "warn", "text": "1 excessive movement segment(s): 7.5\u20138.0s"}
+{"type": "signal", "source": "s1_camera_motion", "source_name": "Camera Motion", "fps": 29.97002997002997, "n_frames": 456, "severity": 32, "type_severities": {"camera_motion": 32}, "signals": [{"frame": 235, "signal_type": "camera_motion", "score": 1.169}]}
+{"type": "severity", "label": "Camera motion severity", "value": 32, "color": "#EF9F27"}
+{"type": "done"}

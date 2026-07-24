@@ -1,0 +1,11 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: wooden table surface, brown cardboard ramp, blue rectangular block, yellow tennis ball; 1 inter-object contact event(s)"}
+{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 90% (t=0.0\u20131.69s): A tracked yellow tennis ball is nowhere to be seen in the video, suggesting it may have vanished or failed to render."}
+{"type": "log", "level": "warn", "text": "#2 Collision & Contact \u2014 55%: quantitative evidence (see summary)"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 146996 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7152 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Deformation", "value": "90%", "sub": "heuristic+vlm \u00b7 t=0.0\u20131.69s"}
+{"type": "metric", "label": "Collision & Contact", "value": "55%", "sub": "heuristic"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.9, "reason": "A tracked yellow tennis ball is nowhere to be seen in the video, suggesting it may have vanished or failed to render.", "t_window": [0.0, 1.69], "source": "heuristic+vlm"}, {"specialist": "collision", "confidence": 0.55, "reason": "quantitative evidence (see summary)", "t_window": null, "source": "heuristic"}], "evidence_summary": ["- tracked subjects: wooden table surface, brown cardboard ramp, blue rectangular block, yellow tennis ball", "- 1 inter-object contact event(s)"], "keyframe_ts": [0.0, 0.25, 0.62, 1.69]}
+{"type": "done"}

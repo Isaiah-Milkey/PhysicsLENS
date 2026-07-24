@@ -1,0 +1,23 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "48 frames @ 11.0 fps (640\u00d7480) loaded."}
+{"type": "log", "level": "info", "text": "Naming scene objects with VLM (createai:geminipro3_1)\u2026"}
+{"type": "log", "level": "success", "text": "VLM identified: robotic arm, clear measuring cup, kitchen sink, faucet, sponge"}
+{"type": "log", "level": "info", "text": "Loading SAM3 and segmenting\u2026"}
+{"type": "log", "level": "info", "text": "\"robotic arm\" \u2192 2 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"clear measuring cup\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"kitchen sink\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"faucet\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"sponge\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "success", "text": "Tracking 6 object(s): kitchen sink, clear measuring cup, robotic arm #1, faucet, robotic arm #2, sponge"}
+{"type": "log", "level": "info", "text": "DINOv2 appearance-drift analysis\u2026"}
+{"type": "log", "level": "info", "text": "Appearance drift computed for 6 object(s)."}
+{"type": "log", "level": "info", "text": "Building plots\u2026"}
+{"type": "plotly", "data": "<stripped 39631 chars>", "caption": "Centroid-Y trajectory of each named object (top). DINOv2 appearance drift \u2014 flat = stable, spikes = identity jump (bottom)."}
+{"type": "metric", "label": "Objects tracked", "value": "6", "sub": "kitchen sink, clear measuring cup, robotic arm #1, faucet, robotic arm #2, sponge"}
+{"type": "metric", "label": "Persistent objects", "value": "6", "sub": "present \u226550% of video"}
+{"type": "metric", "label": "Mean track length", "value": "48", "sub": "frames (video = 48)"}
+{"type": "metric", "label": "Mean appearance drift", "value": "0.169", "sub": "cosine dist to frame 0 (DINOv2)"}
+{"type": "metric", "label": "Peak drift", "value": "0.515", "sub": "max identity deviation across objects"}
+{"type": "severity", "label": "Tracking instability score", "value": 19, "color": "#4CAF50"}
+{"type": "log", "level": "success", "text": "6 object(s) tracked (kitchen sink, clear measuring cup, robotic arm #1, faucet, robotic arm #2, sponge); 6 persistent; mean drift 0.169."}
+{"type": "done"}

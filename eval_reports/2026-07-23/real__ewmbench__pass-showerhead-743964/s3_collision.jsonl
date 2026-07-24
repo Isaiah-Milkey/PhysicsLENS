@@ -1,0 +1,16 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 5 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "3 contact episode(s) across 10 subject pair(s) (dilated-mask adjacency \u2265 0.02)."}
+{"type": "log", "level": "info", "text": "Contact: \u201cshower head\u201d \u00d7 \u201cwall #2\u201d t=0.58\u20131.04s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201cshower head\u201d \u00d7 \u201cwall #2\u201d t=5.07\u20135.42s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201crobotic arm #1\u201d \u00d7 \u201cwall #2\u201d t=0.00\u20135.42s (peak raw overlap 0%)."}
+{"type": "signal", "source": "s3_collision", "source_name": "Collision & Contact", "fps": 8.674698795180722, "n_frames": 48, "severity": 0, "type_severities": {"interpenetration": 0, "energy_gain": 0, "phantom_bounce": 0}, "signals": []}
+{"type": "plotly", "data": "<stripped 44638 chars>", "caption": "Top: pair overlap (orange = contact, red = interpenetration threshold). Bottom: vertical velocity; dotted red lines mark violations."}
+{"type": "metric", "label": "Contact episodes", "value": "3", "sub": "10 subject pair(s) analyzed"}
+{"type": "metric", "label": "Interpenetrations", "value": "0", "sub": "of 0 candidate(s) after VLM review"}
+{"type": "metric", "label": "Energy-gain bounces", "value": "0", "sub": "restitution > 1.1"}
+{"type": "metric", "label": "Phantom bounces", "value": "0", "sub": "direction reversal with no contact"}
+{"type": "severity", "label": "Collision violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "subjects": ["shower head", "robotic arm #1", "robotic arm #2", "wall #1", "wall #2"], "episodes": [{"f_start": 5, "f_end": 9, "peak_overlap": 0.020969457529250873, "peak_frame": 5, "peak_raw": 0.0, "peak_raw_frame": 5, "pair": ["shower head", "wall #2"], "t_start": 0.576, "t_end": 1.038}, {"f_start": 44, "f_end": 47, "peak_overlap": 0.023149394347240917, "peak_frame": 44, "peak_raw": 0.0, "peak_raw_frame": 44, "pair": ["shower head", "wall #2"], "t_start": 5.072, "t_end": 5.418}, {"f_start": 0, "f_end": 47, "peak_overlap": 0.08684189816636499, "peak_frame": 47, "peak_raw": 0.0, "peak_raw_frame": 0, "pair": ["robotic arm #1", "wall #2"], "t_start": 0.0, "t_end": 5.418}], "violations": [], "severity": 0}
+{"type": "log", "level": "success", "text": "Collision physics look plausible."}
+{"type": "done"}

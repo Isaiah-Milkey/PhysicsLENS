@@ -1,0 +1,22 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "48 frames @ 8.6 fps (640\u00d7480) loaded."}
+{"type": "log", "level": "info", "text": "Naming scene objects with VLM (createai:geminipro3_1)\u2026"}
+{"type": "log", "level": "success", "text": "VLM identified: robotic arm, tea pitcher, tea cup, table, box of tissues, plant"}
+{"type": "log", "level": "info", "text": "Loading SAM3 and segmenting\u2026"}
+{"type": "log", "level": "info", "text": "\"robotic arm\" \u2192 2 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"table\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"box of tissues\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"plant\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "success", "text": "Tracking 5 object(s): table, plant, box of tissues, robotic arm #1, robotic arm #2"}
+{"type": "log", "level": "info", "text": "DINOv2 appearance-drift analysis\u2026"}
+{"type": "log", "level": "info", "text": "Appearance drift computed for 5 object(s)."}
+{"type": "log", "level": "info", "text": "Building plots\u2026"}
+{"type": "plotly", "data": "<stripped 33702 chars>", "caption": "Centroid-Y trajectory of each named object (top). DINOv2 appearance drift \u2014 flat = stable, spikes = identity jump (bottom)."}
+{"type": "metric", "label": "Objects tracked", "value": "5", "sub": "table, plant, box of tissues, robotic arm #1, robotic arm #2"}
+{"type": "metric", "label": "Persistent objects", "value": "5", "sub": "present \u226550% of video"}
+{"type": "metric", "label": "Mean track length", "value": "48", "sub": "frames (video = 48)"}
+{"type": "metric", "label": "Mean appearance drift", "value": "0.131", "sub": "cosine dist to frame 0 (DINOv2)"}
+{"type": "metric", "label": "Peak drift", "value": "0.718", "sub": "max identity deviation across objects"}
+{"type": "severity", "label": "Tracking instability score", "value": 15, "color": "#4CAF50"}
+{"type": "log", "level": "success", "text": "5 object(s) tracked (table, plant, box of tissues, robotic arm #1, robotic arm #2); 5 persistent; mean drift 0.131."}
+{"type": "done"}

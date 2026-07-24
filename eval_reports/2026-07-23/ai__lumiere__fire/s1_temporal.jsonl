@@ -1,0 +1,12 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "80 frames @ 16.0 fps \u2014 detecting 5 keypoints\u2026"}
+{"type": "log", "level": "info", "text": "Tracking\u2026 60/80 frames"}
+{"type": "log", "level": "info", "text": "Building plot\u2026"}
+{"type": "plotly", "data": "<stripped 30185 chars>", "caption": "Velocity per keypoint (top). Acceleration with red-highlighted anomalous frames (bottom)."}
+{"type": "signal", "source": "s1_temporal", "source_name": "Temporal Smoothness", "fps": 16.0, "n_frames": 80, "severity": 0, "type_severities": {"temporal_anomaly": 0}, "signals": []}
+{"type": "metric", "label": "Flagged frames", "value": "0", "sub": "of 80 total"}
+{"type": "metric", "label": "Peak acceleration", "value": "1.4", "sub": "px/s\u00b2"}
+{"type": "metric", "label": "Mean acceleration", "value": "0.1", "sub": "px/s\u00b2"}
+{"type": "severity", "label": "Temporal anomaly score", "value": 0, "color": "#4CAF50"}
+{"type": "log", "level": "success", "text": "No significant temporal jumps detected."}
+{"type": "done"}

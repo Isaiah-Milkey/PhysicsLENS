@@ -1,0 +1,19 @@
+{"type": "log", "level": "info", "text": "Loading video & tracking\u2026"}
+{"type": "log", "level": "warn", "text": "Object Tracker evidence has a different frame grid \u2014 falling back to LK tracks."}
+{"type": "log", "level": "info", "text": "Filtered 7 static background track(s) (moved < 16px); 1 moving track(s) kept."}
+{"type": "log", "level": "info", "text": "220 frames @ 30.0 fps \u2014 1 track(s) (LK keypoints)."}
+{"type": "log", "level": "info", "text": "1 track(s) extracted \u2014 computing kinematics\u2026"}
+{"type": "log", "level": "info", "text": "Building kinematic plots\u2026"}
+{"type": "plotly", "data": "<stripped 22463 chars>", "caption": "Top: per-object speed (\u00d7 = force-free direction reversal). Bottom: acceleration with flagged spikes; dotted lines = contacts."}
+{"type": "plotly", "data": "<stripped 15928 chars>", "caption": "Top-down centroid paths in pixel space; red \u00d7 marks acceleration spikes."}
+{"type": "signal", "source": "s2_trajectory_extractor", "source_name": "Trajectory Extractor", "fps": 30.0, "n_frames": 220, "severity": 0, "type_severities": {"accel_spike": 0, "velocity_reversal": 0, "contact": 0}, "signals": []}
+{"type": "metric", "label": "Objects analyzed", "value": "1", "sub": "2% keypoint loss"}
+{"type": "metric", "label": "Peak speed", "value": "75", "sub": "px/s (fastest track)"}
+{"type": "metric", "label": "Peak acceleration", "value": "307", "sub": "px/s\u00b2 (largest motion change)"}
+{"type": "metric", "label": "Accel spikes", "value": "0", "sub": "robust z > 3.5"}
+{"type": "metric", "label": "Velocity reversals", "value": "0", "sub": "force-free direction flips"}
+{"type": "metric", "label": "Physical impacts", "value": "0", "sub": "explained collisions (not anomalies)"}
+{"type": "metric", "label": "Contact events", "value": "0", "sub": "inter-object box overlaps"}
+{"type": "severity", "label": "Trajectory anomaly score", "value": 0, "color": "#4CAF50"}
+{"type": "log", "level": "success", "text": "No trajectory anomalies detected \u2014 motion is kinematically smooth."}
+{"type": "done"}

@@ -1,0 +1,33 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 5 subject(s) from the evidence bus."}
+{"type": "log", "level": "warn", "text": "\u201cblue plate\u201d: 1 deformation change-point(s) detected (peak 0.790 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cblue plate\u201d @ t=0.78s (drift 0.308) \u2192 changed (95%): A chunk of the object's top right edge is suddenly missing in the second frame, altering its originally circular shape."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 31996 chars>", "caption": "\u201cblue plate\u201d @ t=0.78s \u2014 changed (95%) per createai:geminipro3_1, drift 0.308"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 101340 chars>", "caption": "\u201cblue plate\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crobotic arm #1\u201d: shape/appearance stable (peak consecutive drift 0.034, vs first 0.099, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 130832 chars>", "caption": "\u201crobotic arm #1\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201ctoaster\u201d: 1 deformation change-point(s) detected (peak 0.492 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201ctoaster\u201d @ t=0.78s (drift 0.419) \u2192 changed (80%): The shape of the toaster's white casing morphs and extends further back in the second frame."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 36548 chars>", "caption": "\u201ctoaster\u201d @ t=0.78s \u2014 changed (80%) per createai:geminipro3_1, drift 0.419"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 122144 chars>", "caption": "\u201ctoaster\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm #2\u201d: 1 deformation change-point(s) detected (peak 0.439 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm #2\u201d @ t=6.14s (drift 0.439) \u2192 changed (95%): A new white L-shaped structure has impossibly appeared attached to the top of the robot's wrist."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 73124 chars>", "caption": "\u201crobotic arm #2\u201d @ t=6.14s \u2014 changed (95%) per createai:geminipro3_1, drift 0.439"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 209964 chars>", "caption": "\u201crobotic arm #2\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cbread slice\u201d: 1 deformation change-point(s) detected (peak 0.568 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cbread slice\u201d @ t=0.39s (drift 0.305) \u2192 changed (99%): The extra piece or thick fold extending behind the main slice of bread in the first frame disappears completely in the second frame."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 26572 chars>", "caption": "\u201cbread slice\u201d @ t=0.39s \u2014 changed (99%) per createai:geminipro3_1, drift 0.305"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 87176 chars>", "caption": "\u201cbread slice\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 7.659574468085107, "n_frames": 48, "severity": 84, "type_severities": {"object_morph": 84, "object_vanish": 0}, "signals": [{"frame": 6, "signal_type": "object_morph", "score": 0.95}, {"frame": 6, "signal_type": "object_morph", "score": 0.8}, {"frame": 47, "signal_type": "object_morph", "score": 0.95}, {"frame": 3, "signal_type": "object_morph", "score": 0.99}]}
+{"type": "plotly", "data": "<stripped 25822 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201cblue plate\u201d", "value": "CHANGED", "sub": "95% @ t=0.783s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201crobotic arm #1\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201ctoaster\u201d", "value": "CHANGED", "sub": "80% @ t=0.783s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201crobotic arm #2\u201d", "value": "CHANGED", "sub": "95% @ t=6.136s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201cbread slice\u201d", "value": "CHANGED", "sub": "99% @ t=0.392s (createai:geminipro3_1)"}
+{"type": "metric", "label": "Change-points checked", "value": "4", "sub": "4 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 84, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["blue plate", "robotic arm #1", "toaster", "robotic arm #2", "bread slice"], "verdicts": [{"label": "blue plate", "kind": "spike", "t": 0.783, "drift": 0.308, "verdict": "changed", "confidence": 0.95, "explanation": "A chunk of the object's top right edge is suddenly missing in the second frame, altering its originally circular shape."}, {"label": "toaster", "kind": "spike", "t": 0.783, "drift": 0.419, "verdict": "changed", "confidence": 0.8, "explanation": "The shape of the toaster's white casing morphs and extends further back in the second frame."}, {"label": "robotic arm #2", "kind": "gradual", "t": 6.136, "drift": 0.439, "verdict": "changed", "confidence": 0.95, "explanation": "A new white L-shaped structure has impossibly appeared attached to the top of the robot's wrist."}, {"label": "bread slice", "kind": "spike", "t": 0.392, "drift": 0.305, "verdict": "changed", "confidence": 0.99, "explanation": "The extra piece or thick fold extending behind the main slice of bread in the first frame disappears completely in the second frame."}], "vanish_events": [], "severity": 84}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 84%."}
+{"type": "done"}

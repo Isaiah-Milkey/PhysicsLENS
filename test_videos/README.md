@@ -12,7 +12,9 @@ test_videos/
 │   │   ├── ball-in-basket.mp4         ⭐ matched-pair REAL side
 │   │   ├── ball-and-block-fall.mp4
 │   │   └── ball-in-sand.mp4
-│   └── wikimedia/              # short real clips (bouncing balls, etc.)
+│   ├── wikimedia/              # short real clips (bouncing balls, etc.)
+│   └── ewmbench/               # 20 real robot-manipulation episodes (EWMBench GT,
+│                               #   AgiBot World footage, 30fps) — see its README
 └── ai_generated/               # text/image-to-video model output — should score HIGHER
     ├── basketball-onto-crate.mp4      ⭐ matched-pair AI side
     ├── bowling-ball-drop.mp4

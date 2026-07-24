@@ -1,0 +1,17 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "2 subject(s) from Object Tracker evidence (sam3 mode): \u201ccrashing waves\u201d, \u201cmountain peak\u201d"}
+{"type": "log", "level": "info", "text": "1 contact episode(s) between subjects."}
+{"type": "log", "level": "info", "text": "\u201ccrashing waves\u201d identified as 'wave' \u2014 expected motion: accelerate"}
+{"type": "log", "level": "info", "text": "\u201cmountain peak\u201d identified as 'mountain' \u2014 expected motion: constant"}
+{"type": "log", "level": "info", "text": "\u201ccrashing waves\u201d (wave): 0 coast segment(s), friction score 50 \u2014 vavg 81 px/s, avg decel 0.0 px/s\u00b2"}
+{"type": "log", "level": "info", "text": "\u201cmountain peak\u201d (mountain): 0 coast segment(s), friction score 50 \u2014 vavg 123 px/s, avg decel 0.0 px/s\u00b2"}
+{"type": "signal", "source": "s3_friction", "source_name": "Friction", "fps": 9.6, "n_frames": 48, "severity": 0, "type_severities": {"no_friction": 0, "self_acceleration": 0, "abrupt_stop": 0}, "signals": []}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 99576 chars>", "caption": "Trajectory overlay \u2014 each subject's centroid path."}
+{"type": "plotly", "data": "<stripped 11310 chars>", "caption": "Orange bands = contact episodes (speed may change); dotted red = flagged friction anomalies; bottom bars = deceleration rate per coast segment (positive = slowing down, as friction predicts)."}
+{"type": "metric", "label": "\u201ccrashing waves\u201d friction score", "value": "50", "sub": "wave \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"}
+{"type": "metric", "label": "\u201cmountain peak\u201d friction score", "value": "50", "sub": "mountain \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"}
+{"type": "metric", "label": "Friction anomalies", "value": "0", "sub": "0 VLM-confirmed \u00b7 1 contact episode(s)"}
+{"type": "severity", "label": "Friction violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "fingerprints": {"crashing waves": {"object_name": "wave", "avg_speed_px_s": 81.1, "max_speed_px_s": 1147.9, "n_coast_segments": 0, "n_decel_expected_segments": 0, "avg_decel_px_s2": 0.0, "friction_score": 50}, "mountain peak": {"object_name": "mountain", "avg_speed_px_s": 123.3, "max_speed_px_s": 1590.5, "n_coast_segments": 0, "n_decel_expected_segments": 0, "avg_decel_px_s2": 0.0, "friction_score": 50}}, "profiles": {"crashing waves": {"object_name": "wave", "phases": [{"start_frac": 0.0, "end_frac": 1.0, "expected": "accelerate", "reason": "falling water accelerates due to gravity as the wave crashes"}]}, "mountain peak": {"object_name": "mountain", "phases": [{"start_frac": 0.0, "end_frac": 1.0, "expected": "constant", "reason": "stationary object"}]}}, "coast_segments": {"crashing waves": [], "mountain peak": []}, "violations": [], "contact_episodes": [{"pair": ["crashing waves", "mountain peak"], "f_start": 0, "f_end": 45, "t_start": 0.0, "t_end": 4.688}], "severity": 0}
+{"type": "log", "level": "success", "text": "Speed decay looks physically plausible."}
+{"type": "done"}

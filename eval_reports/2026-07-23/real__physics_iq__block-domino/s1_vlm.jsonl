@@ -1,0 +1,13 @@
+{"type": "log", "level": "info", "text": "API model via createai: createai:geminipro3_1"}
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Analyzing 8 frames from 128 total in one multi-frame pass\u2026"}
+{"type": "log", "level": "warn", "text": "Verdict: score=0.95  (1 violation(s))  The yellow domino on the far left completely vanishes after frame 4 when the other dominoes fall towards it. This is a clear violation of object permanence."}
+{"type": "log", "level": "warn", "text": "Violation 1: object permanence"}
+{"type": "plotly", "data": "<stripped 7363 chars>", "caption": "Holistic suspicion over 8 frames (8.0s of video). Red \u2265 0.5 (suspicious), amber \u2265 0.25 (uncertain), green < 0.25 (plausible)."}
+{"type": "plotly", "data": "<stripped 7341 chars>", "caption": "Each row: the physical law the model believes is broken, the visual evidence, and the reasoning."}
+{"type": "metric", "label": "Suspicion score", "value": "0.95", "sub": "0\u20131 (whole video)"}
+{"type": "metric", "label": "Physics violations", "value": "1", "sub": "object permanence"}
+{"type": "metric", "label": "Model confidence", "value": "99%", "sub": "self-reported"}
+{"type": "severity", "label": "VLM suspicion level", "value": 95, "color": "#E24B4A"}
+{"type": "log", "level": "info", "text": "Assessment: The yellow domino on the far left completely vanishes after frame 4 when the other dominoes fall towards it. This is a clear violation of object permanence."}
+{"type": "done"}

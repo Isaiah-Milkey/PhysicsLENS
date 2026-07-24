@@ -1,0 +1,16 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "2 subject(s) from Object Tracker evidence (sam3 mode): \u201ccheckered floor\u201d, \u201cgolden sphere\u201d"}
+{"type": "log", "level": "info", "text": "VLM relative-mass ranking applied: checkered floor=10, golden sphere=1"}
+{"type": "log", "level": "info", "text": "\u201ccheckered floor\u201d: momentum score 74 \u2014 vmax 2445 px/s, path 340 px, arc h 90 px (sym 0.00), smooth 0.10, m\u0302 1.99"}
+{"type": "log", "level": "info", "text": "\u201cgolden sphere\u201d: momentum score 73 \u2014 vmax 2773 px/s, path 702 px, arc h 172 px (sym 0.00), smooth 0.07, m\u0302 0.01"}
+{"type": "log", "level": "info", "text": "1 contact episode(s) between subjects."}
+{"type": "signal", "source": "s3_momentum", "source_name": "Momentum", "fps": 15.157894736842104, "n_frames": 48, "severity": 0, "type_severities": {"momentum_jump": 0, "transfer_anomaly": 0}, "signals": []}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 48136 chars>", "caption": "Trajectory overlay \u2014 each subject's centroid path."}
+{"type": "plotly", "data": "<stripped 14770 chars>", "caption": "Orange bands = contact episodes (momentum may change); dotted red = flagged momentum anomalies."}
+{"type": "metric", "label": "\u201ccheckered floor\u201d momentum score", "value": "74", "sub": "vmax 2445 px/s \u00b7 m\u0302 1.99 \u00b7 smooth 0.10"}
+{"type": "metric", "label": "\u201cgolden sphere\u201d momentum score", "value": "73", "sub": "vmax 2773 px/s \u00b7 m\u0302 0.01 \u00b7 smooth 0.07"}
+{"type": "metric", "label": "Momentum anomalies", "value": "0", "sub": "0 VLM-confirmed \u00b7 1 contact episode(s)"}
+{"type": "severity", "label": "Momentum violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "fingerprints": {"checkered floor": {"max_speed_px_s": 2444.7, "avg_speed_px_s": 158.0, "max_accel_px_s2": 18527.4, "path_length_px": 340.4, "straightness": 0.009, "arc_height_px": 89.5, "arc_range_px": 141.3, "arc_symmetry": 0.0, "curvature_deg": 28.2, "smoothness": 0.099, "duration_s": 3.1, "mass_weight": 1.989, "momentum_score": 74}, "golden sphere": {"max_speed_px_s": 2772.8, "avg_speed_px_s": 364.4, "max_accel_px_s2": 21025.2, "path_length_px": 701.8, "straightness": 0.161, "arc_height_px": 172.2, "arc_range_px": 180.4, "arc_symmetry": 0.0, "curvature_deg": 28.7, "smoothness": 0.074, "duration_s": 2.31, "mass_weight": 0.011, "momentum_score": 73}}, "mass_weights": {"checkered floor": 1.989, "golden sphere": 0.011}, "violations": [], "contact_episodes": [{"pair": ["checkered floor", "golden sphere"], "f_start": 12, "f_end": 47, "t_start": 0.792, "t_end": 3.101}], "severity": 0}
+{"type": "log", "level": "success", "text": "Motion signatures look physically plausible."}
+{"type": "done"}

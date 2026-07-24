@@ -1,0 +1,14 @@
+{"type": "log", "level": "info", "text": "API model via createai: createai:geminipro3_1"}
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Analyzing 8 frames from 80 total in one multi-frame pass\u2026"}
+{"type": "log", "level": "warn", "text": "Verdict: score=0.90  (2 violation(s))  The handle on the right side of the glass morphs and grows from a small nub in the first frame into a large, distinct loop by the fifth frame. Solid glass objects cannot spontaneously change shape in this manner."}
+{"type": "log", "level": "warn", "text": "Violation 1: rigid body morphing"}
+{"type": "log", "level": "warn", "text": "Violation 2: object permanence"}
+{"type": "plotly", "data": "<stripped 7362 chars>", "caption": "Holistic suspicion over 8 frames (5.0s of video). Red \u2265 0.5 (suspicious), amber \u2265 0.25 (uncertain), green < 0.25 (plausible)."}
+{"type": "plotly", "data": "<stripped 7401 chars>", "caption": "Each row: the physical law the model believes is broken, the visual evidence, and the reasoning."}
+{"type": "metric", "label": "Suspicion score", "value": "0.90", "sub": "0\u20131 (whole video)"}
+{"type": "metric", "label": "Physics violations", "value": "2", "sub": "rigid body morphing"}
+{"type": "metric", "label": "Model confidence", "value": "95%", "sub": "self-reported"}
+{"type": "severity", "label": "VLM suspicion level", "value": 90, "color": "#E24B4A"}
+{"type": "log", "level": "info", "text": "Assessment: The handle on the right side of the glass morphs and grows from a small nub in the first frame into a large, distinct loop by the fifth frame. Solid glass objects cannot spontaneously change shape in this manner."}
+{"type": "done"}

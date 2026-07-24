@@ -1,0 +1,21 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 3 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "\u201cclear ribbed drinking glass\u201d: shape/appearance stable (peak consecutive drift 0.089, vs first 0.171, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 233764 chars>", "caption": "\u201cclear ribbed drinking glass\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crising amber liquid\u201d: shape/appearance stable (peak consecutive drift 0.069, vs first 0.292, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 208240 chars>", "caption": "\u201crising amber liquid\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cfoamy white head\u201d: 1 deformation change-point(s) detected (peak 0.604 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201cfoamy white head\u201d @ t=3.54s (drift 0.305) \u2192 changed (90%): The foam layer abruptly changes shape, becoming significantly smoother and flatter in just 0.1 seconds, which is physically implausible."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 119600 chars>", "caption": "\u201cfoamy white head\u201d @ t=3.54s \u2014 changed (90%) per createai:geminipro3_1, drift 0.305"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 375388 chars>", "caption": "\u201cfoamy white head\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 9.6, "n_frames": 48, "severity": 76, "type_severities": {"object_morph": 76, "object_vanish": 0}, "signals": [{"frame": 34, "signal_type": "object_morph", "score": 0.9}]}
+{"type": "plotly", "data": "<stripped 18503 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201cclear ribbed drinking glass\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201crising amber liquid\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cfoamy white head\u201d", "value": "CHANGED", "sub": "90% @ t=3.542s (createai:geminipro3_1)"}
+{"type": "metric", "label": "Change-points checked", "value": "1", "sub": "1 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 76, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["clear ribbed drinking glass", "rising amber liquid", "foamy white head"], "verdicts": [{"label": "foamy white head", "kind": "spike", "t": 3.542, "drift": 0.305, "verdict": "changed", "confidence": 0.9, "explanation": "The foam layer abruptly changes shape, becoming significantly smoother and flatter in just 0.1 seconds, which is physically implausible."}], "vanish_events": [], "severity": 76}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 76%."}
+{"type": "done"}

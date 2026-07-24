@@ -1,0 +1,18 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "3 subject(s) from Object Tracker evidence (sam3 mode): \u201cglass jar\u201d, \u201cbee\u201d, \u201cwooden surface\u201d"}
+{"type": "log", "level": "info", "text": "VLM relative-mass ranking applied: glass jar=1, bee=0.1, wooden surface=10"}
+{"type": "log", "level": "info", "text": "\u201cglass jar\u201d: momentum score 64 \u2014 vmax 1449 px/s, path 322 px, arc h 122 px (sym 0.00), smooth 0.32, m\u0302 0.51"}
+{"type": "log", "level": "info", "text": "\u201cbee\u201d: momentum score 59 \u2014 vmax 1112 px/s, path 331 px, arc h 75 px (sym 0.00), smooth 0.39, m\u0302 0.01"}
+{"type": "log", "level": "info", "text": "\u201cwooden surface\u201d: momentum score 72 \u2014 vmax 1424 px/s, path 319 px, arc h 151 px (sym 0.00), smooth 0.33, m\u0302 2.47"}
+{"type": "log", "level": "info", "text": "3 contact episode(s) between subjects."}
+{"type": "signal", "source": "s3_momentum", "source_name": "Momentum", "fps": 9.6, "n_frames": 48, "severity": 0, "type_severities": {"momentum_jump": 0, "transfer_anomaly": 0}, "signals": []}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 56940 chars>", "caption": "Trajectory overlay \u2014 each subject's centroid path."}
+{"type": "plotly", "data": "<stripped 19055 chars>", "caption": "Orange bands = contact episodes (momentum may change); dotted red = flagged momentum anomalies."}
+{"type": "metric", "label": "\u201cwooden surface\u201d momentum score", "value": "72", "sub": "vmax 1424 px/s \u00b7 m\u0302 2.47 \u00b7 smooth 0.33"}
+{"type": "metric", "label": "\u201cglass jar\u201d momentum score", "value": "64", "sub": "vmax 1449 px/s \u00b7 m\u0302 0.51 \u00b7 smooth 0.32"}
+{"type": "metric", "label": "\u201cbee\u201d momentum score", "value": "59", "sub": "vmax 1112 px/s \u00b7 m\u0302 0.01 \u00b7 smooth 0.39"}
+{"type": "metric", "label": "Momentum anomalies", "value": "0", "sub": "0 VLM-confirmed \u00b7 3 contact episode(s)"}
+{"type": "severity", "label": "Momentum violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "fingerprints": {"glass jar": {"max_speed_px_s": 1448.7, "avg_speed_px_s": 93.8, "max_accel_px_s2": 6998.5, "path_length_px": 321.9, "straightness": 0.028, "arc_height_px": 122.4, "arc_range_px": 104.0, "arc_symmetry": 0.0, "curvature_deg": 56.3, "smoothness": 0.315, "duration_s": 4.9, "mass_weight": 0.514, "momentum_score": 64}, "bee": {"max_speed_px_s": 1112.3, "avg_speed_px_s": 85.7, "max_accel_px_s2": 5360.4, "path_length_px": 330.6, "straightness": 0.212, "arc_height_px": 75.4, "arc_range_px": 169.8, "arc_symmetry": 0.0, "curvature_deg": 25.4, "smoothness": 0.394, "duration_s": 4.9, "mass_weight": 0.013, "momentum_score": 59}, "wooden surface": {"max_speed_px_s": 1423.7, "avg_speed_px_s": 93.3, "max_accel_px_s2": 6818.5, "path_length_px": 319.4, "straightness": 0.049, "arc_height_px": 150.7, "arc_range_px": 69.5, "arc_symmetry": 0.0, "curvature_deg": 31.0, "smoothness": 0.329, "duration_s": 4.9, "mass_weight": 2.473, "momentum_score": 72}}, "mass_weights": {"glass jar": 0.514, "bee": 0.013, "wooden surface": 2.473}, "violations": [], "contact_episodes": [{"pair": ["glass jar", "bee"], "f_start": 0, "f_end": 47, "t_start": 0.0, "t_end": 4.896}, {"pair": ["glass jar", "wooden surface"], "f_start": 0, "f_end": 47, "t_start": 0.0, "t_end": 4.896}, {"pair": ["bee", "wooden surface"], "f_start": 0, "f_end": 30, "t_start": 0.0, "t_end": 3.125}], "severity": 0}
+{"type": "log", "level": "success", "text": "Motion signatures look physically plausible."}
+{"type": "done"}

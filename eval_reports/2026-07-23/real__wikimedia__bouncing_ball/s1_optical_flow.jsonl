@@ -1,0 +1,3 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "656 frames @ 25.0 fps \u2014 initialising 30 tracks\u2026"}
+{"type": "error", "text": "No keypoints detected in first frame."}

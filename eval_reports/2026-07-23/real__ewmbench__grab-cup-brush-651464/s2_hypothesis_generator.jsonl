@@ -1,0 +1,15 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: sink, faucet, robotic arm #1, robotic arm #2; 3 inter-object contact event(s); acceleration spikes (severity 24)"}
+{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Collision & Contact \u2014 80% (t=0.2\u20130.3s): The robotic arms interact with a bottle and each other, which may involve clipping or interpenetration."}
+{"type": "log", "level": "warn", "text": "#2 Momentum \u2014 70% (t=0.2\u20130.3s): The flagged acceleration spikes suggest an unnatural transfer of momentum during the contact event."}
+{"type": "log", "level": "info", "text": "#3 Causality \u2014 35%: quantitative evidence (see summary)"}
+{"type": "log", "level": "info", "text": "#4 Deformation \u2014 30%: quantitative evidence (see summary)"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 101004 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7215 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Collision & Contact", "value": "80%", "sub": "heuristic+vlm \u00b7 t=0.2\u20130.3s"}
+{"type": "metric", "label": "Momentum", "value": "70%", "sub": "vlm \u00b7 t=0.2\u20130.3s"}
+{"type": "metric", "label": "Causality", "value": "35%", "sub": "heuristic"}
+{"type": "metric", "label": "Deformation", "value": "30%", "sub": "heuristic"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "collision", "confidence": 0.8, "reason": "The robotic arms interact with a bottle and each other, which may involve clipping or interpenetration.", "t_window": [0.2, 0.3], "source": "heuristic+vlm"}, {"specialist": "momentum", "confidence": 0.7, "reason": "The flagged acceleration spikes suggest an unnatural transfer of momentum during the contact event.", "t_window": [0.2, 0.3], "source": "vlm"}, {"specialist": "causality", "confidence": 0.35, "reason": "quantitative evidence (see summary)", "t_window": null, "source": "heuristic"}, {"specialist": "deformation", "confidence": 0.3, "reason": "quantitative evidence (see summary)", "t_window": null, "source": "heuristic"}], "evidence_summary": ["- tracked subjects: sink, faucet, robotic arm #1, robotic arm #2", "- 3 inter-object contact event(s)", "- acceleration spikes (severity 24)"], "keyframe_ts": [0.2, 0.23, 0.27, 0.3]}
+{"type": "done"}

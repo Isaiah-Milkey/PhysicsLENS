@@ -1,0 +1,11 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: blue plate, bottle, robotic arm #1, toaster, apple, robotic arm #2"}
+{"type": "log", "level": "info", "text": "VLM triage over 1 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 90% (t=2.68\u20135.57s): The slice of bread appears to morph or merge implausibly with the toaster or the other slice when inserted."}
+{"type": "log", "level": "warn", "text": "#2 Collision & Contact \u2014 85% (t=2.68\u20133.86s): The bread being inserted by the robotic arm seems to interpenetrate the toaster body or the bread already inside."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 30764 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7152 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Deformation", "value": "90%", "sub": "vlm \u00b7 t=2.68\u20135.57s"}
+{"type": "metric", "label": "Collision & Contact", "value": "85%", "sub": "vlm \u00b7 t=2.68\u20133.86s"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.9, "reason": "The slice of bread appears to morph or merge implausibly with the toaster or the other slice when inserted.", "t_window": [2.68, 5.57], "source": "vlm"}, {"specialist": "collision", "confidence": 0.85, "reason": "The bread being inserted by the robotic arm seems to interpenetrate the toaster body or the bread already inside.", "t_window": [2.68, 3.86], "source": "vlm"}], "evidence_summary": ["- tracked subjects: blue plate, bottle, robotic arm #1, toaster, apple, robotic arm #2"], "keyframe_ts": [5.57]}
+{"type": "done"}

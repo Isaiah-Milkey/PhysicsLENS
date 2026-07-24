@@ -1,0 +1,13 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "80 frames @ 16.0 fps \u2014 initialising 30 tracks\u2026"}
+{"type": "log", "level": "info", "text": "Optical flow\u2026 60/80 frames"}
+{"type": "log", "level": "info", "text": "Plotting results\u2026"}
+{"type": "plotly", "data": "<stripped 12987 chars>", "caption": "Top: flow magnitude (red spike lines). Bottom: directional consistency."}
+{"type": "signal", "source": "s1_optical_flow", "source_name": "Optical Flow", "fps": 16.0, "n_frames": 80, "severity": 15, "type_severities": {"flow_spike": 0, "flow_chaos": 15}, "signals": [{"frame": 8, "signal_type": "flow_chaos", "score": 0.566}, {"frame": 18, "signal_type": "flow_chaos", "score": 0.676}, {"frame": 43, "signal_type": "flow_chaos", "score": 0.57}, {"frame": 45, "signal_type": "flow_chaos", "score": 0.651}, {"frame": 48, "signal_type": "flow_chaos", "score": 0.58}]}
+{"type": "metric", "label": "Flagged frames", "value": "5", "sub": "spike or chaotic direction"}
+{"type": "metric", "label": "Peak flow", "value": "5.8", "sub": "px/frame"}
+{"type": "metric", "label": "Mean flow", "value": "1.6", "sub": "px/frame"}
+{"type": "metric", "label": "Mean dir consistency", "value": "0.49", "sub": "0 = random \u00b7 1 = uniform"}
+{"type": "severity", "label": "Optical flow anomaly score", "value": 15, "color": "#4CAF50"}
+{"type": "log", "level": "warn", "text": "5 direction-chaos frame(s) detected."}
+{"type": "done"}

@@ -1,0 +1,19 @@
+{"type": "log", "level": "info", "text": "Loading video & tracking\u2026"}
+{"type": "log", "level": "warn", "text": "Object Tracker evidence has a different frame grid \u2014 falling back to LK tracks."}
+{"type": "log", "level": "warn", "text": "No track moved significantly \u2014 keeping only the most-moving one (video may be near-static)."}
+{"type": "log", "level": "info", "text": "171 frames @ 30.0 fps \u2014 1 track(s) (LK keypoints)."}
+{"type": "log", "level": "info", "text": "1 track(s) extracted \u2014 computing kinematics\u2026"}
+{"type": "log", "level": "info", "text": "Building kinematic plots\u2026"}
+{"type": "plotly", "data": "<stripped 19987 chars>", "caption": "Top: per-object speed (\u00d7 = force-free direction reversal). Bottom: acceleration with flagged spikes; dotted lines = contacts."}
+{"type": "plotly", "data": "<stripped 14815 chars>", "caption": "Top-down centroid paths in pixel space; red \u00d7 marks acceleration spikes."}
+{"type": "signal", "source": "s2_trajectory_extractor", "source_name": "Trajectory Extractor", "fps": 30.0, "n_frames": 171, "severity": 20, "type_severities": {"accel_spike": 20, "velocity_reversal": 0, "contact": 0}, "signals": [{"frame": 0, "signal_type": "accel_spike", "score": 1.146}, {"frame": 1, "signal_type": "accel_spike", "score": 1.815}, {"frame": 2, "signal_type": "accel_spike", "score": 3.0}, {"frame": 3, "signal_type": "accel_spike", "score": 2.213}, {"frame": 10, "signal_type": "accel_spike", "score": 2.138}, {"frame": 11, "signal_type": "accel_spike", "score": 1.727}, {"frame": 30, "signal_type": "accel_spike", "score": 1.075}, {"frame": 32, "signal_type": "accel_spike", "score": 1.177}, {"frame": 33, "signal_type": "accel_spike", "score": 1.512}, {"frame": 151, "signal_type": "accel_spike", "score": 1.156}, {"frame": 153, "signal_type": "accel_spike", "score": 1.253}, {"frame": 154, "signal_type": "accel_spike", "score": 2.12}, {"frame": 155, "signal_type": "accel_spike", "score": 1.253}, {"frame": 157, "signal_type": "accel_spike", "score": 1.156}]}
+{"type": "metric", "label": "Objects analyzed", "value": "1", "sub": "8% keypoint loss"}
+{"type": "metric", "label": "Peak speed", "value": "16", "sub": "px/s (fastest track)"}
+{"type": "metric", "label": "Peak acceleration", "value": "198", "sub": "px/s\u00b2 (largest motion change)"}
+{"type": "metric", "label": "Accel spikes", "value": "14", "sub": "robust z > 3.5"}
+{"type": "metric", "label": "Velocity reversals", "value": "0", "sub": "force-free direction flips"}
+{"type": "metric", "label": "Physical impacts", "value": "5", "sub": "explained collisions (not anomalies)"}
+{"type": "metric", "label": "Contact events", "value": "0", "sub": "inter-object box overlaps"}
+{"type": "severity", "label": "Trajectory anomaly score", "value": 20, "color": "#EF9F27"}
+{"type": "log", "level": "warn", "text": "14 accel spike(s) detected."}
+{"type": "done"}

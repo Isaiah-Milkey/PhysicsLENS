@@ -1,0 +1,14 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "166 frames @ 30.0 fps \u2014 initialising 30 tracks\u2026"}
+{"type": "log", "level": "info", "text": "Optical flow\u2026 60/166 frames"}
+{"type": "log", "level": "info", "text": "Optical flow\u2026 120/166 frames"}
+{"type": "log", "level": "info", "text": "Plotting results\u2026"}
+{"type": "plotly", "data": "<stripped 20421 chars>", "caption": "Top: flow magnitude (red spike lines). Bottom: directional consistency."}
+{"type": "signal", "source": "s1_optical_flow", "source_name": "Optical Flow", "fps": 30.0, "n_frames": 166, "severity": 31, "type_severities": {"flow_spike": 0, "flow_chaos": 31}, "signals": [{"frame": 11, "signal_type": "flow_chaos", "score": 0.794}, {"frame": 12, "signal_type": "flow_chaos", "score": 0.769}, {"frame": 13, "signal_type": "flow_chaos", "score": 0.518}, {"frame": 15, "signal_type": "flow_chaos", "score": 0.734}, {"frame": 17, "signal_type": "flow_chaos", "score": 0.821}, {"frame": 19, "signal_type": "flow_chaos", "score": 0.528}, {"frame": 20, "signal_type": "flow_chaos", "score": 0.555}, {"frame": 21, "signal_type": "flow_chaos", "score": 0.863}, {"frame": 24, "signal_type": "flow_chaos", "score": 0.524}, {"frame": 27, "signal_type": "flow_chaos", "score": 0.585}, {"frame": 146, "signal_type": "flow_chaos", "score": 0.509}, {"frame": 147, "signal_type": "flow_chaos", "score": 0.606}, {"frame": 148, "signal_type": "flow_chaos", "score": 0.528}, {"frame": 149, "signal_type": "flow_chaos", "score": 0.617}, {"frame": 151, "signal_type": "flow_chaos", "score": 0.553}, {"frame": 153, "signal_type": "flow_chaos", "score": 0.53}, {"frame": 155, "signal_type": "flow_chaos", "score": 0.543}, {"frame": 157, "signal_type": "flow_chaos", "score": 0.52}, {"frame": 161, "signal_type": "flow_chaos", "score": 0.639}, {"frame": 163, "signal_type": "flow_chaos", "score": 0.548}, {"frame": 165, "signal_type": "flow_chaos", "score": 0.736}]}
+{"type": "metric", "label": "Flagged frames", "value": "21", "sub": "spike or chaotic direction"}
+{"type": "metric", "label": "Peak flow", "value": "5.2", "sub": "px/frame"}
+{"type": "metric", "label": "Mean flow", "value": "1.3", "sub": "px/frame"}
+{"type": "metric", "label": "Mean dir consistency", "value": "0.48", "sub": "0 = random \u00b7 1 = uniform"}
+{"type": "severity", "label": "Optical flow anomaly score", "value": 31, "color": "#EF9F27"}
+{"type": "log", "level": "warn", "text": "21 direction-chaos frame(s) detected."}
+{"type": "done"}

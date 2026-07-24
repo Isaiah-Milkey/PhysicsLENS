@@ -1,0 +1,16 @@
+{"type": "log", "level": "info", "text": "Causality Specialist \u2014 VLM rule-checker on Qwen2.5-VL 7B (~17 GB, no API key). 5 rules."}
+{"type": "log", "level": "info", "text": "Geometric motion signals ready (self-computed) \u2014 they can fire the ordering & reversal rules the VLM cannot see in still frames."}
+{"type": "log", "level": "info", "text": "Checking 5 causality rules over 8 frames (first run loads the model \u2014 may take a minute)\u2026"}
+{"type": "log", "level": "info", "text": "\u2713 Cause must precede effect \u2014 ok (P=0.10) \u00b7 geometry: 0 event(s)"}
+{"type": "log", "level": "info", "text": "\u2713 The arrow of time \u2014 ok (P=0.01) \u00b7 geometry: 0 event(s)"}
+{"type": "log", "level": "info", "text": "\u2713 Temporal continuity \u2014 ok (P=0.03)"}
+{"type": "log", "level": "info", "text": "\u2713 Cause-effect coupling \u2014 ok (P=0.11)"}
+{"type": "log", "level": "info", "text": "\u2713 No effect without a cause \u2014 ok (P=0.06)"}
+{"type": "plotly", "data": "<stripped 7722 chars>", "caption": "Each bar is the model's probability that a causality rule is violated, read from its Yes/No token logits. Red = fired."}
+{"type": "metric", "label": "Rules fired", "value": "0/5", "sub": "causality rules violated"}
+{"type": "metric", "label": "Top violation", "value": "\u2014", "sub": "none fired"}
+{"type": "metric", "label": "VLM+geometry agree", "value": "0", "sub": "rules both methods fired"}
+{"type": "metric", "label": "Causality verdict", "value": "rejected", "sub": "severity 4/100"}
+{"type": "severity", "label": "Causality violation severity", "value": 4, "color": "#4CAF50"}
+{"type": "log", "level": "success", "text": "Causality verdict: rejected (severity 4/100, 0/5 rules fired)."}
+{"type": "done"}

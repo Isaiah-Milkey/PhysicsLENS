@@ -1,0 +1,23 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 3 subject(s) from the evidence bus."}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm on the left\u201d: 1 deformation change-point(s) detected (peak 0.720 > 0.3)."}
+{"type": "log", "level": "warn", "text": "\u201crobotic arm on the left\u201d @ t=6.25s (drift 0.720) \u2192 changed (95%): The structure of the robotic gripper changes significantly between the frames, with the bottom prong appearing disconnected or heavily morphed from its original articulated shape."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 49484 chars>", "caption": "\u201crobotic arm on the left\u201d @ t=6.25s \u2014 changed (95%) per createai:geminipro3_1, drift 0.720"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 139548 chars>", "caption": "\u201crobotic arm on the left\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "info", "text": "\u201crobotic arm on the right\u201d: shape/appearance stable (peak consecutive drift 0.066, vs first 0.101, threshold 0.3)."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 128952 chars>", "caption": "\u201crobotic arm on the right\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "log", "level": "warn", "text": "\u201cglass being poured into\u201d: 1 deformation change-point(s) detected (peak 0.449 > 0.3)."}
+{"type": "log", "level": "info", "text": "\u201cglass being poured into\u201d @ t=3.47s (drift 0.449) \u2192 consistent (99%): The jar simply changes its orientation from tilted to upright, while its shape, texture, and identity remain the same."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 30664 chars>", "caption": "\u201cglass being poured into\u201d @ t=3.47s \u2014 consistent (99%) per createai:geminipro3_1, drift 0.449"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 90696 chars>", "caption": "\u201cglass being poured into\u201d over time (fixed viewport, background dimmed) \u2014 evidence overview"}
+{"type": "signal", "source": "s3_deformation", "source_name": "Deformation", "fps": 7.2, "n_frames": 48, "severity": 81, "type_severities": {"object_morph": 81, "object_vanish": 0}, "signals": [{"frame": 45, "signal_type": "object_morph", "score": 0.95}]}
+{"type": "plotly", "data": "<stripped 19649 chars>", "caption": "Spikes above the red threshold are detected change-points (each verified by the VLM); the bottom curve catches gradual morphs."}
+{"type": "metric", "label": "\u201crobotic arm on the left\u201d", "value": "CHANGED", "sub": "95% @ t=6.25s (createai:geminipro3_1)"}
+{"type": "metric", "label": "\u201crobotic arm on the right\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "\u201cglass being poured into\u201d", "value": "STABLE", "sub": "no change-points confirmed"}
+{"type": "metric", "label": "Change-points checked", "value": "2", "sub": "1 confirmed changed \u00b7 drift threshold 0.3"}
+{"type": "metric", "label": "Vanish events", "value": "0", "sub": "mask gaps \u2265 0.3s (grid-aware)"}
+{"type": "severity", "label": "Deformation violation", "value": 81, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "subjects": ["robotic arm on the left", "robotic arm on the right", "glass being poured into"], "verdicts": [{"label": "robotic arm on the left", "kind": "gradual", "t": 6.25, "drift": 0.72, "verdict": "changed", "confidence": 0.95, "explanation": "The structure of the robotic gripper changes significantly between the frames, with the bottom prong appearing disconnected or heavily morphed from its original articulated shape."}, {"label": "glass being poured into", "kind": "gradual", "t": 3.472, "drift": 0.449, "verdict": "consistent", "confidence": 0.99, "explanation": "The jar simply changes its orientation from tilted to upright, while its shape, texture, and identity remain the same."}], "vanish_events": [], "severity": 81}
+{"type": "log", "level": "warn", "text": "Deformation VIOLATION \u2014 severity 81%."}
+{"type": "done"}

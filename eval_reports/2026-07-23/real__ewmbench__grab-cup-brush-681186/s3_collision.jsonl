@@ -1,0 +1,17 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 6 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "4 contact episode(s) across 15 subject pair(s) (dilated-mask adjacency \u2265 0.02)."}
+{"type": "log", "level": "info", "text": "Contact: \u201ckitchen sink\u201d \u00d7 \u201cclear measuring cup\u201d t=0.00\u20134.28s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201cclear measuring cup\u201d \u00d7 \u201crobotic arm #1\u201d t=1.46\u20131.46s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201cclear measuring cup\u201d \u00d7 \u201crobotic arm #1\u201d t=2.91\u20132.91s (peak raw overlap 0%)."}
+{"type": "log", "level": "info", "text": "Contact: \u201cclear measuring cup\u201d \u00d7 \u201cfaucet\u201d t=0.00\u20134.28s (peak raw overlap 8%)."}
+{"type": "signal", "source": "s3_collision", "source_name": "Collision & Contact", "fps": 10.992366412213741, "n_frames": 48, "severity": 0, "type_severities": {"interpenetration": 0, "energy_gain": 0, "phantom_bounce": 0}, "signals": []}
+{"type": "plotly", "data": "<stripped 59150 chars>", "caption": "Top: pair overlap (orange = contact, red = interpenetration threshold). Bottom: vertical velocity; dotted red lines mark violations."}
+{"type": "metric", "label": "Contact episodes", "value": "4", "sub": "15 subject pair(s) analyzed"}
+{"type": "metric", "label": "Interpenetrations", "value": "0", "sub": "of 0 candidate(s) after VLM review"}
+{"type": "metric", "label": "Energy-gain bounces", "value": "0", "sub": "restitution > 1.1"}
+{"type": "metric", "label": "Phantom bounces", "value": "0", "sub": "direction reversal with no contact"}
+{"type": "severity", "label": "Collision violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "subjects": ["kitchen sink", "clear measuring cup", "robotic arm #1", "faucet", "robotic arm #2", "sponge"], "episodes": [{"f_start": 0, "f_end": 47, "peak_overlap": 0.06935908691834942, "peak_frame": 47, "peak_raw": 0.0, "peak_raw_frame": 0, "pair": ["kitchen sink", "clear measuring cup"], "t_start": 0.0, "t_end": 4.276}, {"f_start": 16, "f_end": 16, "peak_overlap": 0.03138871274571972, "peak_frame": 16, "peak_raw": 0.0, "peak_raw_frame": 16, "pair": ["clear measuring cup", "robotic arm #1"], "t_start": 1.456, "t_end": 1.456}, {"f_start": 32, "f_end": 32, "peak_overlap": 0.023779327837666456, "peak_frame": 32, "peak_raw": 0.0, "peak_raw_frame": 32, "pair": ["clear measuring cup", "robotic arm #1"], "t_start": 2.911, "t_end": 2.911}, {"f_start": 0, "f_end": 47, "peak_overlap": 0.4115702479338843, "peak_frame": 0, "peak_raw": 0.08071748878923767, "peak_raw_frame": 45, "pair": ["clear measuring cup", "faucet"], "t_start": 0.0, "t_end": 4.276}], "violations": [], "severity": 0}
+{"type": "log", "level": "success", "text": "Collision physics look plausible."}
+{"type": "done"}

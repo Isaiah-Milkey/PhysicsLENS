@@ -1,0 +1,13 @@
+{"type": "log", "level": "info", "text": "Reusing 1 kinematic track(s) + 0 contact event(s) from the Trajectory Extractor (evidence bus)."}
+{"type": "log", "level": "info", "text": "0 free-flight segment(s) across 1 track(s); 0 violation(s), 1 float candidate(s)."}
+{"type": "log", "level": "info", "text": "Float candidate \u2014 \u201ctable\u201d @ t=3.20s: hovering in place for 1.67s off the ground (awaiting VLM confirmation)"}
+{"type": "signal", "source": "s3_gravity", "source_name": "Gravity", "fps": 30.0, "n_frames": 171, "severity": 0, "type_severities": {"non_parabolic_fall": 0, "inconsistent_accel": 0, "anti_gravity": 0, "float": 0, "unequal_fall": 0, "apex_asymmetry": 0}, "signals": []}
+{"type": "plotly", "data": "<stripped 17976 chars>", "caption": "Shaded bands are analyzed free-flight windows; dashed black curves are the ballistic fits; dotted red lines mark gravity violations."}
+{"type": "metric", "label": "Airborne segments", "value": "0", "sub": "1 track(s) \u00b7 min 0.4s"}
+{"type": "metric", "label": "Violations", "value": "0", "sub": "all airborne motion gravity-consistent"}
+{"type": "metric", "label": "Cleanest fit R\u00b2", "value": "\u2014", "sub": "1.0 = perfect parabola"}
+{"type": "metric", "label": "Float candidates", "value": "1", "sub": "0 confirmed by VLM \u00b7 0 explained as supported/self-propelled"}
+{"type": "severity", "label": "Gravity violation", "value": 0, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "severity": 0, "segments": [], "violations": [], "float_candidates": [{"type": "float", "track_id": 0, "label": "table", "t0": 2.367, "t1": 4.033, "t": 3.2, "frame": 96, "score": 0.85, "confirmed": null, "detail": "hovering in place for 1.67s off the ground"}], "coherence": 0.0}
+{"type": "log", "level": "success", "text": "Airborne motion is consistent with constant downward gravity."}
+{"type": "done"}

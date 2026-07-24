@@ -1,0 +1,11 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: obj 0, obj 1, obj 2, obj 3, obj 4, obj 5, obj 6, obj 7; 16 inter-object contact event(s)"}
+{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 80% (t=0.04\u20130.36s): The text fades in, which may be interpreted as an implausible appearance change or vanishing/reappearing of tracked objects."}
+{"type": "log", "level": "warn", "text": "#2 Collision & Contact \u2014 55%: quantitative evidence (see summary) | VLM: Automated screening flagged 16 contact events, possibly false positives between the letters of the text."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 27836 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7152 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Deformation", "value": "80%", "sub": "heuristic+vlm \u00b7 t=0.04\u20130.36s"}
+{"type": "metric", "label": "Collision & Contact", "value": "55%", "sub": "heuristic+vlm"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.8, "reason": "The text fades in, which may be interpreted as an implausible appearance change or vanishing/reappearing of tracked objects.", "t_window": [0.04, 0.36], "source": "heuristic+vlm"}, {"specialist": "collision", "confidence": 0.55, "reason": "quantitative evidence (see summary) | VLM: Automated screening flagged 16 contact events, possibly false positives between the letters of the text.", "t_window": null, "source": "heuristic+vlm"}], "evidence_summary": ["- tracked subjects: obj 0, obj 1, obj 2, obj 3, obj 4, obj 5, obj 6, obj 7", "- 16 inter-object contact event(s)"], "keyframe_ts": [0.04, 0.08, 0.28, 0.36]}
+{"type": "done"}

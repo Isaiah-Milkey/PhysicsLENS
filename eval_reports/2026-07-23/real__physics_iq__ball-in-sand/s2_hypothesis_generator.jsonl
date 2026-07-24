@@ -1,0 +1,13 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: green sand patch, blue ball"}
+{"type": "log", "level": "info", "text": "VLM triage over 1 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 80% (t=2.0\u20135.0s): The green sand patch is a deformable material; the impact of the ball might not cause realistic displacement or cratering."}
+{"type": "log", "level": "warn", "text": "#2 Collision & Contact \u2014 70% (t=2.0\u20135.0s): The interaction between the rigid ball and the soft sand could exhibit interpenetration without proper contact mechanics."}
+{"type": "log", "level": "warn", "text": "#3 Gravity \u2014 50% (t=0.0\u20134.0s): The ball is dropped from a claw, so its free-fall acceleration should be checked."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 29892 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7181 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Deformation", "value": "80%", "sub": "vlm \u00b7 t=2.0\u20135.0s"}
+{"type": "metric", "label": "Collision & Contact", "value": "70%", "sub": "vlm \u00b7 t=2.0\u20135.0s"}
+{"type": "metric", "label": "Gravity", "value": "50%", "sub": "vlm \u00b7 t=0.0\u20134.0s"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.8, "reason": "The green sand patch is a deformable material; the impact of the ball might not cause realistic displacement or cratering.", "t_window": [2.0, 5.0], "source": "vlm"}, {"specialist": "collision", "confidence": 0.7, "reason": "The interaction between the rigid ball and the soft sand could exhibit interpenetration without proper contact mechanics.", "t_window": [2.0, 5.0], "source": "vlm"}, {"specialist": "gravity", "confidence": 0.5, "reason": "The ball is dropped from a claw, so its free-fall acceleration should be checked.", "t_window": [0.0, 4.0], "source": "vlm"}], "evidence_summary": ["- tracked subjects: green sand patch, blue ball"], "keyframe_ts": [4.13]}
+{"type": "done"}

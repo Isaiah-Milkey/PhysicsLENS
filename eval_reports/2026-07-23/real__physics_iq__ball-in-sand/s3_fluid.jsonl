@@ -1,0 +1,17 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "No fluid-like subject named by the Object Tracker \u2014 falling back to a motion-energy region."}
+{"type": "log", "level": "info", "text": "Fluid region: motion-energy region (static for the clip)."}
+{"type": "log", "level": "info", "text": "Computing dense optical flow across 48 frame(s)\u2026"}
+{"type": "log", "level": "info", "text": "Advected 288 point path(s) through the fluid region."}
+{"type": "log", "level": "warn", "text": "Holistic realism: unrealistic (99%): There is no liquid or fluid visible in these frames; the blue ball is falling into a pile of granular material that resembles kinetic sand, which behaves as a solid rather than exhibiting fluid dynamics."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 121640 chars>", "caption": "Fluid realism check \u2014 unrealistic (99%) per createai:geminipro3_1"}
+{"type": "signal", "source": "s3_fluid", "source_name": "Fluid", "fps": 9.6, "n_frames": 48, "severity": 99, "type_severities": {"ballistic_arc": 0, "incompressibility": 0, "splash_timing": 0, "flow_discontinuity": 0}, "signals": []}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 75948 chars>", "caption": "Advected point arcs (288 paths) \u2014 cyan/gold = normal, red = flagged; yellow line = estimated fluid surface."}
+{"type": "plotly", "data": "<stripped 11446 chars>", "caption": "Dashed red = violation threshold; dotted red markers = flagged moments (top: incompressibility, bottom: discontinuity)."}
+{"type": "metric", "label": "Points tracked", "value": "288", "sub": "avg path length 25.8 frame(s)"}
+{"type": "metric", "label": "Fluid anomalies", "value": "0", "sub": "0 VLM-confirmed"}
+{"type": "metric", "label": "Holistic realism", "value": "UNREALISTIC", "sub": "99% confidence (createai:geminipro3_1)"}
+{"type": "severity", "label": "Fluid violation", "value": 99, "color": "#E24B4A"}
+{"type": "result", "status": "ok", "region_source": "motion-energy region (static for the clip)", "n_paths": 288, "violations": [], "holistic": {"verdict": "unrealistic", "confidence": 0.99, "explanation": "There is no liquid or fluid visible in these frames; the blue ball is falling into a pile of granular material that resembles kinetic sand, which behaves as a solid rather than exhibiting fluid dynamics."}, "severity": 99}
+{"type": "log", "level": "warn", "text": "Fluid VIOLATION \u2014 severity 99%."}
+{"type": "done"}

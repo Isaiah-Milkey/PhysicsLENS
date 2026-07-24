@@ -1,0 +1,18 @@
+{"type": "log", "level": "info", "text": "Loading video & tracking\u2026"}
+{"type": "log", "level": "info", "text": "656 frames @ 25.0 fps \u2014 8 track(s) (LK keypoints)."}
+{"type": "log", "level": "info", "text": "Skipped 1 featureless lead-in frame(s)."}
+{"type": "log", "level": "info", "text": "8 track(s) extracted \u2014 computing kinematics\u2026"}
+{"type": "log", "level": "info", "text": "Building kinematic plots\u2026"}
+{"type": "plotly", "data": "<stripped 36654 chars>", "caption": "Top: per-object speed (\u00d7 = force-free direction reversal). Bottom: acceleration with flagged spikes; dotted lines = contacts."}
+{"type": "plotly", "data": "<stripped 29565 chars>", "caption": "Top-down centroid paths in pixel space; red \u00d7 marks acceleration spikes."}
+{"type": "signal", "source": "s2_trajectory_extractor", "source_name": "Trajectory Extractor", "fps": 25.0, "n_frames": 656, "severity": 6, "type_severities": {"accel_spike": 4, "velocity_reversal": 2, "contact": 100}, "signals": [{"frame": 7, "signal_type": "velocity_reversal", "score": 2.104}, {"frame": 1, "signal_type": "accel_spike", "score": 1.749}, {"frame": 2, "signal_type": "accel_spike", "score": 2.72}, {"frame": 9, "signal_type": "accel_spike", "score": 2.12}, {"frame": 12, "signal_type": "accel_spike", "score": 2.12}, {"frame": 13, "signal_type": "accel_spike", "score": 1.927}, {"frame": 47, "signal_type": "accel_spike", "score": 1.927}, {"frame": 48, "signal_type": "accel_spike", "score": 2.12}, {"frame": 51, "signal_type": "accel_spike", "score": 2.12}, {"frame": 5, "signal_type": "velocity_reversal", "score": 3.0}, {"frame": 19, "signal_type": "velocity_reversal", "score": 2.399}, {"frame": 41, "signal_type": "velocity_reversal", "score": 1.786}, {"frame": 49, "signal_type": "velocity_reversal", "score": 1.19}, {"frame": 1, "signal_type": "contact", "score": 0.5}, {"frame": 1, "signal_type": "contact", "score": 0.515}, {"frame": 1, "signal_type": "contact", "score": 0.531}, {"frame": 1, "signal_type": "contact", "score": 0.511}, {"frame": 2, "signal_type": "contact", "score": 0.565}, {"frame": 54, "signal_type": "contact", "score": 0.5}, {"frame": 58, "signal_type": "contact", "score": 0.55}, {"frame": 59, "signal_type": "contact", "score": 0.5}, {"frame": 59, "signal_type": "contact", "score": 0.557}, {"frame": 59, "signal_type": "contact", "score": 0.5}, {"frame": 59, "signal_type": "contact", "score": 0.538}, {"frame": 59, "signal_type": "contact", "score": 0.652}, {"frame": 59, "signal_type": "contact", "score": 0.505}, {"frame": 59, "signal_type": "contact", "score": 0.538}, {"frame": 59, "signal_type": "contact", "score": 0.516}, {"frame": 59, "signal_type": "contact", "score": 0.533}]}
+{"type": "metric", "label": "Objects analyzed", "value": "8", "sub": "100% keypoint loss"}
+{"type": "metric", "label": "Peak speed", "value": "1232", "sub": "px/s (fastest track)"}
+{"type": "metric", "label": "Peak acceleration", "value": "11750", "sub": "px/s\u00b2 (largest motion change)"}
+{"type": "metric", "label": "Accel spikes", "value": "8", "sub": "robust z > 3.5"}
+{"type": "metric", "label": "Velocity reversals", "value": "5", "sub": "force-free direction flips"}
+{"type": "metric", "label": "Physical impacts", "value": "82", "sub": "explained collisions (not anomalies)"}
+{"type": "metric", "label": "Contact events", "value": "16", "sub": "inter-object box overlaps"}
+{"type": "severity", "label": "Trajectory anomaly score", "value": 6, "color": "#4CAF50"}
+{"type": "log", "level": "warn", "text": "8 accel spike(s), 5 velocity reversal(s), 16 contact(s) detected."}
+{"type": "done"}

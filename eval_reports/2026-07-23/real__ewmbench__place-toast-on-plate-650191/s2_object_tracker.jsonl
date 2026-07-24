@@ -1,0 +1,23 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "48 frames @ 8.2 fps (640\u00d7480) loaded."}
+{"type": "log", "level": "info", "text": "Naming scene objects with VLM (createai:geminipro3_1)\u2026"}
+{"type": "log", "level": "success", "text": "VLM identified: robotic arm, toast, toaster, blue plate, apple, bottle"}
+{"type": "log", "level": "info", "text": "Loading SAM3 and segmenting\u2026"}
+{"type": "log", "level": "info", "text": "\"robotic arm\" \u2192 2 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"toaster\" \u2192 1 instance(s) (best present 47/48 frames)."}
+{"type": "log", "level": "info", "text": "\"blue plate\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "info", "text": "\"apple\" \u2192 1 instance(s) (best present 47/48 frames)."}
+{"type": "log", "level": "info", "text": "\"bottle\" \u2192 1 instance(s) (best present 48/48 frames)."}
+{"type": "log", "level": "success", "text": "Tracking 6 object(s): blue plate, bottle, robotic arm #1, toaster, apple, robotic arm #2"}
+{"type": "log", "level": "info", "text": "DINOv2 appearance-drift analysis\u2026"}
+{"type": "log", "level": "info", "text": "Appearance drift computed for 6 object(s)."}
+{"type": "log", "level": "info", "text": "Building plots\u2026"}
+{"type": "plotly", "data": "<stripped 47827 chars>", "caption": "Centroid-Y trajectory of each named object (top). DINOv2 appearance drift \u2014 flat = stable, spikes = identity jump (bottom)."}
+{"type": "metric", "label": "Objects tracked", "value": "6", "sub": "blue plate, bottle, robotic arm #1, toaster, apple, robotic arm #2"}
+{"type": "metric", "label": "Persistent objects", "value": "5", "sub": "present \u226550% of video"}
+{"type": "metric", "label": "Mean track length", "value": "42", "sub": "frames (video = 48)"}
+{"type": "metric", "label": "Mean appearance drift", "value": "0.361", "sub": "cosine dist to frame 0 (DINOv2)"}
+{"type": "metric", "label": "Peak drift", "value": "0.994", "sub": "max identity deviation across objects"}
+{"type": "severity", "label": "Tracking instability score", "value": 42, "color": "#EF9F27"}
+{"type": "log", "level": "warn", "text": "6 object(s) tracked (blue plate, bottle, robotic arm #1, toaster, apple, robotic arm #2); 5 persistent; mean drift 0.361."}
+{"type": "done"}

@@ -1,0 +1,1236 @@
+{
+ "video": "test_videos/real/physics_iq/block-domino.mp4",
+ "label": "real",
+ "pipelines": {
+  "s1_temporal": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 8.4,
+   "n_events": 13,
+   "severities": [
+    {
+     "label": "Temporal anomaly score",
+     "value": 100
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Flagged frames",
+     "value": "95",
+     "sub": "of 128 total"
+    },
+    {
+     "label": "Peak acceleration",
+     "value": "186892.9",
+     "sub": "px/s\u00b2"
+    },
+    {
+     "label": "Mean acceleration",
+     "value": "1576.7",
+     "sub": "px/s\u00b2"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "128 frames @ 16.0 fps \u2014 detecting 5 keypoints\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Tracking\u2026 60/128 frames"
+    },
+    {
+     "level": "info",
+     "text": "Tracking\u2026 120/128 frames"
+    },
+    {
+     "level": "info",
+     "text": "Building plot\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "95 frame(s) show abrupt acceleration spikes."
+    }
+   ]
+  },
+  "s1_optical_flow": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 3.7,
+   "n_events": 14,
+   "severities": [
+    {
+     "label": "Optical flow anomaly score",
+     "value": 23
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Flagged frames",
+     "value": "12",
+     "sub": "spike or chaotic direction"
+    },
+    {
+     "label": "Peak flow",
+     "value": "185.2",
+     "sub": "px/frame"
+    },
+    {
+     "label": "Mean flow",
+     "value": "3.4",
+     "sub": "px/frame"
+    },
+    {
+     "label": "Mean dir consistency",
+     "value": "0.31",
+     "sub": "0 = random \u00b7 1 = uniform"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "128 frames @ 16.0 fps \u2014 initialising 30 tracks\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Optical flow\u2026 60/128 frames"
+    },
+    {
+     "level": "info",
+     "text": "Optical flow\u2026 120/128 frames"
+    },
+    {
+     "level": "info",
+     "text": "Plotting results\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "7 flow-spike frame(s), 11 direction-chaos frame(s) detected."
+    }
+   ]
+  },
+  "s1_embeddings": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 4.4,
+   "n_events": 13,
+   "severities": [
+    {
+     "label": "Embedding anomaly score",
+     "value": 14
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Flagged frames",
+     "value": "3",
+     "sub": "of 64 sampled"
+    },
+    {
+     "label": "Peak latent acc",
+     "value": "1.0397",
+     "sub": "\u2016\u0394\u00b2z\u2016"
+    },
+    {
+     "label": "Mean latent vel",
+     "value": "0.1268",
+     "sub": "\u2016\u0394z\u2016"
+    },
+    {
+     "label": "Embedding dim",
+     "value": "768",
+     "sub": "dinov2"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "64 frames sampled (every 2) \u2014 loading dinov2\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Encoding whole-frame embeddings with DINOv2 (dinov2-base, cuda, batched)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Embeddings: (64, 768) \u2014 computing latent dynamics\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "3 frame(s) with abrupt embedding shifts."
+    }
+   ]
+  },
+  "s1_camera_motion": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 3.8,
+   "n_events": 18,
+   "severities": [
+    {
+     "label": "Camera motion severity",
+     "value": 1
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Mean motion score",
+     "value": "0.020",
+     "sub": "0 = perfectly stable \u00b7 1 = excessive movement"
+    },
+    {
+     "label": "Peak motion score",
+     "value": "0.031",
+     "sub": "at t = 3.44s (frame 55)"
+    },
+    {
+     "label": "Excessive motion duration",
+     "value": "0.0s",
+     "sub": "0% of video \u00b7 0 segment(s)"
+    },
+    {
+     "label": "Camera tremor",
+     "value": "0.01 px/frame",
+     "sub": "high-frequency jitter (intentional speed: 0.0 px/frame)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "128 frames @ 16.0 fps"
+    },
+    {
+     "level": "info",
+     "text": "Downscaled to 1280\u00d7720"
+    },
+    {
+     "level": "info",
+     "text": "Zone grid: 3\u00d73, 33 pts/zone \u2192 ~297 pts/frame"
+    },
+    {
+     "level": "info",
+     "text": "Processing\u2026 60/127 frames"
+    },
+    {
+     "level": "info",
+     "text": "Processing\u2026 120/127 frames"
+    },
+    {
+     "level": "info",
+     "text": "Computing motion scores\u2026"
+    },
+    {
+     "level": "success",
+     "text": "No excessive camera movement detected."
+    }
+   ]
+  },
+  "s1_vlm": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 18.9,
+   "n_events": 13,
+   "severities": [
+    {
+     "label": "VLM suspicion level",
+     "value": 95
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Suspicion score",
+     "value": "0.95",
+     "sub": "0\u20131 (whole video)"
+    },
+    {
+     "label": "Physics violations",
+     "value": "1",
+     "sub": "object permanence"
+    },
+    {
+     "label": "Model confidence",
+     "value": "99%",
+     "sub": "self-reported"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "API model via createai: createai:geminipro3_1"
+    },
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Analyzing 8 frames from 128 total in one multi-frame pass\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "Verdict: score=0.95  (1 violation(s))  The yellow domino on the far left completely vanishes after frame 4 when the other dominoes fall towards it. This is a clear violation of object permanence."
+    },
+    {
+     "level": "warn",
+     "text": "Violation 1: object permanence"
+    },
+    {
+     "level": "info",
+     "text": "Assessment: The yellow domino on the far left completely vanishes after frame 4 when the other dominoes fall towards it. This is a clear violation of object permanence."
+    }
+   ]
+  },
+  "s2_object_tracker": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 30.1,
+   "n_events": 22,
+   "severities": [
+    {
+     "label": "Tracking instability score",
+     "value": 40
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Objects tracked",
+     "value": "4",
+     "sub": "wooden table, black rotating platform, wooden stick, colorful dominoes"
+    },
+    {
+     "label": "Persistent objects",
+     "value": "4",
+     "sub": "present \u226550% of video"
+    },
+    {
+     "label": "Mean track length",
+     "value": "47",
+     "sub": "frames (video = 48)"
+    },
+    {
+     "label": "Mean appearance drift",
+     "value": "0.347",
+     "sub": "cosine dist to frame 0 (DINOv2)"
+    },
+    {
+     "label": "Peak drift",
+     "value": "0.839",
+     "sub": "max identity deviation across objects"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "48 frames @ 6.0 fps (853\u00d7480) loaded."
+    },
+    {
+     "level": "info",
+     "text": "Naming scene objects with VLM (createai:geminipro3_1)\u2026"
+    },
+    {
+     "level": "success",
+     "text": "VLM identified: colorful dominoes, wooden stick, black rotating platform, wooden table"
+    },
+    {
+     "level": "info",
+     "text": "Loading SAM3 and segmenting\u2026"
+    },
+    {
+     "level": "info",
+     "text": "\"colorful dominoes\" \u2192 1 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "info",
+     "text": "\"wooden stick\" \u2192 1 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "info",
+     "text": "\"black rotating platform\" \u2192 1 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "info",
+     "text": "\"wooden table\" \u2192 1 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "success",
+     "text": "Tracking 4 object(s): wooden table, black rotating platform, wooden stick, colorful dominoes"
+    },
+    {
+     "level": "info",
+     "text": "DINOv2 appearance-drift analysis\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Appearance drift computed for 4 object(s)."
+    },
+    {
+     "level": "info",
+     "text": "Building plots\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "4 object(s) tracked (wooden table, black rotating platform, wooden stick, colorful dominoes); 4 persistent; mean drift 0.347."
+    }
+   ]
+  },
+  "s2_trajectory_extractor": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 68.0,
+   "n_events": 19,
+   "severities": [
+    {
+     "label": "Trajectory anomaly score",
+     "value": 16
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Objects analyzed",
+     "value": "5",
+     "sub": "48% keypoint loss"
+    },
+    {
+     "label": "Peak speed",
+     "value": "3957",
+     "sub": "px/s (fastest track)"
+    },
+    {
+     "label": "Peak acceleration",
+     "value": "28904",
+     "sub": "px/s\u00b2 (largest motion change)"
+    },
+    {
+     "label": "Accel spikes",
+     "value": "34",
+     "sub": "robust z > 3.5"
+    },
+    {
+     "label": "Velocity reversals",
+     "value": "13",
+     "sub": "force-free direction flips"
+    },
+    {
+     "label": "Physical impacts",
+     "value": "64",
+     "sub": "explained collisions (not anomalies)"
+    },
+    {
+     "label": "Contact events",
+     "value": "6",
+     "sub": "inter-object box overlaps"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video & tracking\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "Object Tracker evidence has a different frame grid \u2014 falling back to LK tracks."
+    },
+    {
+     "level": "info",
+     "text": "Filtered 3 static background track(s) (moved < 88px); 5 moving track(s) kept."
+    },
+    {
+     "level": "info",
+     "text": "128 frames @ 16.0 fps \u2014 5 track(s) (LK keypoints)."
+    },
+    {
+     "level": "info",
+     "text": "5 track(s) extracted \u2014 computing kinematics\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Building kinematic plots\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "34 accel spike(s), 13 velocity reversal(s), 6 contact(s) detected."
+    }
+   ]
+  },
+  "s2_event_localizer": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 2.0,
+   "n_events": 13,
+   "severities": [
+    {
+     "label": "Localization confidence",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Defect markers",
+     "value": "0",
+     "sub": "across 0 diagnostic(s)"
+    },
+    {
+     "label": "Flagged span",
+     "value": "0%",
+     "sub": "0/128 frames of timeline"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "No Stage 1 signals received \u2014 run a Stage 1 screening test (e.g. Optical Flow or Temporal Smoothness) first, then re-run the Event Localizer to populate defect markers."
+    },
+    {
+     "level": "info",
+     "text": "Localized 0 event marker(s) across 0 diagnostic lane(s) (signals merged within 0.5s)."
+    },
+    {
+     "level": "info",
+     "text": "Building viewer frames\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Viewer ready \u2014 60 overview + 0 event frame(s) across 0 clip(s), 531 KB total."
+    },
+    {
+     "level": "info",
+     "text": "Building diagnostics timeline\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "No markers \u2014 no Stage 1 signals to localize."
+    }
+   ]
+  },
+  "s2_hypothesis_generator": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 18.8,
+   "n_events": 15,
+   "severities": [],
+   "metrics": [
+    {
+     "label": "Causality",
+     "value": "90%",
+     "sub": "vlm \u00b7 t=2.88\u20133.44s"
+    },
+    {
+     "label": "Momentum",
+     "value": "80%",
+     "sub": "vlm \u00b7 t=2.88\u20133.44s"
+    },
+    {
+     "label": "Collision & Contact",
+     "value": "55%",
+     "sub": "heuristic"
+    },
+    {
+     "label": "Deformation",
+     "value": "30%",
+     "sub": "heuristic"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Evidence summary: tracked subjects: wooden table, black rotating platform, wooden stick, colorful dominoes; 6 inter-object contact event(s)"
+    },
+    {
+     "level": "info",
+     "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "#1 Causality \u2014 90% (t=2.88\u20133.44s): The dominoes appear to all fall simultaneously rather than sequentially after the initial impact, suggesting an impossible chain reaction."
+    },
+    {
+     "level": "warn",
+     "text": "#2 Momentum \u2014 80% (t=2.88\u20133.44s): The rapid transfer of motion to all dominoes at once suggests an anomalous momentum transfer."
+    },
+    {
+     "level": "warn",
+     "text": "#3 Collision & Contact \u2014 55%: quantitative evidence (see summary)"
+    },
+    {
+     "level": "info",
+     "text": "#4 Deformation \u2014 30%: quantitative evidence (see summary)"
+    }
+   ]
+  },
+  "s3_collision": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 1.7,
+   "n_events": 24,
+   "severities": [
+    {
+     "label": "Collision violation",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Contact episodes",
+     "value": "10",
+     "sub": "6 subject pair(s) analyzed"
+    },
+    {
+     "label": "Interpenetrations",
+     "value": "0",
+     "sub": "of 0 candidate(s) after VLM review"
+    },
+    {
+     "label": "Energy-gain bounces",
+     "value": "0",
+     "sub": "restitution > 1.1"
+    },
+    {
+     "label": "Phantom bounces",
+     "value": "0",
+     "sub": "direction reversal with no contact"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Reusing Object Tracker masks for 4 subject(s) from the evidence bus."
+    },
+    {
+     "level": "info",
+     "text": "10 contact episode(s) across 6 subject pair(s) (dilated-mask adjacency \u2265 0.02)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden table\u201d \u00d7 \u201cblack rotating platform\u201d t=2.67\u20132.67s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden table\u201d \u00d7 \u201cblack rotating platform\u201d t=3.67\u20133.67s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden table\u201d \u00d7 \u201cblack rotating platform\u201d t=5.33\u20135.33s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden table\u201d \u00d7 \u201cblack rotating platform\u201d t=6.83\u20137.17s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden table\u201d \u00d7 \u201cwooden stick\u201d t=0.00\u20132.00s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden table\u201d \u00d7 \u201cwooden stick\u201d t=3.83\u20135.67s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden table\u201d \u00d7 \u201ccolorful dominoes\u201d t=0.00\u20137.83s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cblack rotating platform\u201d \u00d7 \u201cwooden stick\u201d t=0.00\u20137.83s (peak raw overlap 1%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cblack rotating platform\u201d \u00d7 \u201ccolorful dominoes\u201d t=0.00\u20133.00s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cwooden stick\u201d \u00d7 \u201ccolorful dominoes\u201d t=2.50\u20133.17s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Restitution OK \u2014 \u201cwooden stick\u201d bounce off \u201ccolorful dominoes\u201d @ t=2.50s: e = 0.94 (in 10, out -9 px/s)."
+    },
+    {
+     "level": "success",
+     "text": "Collision physics look plausible."
+    }
+   ]
+  },
+  "s3_gravity": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.0,
+   "n_events": 12,
+   "severities": [
+    {
+     "label": "Gravity violation",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Airborne segments",
+     "value": "0",
+     "sub": "5 track(s) \u00b7 min 0.4s"
+    },
+    {
+     "label": "Violations",
+     "value": "0",
+     "sub": "all airborne motion gravity-consistent"
+    },
+    {
+     "label": "Cleanest fit R\u00b2",
+     "value": "\u2014",
+     "sub": "1.0 = perfect parabola"
+    },
+    {
+     "label": "Float candidates",
+     "value": "0",
+     "sub": "0 confirmed by VLM \u00b7 0 explained as supported/self-propelled"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Reusing 5 kinematic track(s) + 6 contact event(s) from the Trajectory Extractor (evidence bus)."
+    },
+    {
+     "level": "info",
+     "text": "0 free-flight segment(s) across 5 track(s); 0 violation(s), 0 float candidate(s)."
+    },
+    {
+     "level": "success",
+     "text": "Airborne motion is consistent with constant downward gravity."
+    }
+   ]
+  },
+  "s3_momentum": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 15.7,
+   "n_events": 20,
+   "severities": [
+    {
+     "label": "Momentum violation",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "\u201cwooden table\u201d momentum score",
+     "value": "75",
+     "sub": "vmax 1095 px/s \u00b7 m\u0302 3.47 \u00b7 smooth 0.61"
+    },
+    {
+     "label": "\u201cwooden stick\u201d momentum score",
+     "value": "67",
+     "sub": "vmax 1558 px/s \u00b7 m\u0302 0.00 \u00b7 smooth 0.56"
+    },
+    {
+     "label": "\u201cblack rotating platform\u201d momentum score",
+     "value": "62",
+     "sub": "vmax 1291 px/s \u00b7 m\u0302 0.34 \u00b7 smooth 0.57"
+    },
+    {
+     "label": "\u201ccolorful dominoes\u201d momentum score",
+     "value": "60",
+     "sub": "vmax 1013 px/s \u00b7 m\u0302 0.18 \u00b7 smooth 0.61"
+    },
+    {
+     "label": "Momentum anomalies",
+     "value": "0",
+     "sub": "0 VLM-confirmed \u00b7 8 contact episode(s)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "4 subject(s) from Object Tracker evidence (sam3 mode): \u201cwooden table\u201d, \u201cblack rotating platform\u201d, \u201cwooden stick\u201d, \u201ccolorful dominoes\u201d"
+    },
+    {
+     "level": "info",
+     "text": "VLM relative-mass ranking applied: wooden table=10, black rotating platform=5, wooden stick=0.1, colorful dominoes=1"
+    },
+    {
+     "level": "info",
+     "text": "\u201cwooden table\u201d: momentum score 75 \u2014 vmax 1095 px/s, path 411 px, arc h 124 px (sym 0.00), smooth 0.61, m\u0302 3.47"
+    },
+    {
+     "level": "info",
+     "text": "\u201cblack rotating platform\u201d: momentum score 62 \u2014 vmax 1291 px/s, path 460 px, arc h 68 px (sym 0.00), smooth 0.57, m\u0302 0.34"
+    },
+    {
+     "level": "info",
+     "text": "\u201cwooden stick\u201d: momentum score 67 \u2014 vmax 1558 px/s, path 855 px, arc h 135 px (sym 0.00), smooth 0.56, m\u0302 0.00"
+    },
+    {
+     "level": "info",
+     "text": "\u201ccolorful dominoes\u201d: momentum score 60 \u2014 vmax 1013 px/s, path 487 px, arc h 160 px (sym 0.00), smooth 0.61, m\u0302 0.19"
+    },
+    {
+     "level": "info",
+     "text": "8 contact episode(s) between subjects."
+    },
+    {
+     "level": "success",
+     "text": "Motion signatures look physically plausible."
+    }
+   ]
+  },
+  "s3_friction": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 67.6,
+   "n_events": 23,
+   "severities": [
+    {
+     "label": "Friction violation",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "\u201cwooden table\u201d friction score",
+     "value": "50",
+     "sub": "domino blocks \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "\u201cblack rotating platform\u201d friction score",
+     "value": "50",
+     "sub": "turntable \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "\u201cwooden stick\u201d friction score",
+     "value": "50",
+     "sub": "stick \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "\u201ccolorful dominoes\u201d friction score",
+     "value": "50",
+     "sub": "dominoes \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "Friction anomalies",
+     "value": "0",
+     "sub": "0 VLM-confirmed \u00b7 8 contact episode(s)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "4 subject(s) from Object Tracker evidence (sam3 mode): \u201cwooden table\u201d, \u201cblack rotating platform\u201d, \u201cwooden stick\u201d, \u201ccolorful dominoes\u201d"
+    },
+    {
+     "level": "info",
+     "text": "8 contact episode(s) between subjects."
+    },
+    {
+     "level": "info",
+     "text": "\u201cwooden table\u201d identified as 'domino blocks' \u2014 expected motion: constant \u2192 accelerate"
+    },
+    {
+     "level": "info",
+     "text": "\u201cblack rotating platform\u201d identified as 'turntable' \u2014 expected motion: constant"
+    },
+    {
+     "level": "info",
+     "text": "\u201cwooden stick\u201d identified as 'stick' \u2014 expected motion: constant"
+    },
+    {
+     "level": "info",
+     "text": "\u201ccolorful dominoes\u201d identified as 'dominoes' \u2014 expected motion: accelerate"
+    },
+    {
+     "level": "info",
+     "text": "\u201cwooden table\u201d (domino blocks): 0 coast segment(s), friction score 50 \u2014 vavg 74 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "info",
+     "text": "\u201cblack rotating platform\u201d (turntable): 0 coast segment(s), friction score 50 \u2014 vavg 84 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "info",
+     "text": "\u201cwooden stick\u201d (stick): 0 coast segment(s), friction score 50 \u2014 vavg 141 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "info",
+     "text": "\u201ccolorful dominoes\u201d (dominoes): 0 coast segment(s), friction score 50 \u2014 vavg 81 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "success",
+     "text": "Speed decay looks physically plausible."
+    }
+   ]
+  },
+  "s3_deformation": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 92.8,
+   "n_events": 36,
+   "severities": [
+    {
+     "label": "Deformation violation",
+     "value": 84
+    }
+   ],
+   "metrics": [
+    {
+     "label": "\u201cwooden table\u201d",
+     "value": "CHANGED",
+     "sub": "99% @ t=3.5s (createai:geminipro3_1)"
+    },
+    {
+     "label": "\u201cblack rotating platform\u201d",
+     "value": "STABLE",
+     "sub": "no change-points confirmed"
+    },
+    {
+     "label": "\u201cwooden stick\u201d",
+     "value": "CHANGED",
+     "sub": "99% @ t=2.833s (createai:geminipro3_1)"
+    },
+    {
+     "label": "\u201ccolorful dominoes\u201d",
+     "value": "CHANGED",
+     "sub": "99% @ t=3.5s (createai:geminipro3_1)"
+    },
+    {
+     "label": "Change-points checked",
+     "value": "7",
+     "sub": "5 confirmed changed \u00b7 drift threshold 0.3"
+    },
+    {
+     "label": "Vanish events",
+     "value": "0",
+     "sub": "mask gaps \u2265 0.3s (grid-aware)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Reusing Object Tracker masks for 4 subject(s) from the evidence bus."
+    },
+    {
+     "level": "warn",
+     "text": "\u201cwooden table\u201d: 1 deformation change-point(s) detected (peak 0.609 > 0.3)."
+    },
+    {
+     "level": "warn",
+     "text": "\u201cwooden table\u201d @ t=3.50s (drift 0.449) \u2192 changed (99%): The leftmost domino loses its rigid rectangular structure and melts into a flat shape on the table."
+    },
+    {
+     "level": "info",
+     "text": "\u201cblack rotating platform\u201d: shape/appearance stable (peak consecutive drift 0.149, vs first 0.279, threshold 0.3)."
+    },
+    {
+     "level": "warn",
+     "text": "\u201cwooden stick\u201d: 5 deformation change-point(s) detected (peak 0.725 > 0.3)."
+    },
+    {
+     "level": "info",
+     "text": "\u201cwooden stick\u201d @ t=2.67s (drift 0.607) \u2192 consistent (90%): The object appears to rotate and move partially behind the purple block, but its visible structure and shape remain consistent."
+    },
+    {
+     "level": "warn",
+     "text": "\u201cwooden stick\u201d @ t=2.83s (drift 0.387) \u2192 changed (99%): The object transforms from a solid, elongated stick shape into two separate, small blob-like pieces."
+    },
+    {
+     "level": "warn",
+     "text": "\u201cwooden stick\u201d @ t=3.00s (drift 0.337) \u2192 changed (90%): The object changes from two small, disconnected pieces into a single, continuous cylindrical shape."
+    },
+    {
+     "level": "warn",
+     "text": "\u201cwooden stick\u201d @ t=3.33s (drift 0.335) \u2192 changed (95%): The top end of the stick transforms from a blunt, flat shape to a sharp point."
+    },
+    {
+     "level": "warn",
+     "text": "\u201ccolorful dominoes\u201d: 2 deformation change-point(s) detected (peak 0.585 > 0.3)."
+    },
+    {
+     "level": "info",
+     "text": "\u201ccolorful dominoes\u201d @ t=3.33s (drift 0.461) \u2192 consistent (99%): The objects maintain their distinct colors and rectangular shapes as they fall over, with differences in appearance fully explained by motion blur and a change in pose."
+    },
+    {
+     "level": "warn",
+     "text": "\u201ccolorful dominoes\u201d @ t=3.50s (drift 0.474) \u2192 changed (99%): The yellow block transitions from a solid vertical standing position to a flat, horizontal, almost melted-looking shape."
+    },
+    {
+     "level": "warn",
+     "text": "Deformation VIOLATION \u2014 severity 84%."
+    }
+   ]
+  },
+  "s3_fluid": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 55.0,
+   "n_events": 32,
+   "severities": [
+    {
+     "label": "Fluid violation",
+     "value": 100
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Points tracked",
+     "value": "542",
+     "sub": "avg path length 21.6 frame(s)"
+    },
+    {
+     "label": "Fluid anomalies",
+     "value": "9",
+     "sub": "2 VLM-confirmed"
+    },
+    {
+     "label": "Holistic realism",
+     "value": "UNREALISTIC",
+     "sub": "100% confidence (createai:geminipro3_1)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "No fluid-like subject named by the Object Tracker \u2014 falling back to a motion-energy region."
+    },
+    {
+     "level": "info",
+     "text": "Fluid region: motion-energy region (static for the clip)."
+    },
+    {
+     "level": "info",
+     "text": "Computing dense optical flow across 48 frame(s)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Advected 542 point path(s) through the fluid region."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=2.67\u20133.33s) defies gravity (curves upward) (fit R\u00b2=1.00)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=2.50\u20137.83s) does not fit a ballistic parabola (fit R\u00b2=0.09)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=7.17\u20137.83s) does not fit a ballistic parabola (fit R\u00b2=0.10)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=2.17\u20137.83s) does not fit a ballistic parabola (fit R\u00b2=0.23)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=3.17\u20137.83s) does not fit a ballistic parabola (fit R\u00b2=0.34)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.33\u20134.67s) does not fit a ballistic parabola (fit R\u00b2=0.36)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.00\u20134.67s) does not fit a ballistic parabola (fit R\u00b2=0.36)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.17\u20134.67s) does not fit a ballistic parabola (fit R\u00b2=0.36)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=3.67\u20137.83s) does not fit a ballistic parabola (fit R\u00b2=0.55)."
+    },
+    {
+     "level": "warn",
+     "text": "VLM CONFIRMS ballistic_arc @ t=2.67s (90%): The highlighted trajectory shows an airborne droplet curving upwards, which defies gravity without any visible physical cause like a strong updraft."
+    },
+    {
+     "level": "info",
+     "text": "VLM: plausible cause @ t=2.50s (99%): The annotated object is a digital user interface element or graphical overlay rather than a physical fluid droplet, so its motion does not need to follow a ballistic trajectory."
+    },
+    {
+     "level": "warn",
+     "text": "VLM CONFIRMS ballistic_arc @ t=7.17s (99%): The image displays a 2D pixel-art explosion sprite rather than a physical fluid droplet, explaining the non-ballistic motion."
+    },
+    {
+     "level": "warn",
+     "text": "Holistic realism: unrealistic (100%): There is no liquid or fluid visible in the video to evaluate, as it only features rigid blocks falling on a table."
+    },
+    {
+     "level": "warn",
+     "text": "Fluid VIOLATION \u2014 severity 100%."
+    }
+   ]
+  },
+  "s4_report": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.0,
+   "n_events": 10,
+   "severities": [
+    {
+     "label": "Global severity: critical",
+     "value": 100.0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Included tests",
+     "value": 15,
+     "sub": "Previous non-excluded test results aggregated into this report."
+    },
+    {
+     "label": "Physics consistency score",
+     "value": 88.17,
+     "sub": "Placeholder score for first-pass testing."
+    },
+    {
+     "label": "Semantic findings",
+     "value": 14,
+     "sub": "VLM-explained, from Deformation, Collision & Contact, Momentum, Friction, Fluid, Gravity"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Diagnostic Report Generator received 15 previous test result(s)."
+    },
+    {
+     "level": "info",
+     "text": "Evidence bus: 14 VLM-explained finding(s) from 6 specialist(s) (Deformation, Collision & Contact, Momentum, Friction, Fluid, Gravity)."
+    }
+   ]
+  },
+  "s3_causality": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 27.7,
+   "n_events": 16,
+   "severities": [
+    {
+     "label": "Causality violation severity",
+     "value": 5
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Rules fired",
+     "value": "0/5",
+     "sub": "causality rules violated"
+    },
+    {
+     "label": "Top violation",
+     "value": "\u2014",
+     "sub": "none fired"
+    },
+    {
+     "label": "VLM+geometry agree",
+     "value": "0",
+     "sub": "rules both methods fired"
+    },
+    {
+     "label": "Causality verdict",
+     "value": "rejected",
+     "sub": "severity 5/100"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Causality Specialist \u2014 VLM rule-checker on Qwen2.5-VL 7B (~17 GB, no API key). 5 rules."
+    },
+    {
+     "level": "info",
+     "text": "Geometric motion signals ready (self-computed) \u2014 they can fire the ordering & reversal rules the VLM cannot see in still frames."
+    },
+    {
+     "level": "info",
+     "text": "Checking 5 causality rules over 8 frames (first run loads the model \u2014 may take a minute)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 Cause must precede effect \u2014 ok (P=0.13) \u00b7 geometry: 0 event(s)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 The arrow of time \u2014 ok (P=0.03) \u00b7 geometry: 0 event(s)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 Temporal continuity \u2014 ok (P=0.04)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 Cause-effect coupling \u2014 ok (P=0.10)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 No effect without a cause \u2014 ok (P=0.06)"
+    },
+    {
+     "level": "success",
+     "text": "Causality verdict: rejected (severity 5/100, 0/5 rules fired)."
+    }
+   ]
+  }
+ }
+}

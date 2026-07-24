@@ -1,0 +1,14 @@
+{"type": "log", "level": "info", "text": "API model via createai: createai:geminipro3_1"}
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Analyzing 8 frames from 177 total in one multi-frame pass\u2026"}
+{"type": "log", "level": "warn", "text": "Verdict: score=0.95  (2 violation(s))  The shower head and the robotic gripper deform and melt into each other as the arm moves. The handle of the shower head also appears to pass through the solid fingers of the robotic gripper."}
+{"type": "log", "level": "warn", "text": "Violation 1: Rigid body violation"}
+{"type": "log", "level": "warn", "text": "Violation 2: Objects passing through each other"}
+{"type": "plotly", "data": "<stripped 7363 chars>", "caption": "Holistic suspicion over 8 frames (5.9s of video). Red \u2265 0.5 (suspicious), amber \u2265 0.25 (uncertain), green < 0.25 (plausible)."}
+{"type": "plotly", "data": "<stripped 7419 chars>", "caption": "Each row: the physical law the model believes is broken, the visual evidence, and the reasoning."}
+{"type": "metric", "label": "Suspicion score", "value": "0.95", "sub": "0\u20131 (whole video)"}
+{"type": "metric", "label": "Physics violations", "value": "2", "sub": "Rigid body violation"}
+{"type": "metric", "label": "Model confidence", "value": "95%", "sub": "self-reported"}
+{"type": "severity", "label": "VLM suspicion level", "value": 95, "color": "#E24B4A"}
+{"type": "log", "level": "info", "text": "Assessment: The shower head and the robotic gripper deform and melt into each other as the arm moves. The handle of the shower head also appears to pass through the solid fingers of the robotic gripper."}
+{"type": "done"}

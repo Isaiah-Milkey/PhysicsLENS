@@ -1,0 +1,1405 @@
+{
+ "video": "test_videos/real/ewmbench/place-teapot-on-table-789120.mp4",
+ "label": "real",
+ "pipelines": {
+  "s1_temporal": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 7.4,
+   "n_events": 13,
+   "severities": [
+    {
+     "label": "Temporal anomaly score",
+     "value": 100
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Flagged frames",
+     "value": "165",
+     "sub": "of 167 total"
+    },
+    {
+     "label": "Peak acceleration",
+     "value": "1424.0",
+     "sub": "px/s\u00b2"
+    },
+    {
+     "label": "Mean acceleration",
+     "value": "148.4",
+     "sub": "px/s\u00b2"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "167 frames @ 30.0 fps \u2014 detecting 5 keypoints\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Tracking\u2026 60/167 frames"
+    },
+    {
+     "level": "info",
+     "text": "Tracking\u2026 120/167 frames"
+    },
+    {
+     "level": "info",
+     "text": "Building plot\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "165 frame(s) show abrupt acceleration spikes."
+    }
+   ]
+  },
+  "s1_optical_flow": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.2,
+   "n_events": 14,
+   "severities": [
+    {
+     "label": "Optical flow anomaly score",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Flagged frames",
+     "value": "0",
+     "sub": "spike or chaotic direction"
+    },
+    {
+     "label": "Peak flow",
+     "value": "1.5",
+     "sub": "px/frame"
+    },
+    {
+     "label": "Mean flow",
+     "value": "0.5",
+     "sub": "px/frame"
+    },
+    {
+     "label": "Mean dir consistency",
+     "value": "0.44",
+     "sub": "0 = random \u00b7 1 = uniform"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "167 frames @ 30.0 fps \u2014 initialising 30 tracks\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Optical flow\u2026 60/167 frames"
+    },
+    {
+     "level": "info",
+     "text": "Optical flow\u2026 120/167 frames"
+    },
+    {
+     "level": "info",
+     "text": "Plotting results\u2026"
+    },
+    {
+     "level": "success",
+     "text": "No optical flow irregularities detected."
+    }
+   ]
+  },
+  "s1_embeddings": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.4,
+   "n_events": 13,
+   "severities": [
+    {
+     "label": "Embedding anomaly score",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Flagged frames",
+     "value": "0",
+     "sub": "of 84 sampled"
+    },
+    {
+     "label": "Peak latent acc",
+     "value": "0.3271",
+     "sub": "\u2016\u0394\u00b2z\u2016"
+    },
+    {
+     "label": "Mean latent vel",
+     "value": "0.1276",
+     "sub": "\u2016\u0394z\u2016"
+    },
+    {
+     "label": "Embedding dim",
+     "value": "768",
+     "sub": "dinov2"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "84 frames sampled (every 2) \u2014 loading dinov2\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Encoding whole-frame embeddings with DINOv2 (dinov2-base, cuda, batched)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Embeddings: (84, 768) \u2014 computing latent dynamics\u2026"
+    },
+    {
+     "level": "success",
+     "text": "No significant latent discontinuities detected."
+    }
+   ]
+  },
+  "s1_camera_motion": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.9,
+   "n_events": 17,
+   "severities": [
+    {
+     "label": "Camera motion severity",
+     "value": 2
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Mean motion score",
+     "value": "0.031",
+     "sub": "0 = perfectly stable \u00b7 1 = excessive movement"
+    },
+    {
+     "label": "Peak motion score",
+     "value": "0.055",
+     "sub": "at t = 4.43s (frame 133)"
+    },
+    {
+     "label": "Excessive motion duration",
+     "value": "0.0s",
+     "sub": "0% of video \u00b7 0 segment(s)"
+    },
+    {
+     "label": "Camera tremor",
+     "value": "0.00 px/frame",
+     "sub": "high-frequency jitter (intentional speed: 0.0 px/frame)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "167 frames @ 30.0 fps"
+    },
+    {
+     "level": "info",
+     "text": "Zone grid: 3\u00d73, 33 pts/zone \u2192 ~297 pts/frame"
+    },
+    {
+     "level": "info",
+     "text": "Processing\u2026 60/166 frames"
+    },
+    {
+     "level": "info",
+     "text": "Processing\u2026 120/166 frames"
+    },
+    {
+     "level": "info",
+     "text": "Computing motion scores\u2026"
+    },
+    {
+     "level": "success",
+     "text": "No excessive camera movement detected."
+    }
+   ]
+  },
+  "s1_vlm": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 13.6,
+   "n_events": 15,
+   "severities": [
+    {
+     "label": "VLM suspicion level",
+     "value": 95
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Suspicion score",
+     "value": "0.95",
+     "sub": "0\u20131 (whole video)"
+    },
+    {
+     "label": "Physics violations",
+     "value": "3",
+     "sub": "Object permanence"
+    },
+    {
+     "label": "Model confidence",
+     "value": "98%",
+     "sub": "self-reported"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "API model via createai: createai:geminipro3_1"
+    },
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Analyzing 8 frames from 167 total in one multi-frame pass\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "Verdict: score=0.95  (3 violation(s))  The left robotic arm and the glass teapot both exhibit severe morphing and loss of structural integrity. As the arm moves away from the teapot, its gripper melts and changes shape, while the teapot loses its spout, handle, and its lid transforms into a red ring."
+    },
+    {
+     "level": "warn",
+     "text": "Violation 1: Object permanence"
+    },
+    {
+     "level": "warn",
+     "text": "Violation 2: Rigid body shape change"
+    },
+    {
+     "level": "warn",
+     "text": "Violation 3: Morphing"
+    },
+    {
+     "level": "info",
+     "text": "Assessment: The left robotic arm and the glass teapot both exhibit severe morphing and loss of structural integrity. As the arm moves away from the teapot, its gripper melts and changes shape, while the teapot loses its spout, handle, and its lid transforms into a red ring."
+    }
+   ]
+  },
+  "s2_object_tracker": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 28.4,
+   "n_events": 22,
+   "severities": [
+    {
+     "label": "Tracking instability score",
+     "value": 15
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Objects tracked",
+     "value": "5",
+     "sub": "table, plant, box of tissues, robotic arm #1, robotic arm #2"
+    },
+    {
+     "label": "Persistent objects",
+     "value": "5",
+     "sub": "present \u226550% of video"
+    },
+    {
+     "label": "Mean track length",
+     "value": "48",
+     "sub": "frames (video = 48)"
+    },
+    {
+     "label": "Mean appearance drift",
+     "value": "0.131",
+     "sub": "cosine dist to frame 0 (DINOv2)"
+    },
+    {
+     "label": "Peak drift",
+     "value": "0.718",
+     "sub": "max identity deviation across objects"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "48 frames @ 8.6 fps (640\u00d7480) loaded."
+    },
+    {
+     "level": "info",
+     "text": "Naming scene objects with VLM (createai:geminipro3_1)\u2026"
+    },
+    {
+     "level": "success",
+     "text": "VLM identified: robotic arm, tea pitcher, tea cup, table, box of tissues, plant"
+    },
+    {
+     "level": "info",
+     "text": "Loading SAM3 and segmenting\u2026"
+    },
+    {
+     "level": "info",
+     "text": "\"robotic arm\" \u2192 2 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "info",
+     "text": "\"table\" \u2192 1 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "info",
+     "text": "\"box of tissues\" \u2192 1 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "info",
+     "text": "\"plant\" \u2192 1 instance(s) (best present 48/48 frames)."
+    },
+    {
+     "level": "success",
+     "text": "Tracking 5 object(s): table, plant, box of tissues, robotic arm #1, robotic arm #2"
+    },
+    {
+     "level": "info",
+     "text": "DINOv2 appearance-drift analysis\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Appearance drift computed for 5 object(s)."
+    },
+    {
+     "level": "info",
+     "text": "Building plots\u2026"
+    },
+    {
+     "level": "success",
+     "text": "5 object(s) tracked (table, plant, box of tissues, robotic arm #1, robotic arm #2); 5 persistent; mean drift 0.131."
+    }
+   ]
+  },
+  "s2_trajectory_extractor": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 4.2,
+   "n_events": 19,
+   "severities": [
+    {
+     "label": "Trajectory anomaly score",
+     "value": 4
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Objects analyzed",
+     "value": "3",
+     "sub": "10% keypoint loss"
+    },
+    {
+     "label": "Peak speed",
+     "value": "87",
+     "sub": "px/s (fastest track)"
+    },
+    {
+     "label": "Peak acceleration",
+     "value": "1094",
+     "sub": "px/s\u00b2 (largest motion change)"
+    },
+    {
+     "label": "Accel spikes",
+     "value": "10",
+     "sub": "robust z > 3.5"
+    },
+    {
+     "label": "Velocity reversals",
+     "value": "2",
+     "sub": "force-free direction flips"
+    },
+    {
+     "label": "Physical impacts",
+     "value": "17",
+     "sub": "explained collisions (not anomalies)"
+    },
+    {
+     "label": "Contact events",
+     "value": "2",
+     "sub": "inter-object box overlaps"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video & tracking\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "Object Tracker evidence has a different frame grid \u2014 falling back to LK tracks."
+    },
+    {
+     "level": "info",
+     "text": "Filtered 5 static background track(s) (moved < 16px); 3 moving track(s) kept."
+    },
+    {
+     "level": "info",
+     "text": "167 frames @ 30.0 fps \u2014 3 track(s) (LK keypoints)."
+    },
+    {
+     "level": "info",
+     "text": "3 track(s) extracted \u2014 computing kinematics\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Building kinematic plots\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "10 accel spike(s), 2 velocity reversal(s), 2 contact(s) detected."
+    }
+   ]
+  },
+  "s2_event_localizer": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.2,
+   "n_events": 13,
+   "severities": [
+    {
+     "label": "Localization confidence",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Defect markers",
+     "value": "0",
+     "sub": "across 0 diagnostic(s)"
+    },
+    {
+     "label": "Flagged span",
+     "value": "0%",
+     "sub": "0/167 frames of timeline"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "No Stage 1 signals received \u2014 run a Stage 1 screening test (e.g. Optical Flow or Temporal Smoothness) first, then re-run the Event Localizer to populate defect markers."
+    },
+    {
+     "level": "info",
+     "text": "Localized 0 event marker(s) across 0 diagnostic lane(s) (signals merged within 0.5s)."
+    },
+    {
+     "level": "info",
+     "text": "Building viewer frames\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Viewer ready \u2014 60 overview + 0 event frame(s) across 0 clip(s), 892 KB total."
+    },
+    {
+     "level": "info",
+     "text": "Building diagnostics timeline\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "No markers \u2014 no Stage 1 signals to localize."
+    }
+   ]
+  },
+  "s2_hypothesis_generator": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 15.9,
+   "n_events": 11,
+   "severities": [],
+   "metrics": [
+    {
+     "label": "Deformation",
+     "value": "85%",
+     "sub": "heuristic+vlm \u00b7 t=0.57\u20134.63s"
+    },
+    {
+     "label": "Collision & Contact",
+     "value": "55%",
+     "sub": "heuristic"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Evidence summary: tracked subjects: table, plant, box of tissues, robotic arm #1, robotic arm #2; 2 inter-object contact event(s)"
+    },
+    {
+     "level": "info",
+     "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"
+    },
+    {
+     "level": "warn",
+     "text": "#1 Deformation \u2014 85% (t=0.57\u20134.63s): The robotic arm's gripper on the left appears to morph and change its structural shape over time after releasing the teapot."
+    },
+    {
+     "level": "warn",
+     "text": "#2 Collision & Contact \u2014 55%: quantitative evidence (see summary)"
+    }
+   ]
+  },
+  "s3_collision": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 1.0,
+   "n_events": 17,
+   "severities": [
+    {
+     "label": "Collision violation",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Contact episodes",
+     "value": "4",
+     "sub": "10 subject pair(s) analyzed"
+    },
+    {
+     "label": "Interpenetrations",
+     "value": "0",
+     "sub": "of 0 candidate(s) after VLM review"
+    },
+    {
+     "label": "Energy-gain bounces",
+     "value": "0",
+     "sub": "restitution > 1.1"
+    },
+    {
+     "label": "Phantom bounces",
+     "value": "0",
+     "sub": "direction reversal with no contact"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Reusing Object Tracker masks for 5 subject(s) from the evidence bus."
+    },
+    {
+     "level": "info",
+     "text": "4 contact episode(s) across 10 subject pair(s) (dilated-mask adjacency \u2265 0.02)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201ctable\u201d \u00d7 \u201cbox of tissues\u201d t=0.00\u20135.45s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201ctable\u201d \u00d7 \u201crobotic arm #1\u201d t=0.00\u20135.45s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201ctable\u201d \u00d7 \u201crobotic arm #2\u201d t=0.00\u20135.45s (peak raw overlap 0%)."
+    },
+    {
+     "level": "info",
+     "text": "Contact: \u201cbox of tissues\u201d \u00d7 \u201crobotic arm #2\u201d t=0.00\u20131.51s (peak raw overlap 0%)."
+    },
+    {
+     "level": "success",
+     "text": "Collision physics look plausible."
+    }
+   ]
+  },
+  "s3_gravity": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.2,
+   "n_events": 30,
+   "severities": [
+    {
+     "label": "Gravity violation",
+     "value": 0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Airborne segments",
+     "value": "10",
+     "sub": "3 track(s) \u00b7 min 0.4s"
+    },
+    {
+     "label": "Violations",
+     "value": "0",
+     "sub": "all airborne motion gravity-consistent"
+    },
+    {
+     "label": "Cleanest fit R\u00b2",
+     "value": "0.998",
+     "sub": "1.0 = perfect parabola"
+    },
+    {
+     "label": "Float candidates",
+     "value": "8",
+     "sub": "0 confirmed by VLM \u00b7 0 explained as supported/self-propelled"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Reusing 3 kinematic track(s) + 2 contact event(s) from the Trajectory Extractor (evidence bus)."
+    },
+    {
+     "level": "info",
+     "text": "10 free-flight segment(s) across 3 track(s); 0 violation(s), 8 float candidate(s)."
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d airborne t=0.00\u20130.67s: a=-44 px/s\u00b2 (down), R\u00b2=0.992"
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d airborne t=2.03\u20132.50s: a=18 px/s\u00b2 (down), R\u00b2=0.991"
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d airborne t=2.90\u20133.87s: a=49 px/s\u00b2 (down), R\u00b2=0.973"
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d airborne t=4.33\u20135.53s: a=-71 px/s\u00b2 (down), R\u00b2=0.998"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #2\u201d airborne t=1.00\u20131.57s: a=-56 px/s\u00b2 (down), R\u00b2=0.616"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #2\u201d airborne t=1.90\u20132.63s: a=-17 px/s\u00b2 (down), R\u00b2=0.997"
+    },
+    {
+     "level": "info",
+     "text": "\u201cobj 7\u201d airborne t=0.00\u20131.73s: a=-30 px/s\u00b2 (down), R\u00b2=0.962"
+    },
+    {
+     "level": "info",
+     "text": "\u201cobj 7\u201d airborne t=2.10\u20132.57s: a=-7 px/s\u00b2 (down), R\u00b2=0.994"
+    },
+    {
+     "level": "info",
+     "text": "\u201cobj 7\u201d airborne t=3.27\u20133.87s: a=33 px/s\u00b2 (down), R\u00b2=0.982"
+    },
+    {
+     "level": "info",
+     "text": "\u201cobj 7\u201d airborne t=4.33\u20135.43s: a=-41 px/s\u00b2 (down), R\u00b2=0.933"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201cbox of tissues\u201d @ t=0.33s: no measurable fall curvature over 0.67s airborne (\u22482.4px deviation) (awaiting VLM confirmation)"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201cbox of tissues\u201d @ t=3.40s: no measurable fall curvature over 0.97s airborne (\u22485.8px deviation) (awaiting VLM confirmation)"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201cbox of tissues\u201d @ t=4.93s: drifting upward slowly (-71 px/s\u00b2) for 1.20s airborne (awaiting VLM confirmation)"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201crobotic arm #2\u201d @ t=1.30s: no measurable fall curvature over 0.57s airborne (\u22482.3px deviation) (awaiting VLM confirmation)"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201crobotic arm #2\u201d @ t=2.27s: no measurable fall curvature over 0.73s airborne (\u22481.1px deviation) (awaiting VLM confirmation)"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201cobj 7\u201d @ t=0.87s: drifting upward slowly (-30 px/s\u00b2) for 1.73s airborne (awaiting VLM confirmation)"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201cobj 7\u201d @ t=3.57s: no measurable fall curvature over 0.60s airborne (\u22481.5px deviation) (awaiting VLM confirmation)"
+    },
+    {
+     "level": "info",
+     "text": "Float candidate \u2014 \u201cobj 7\u201d @ t=4.90s: no measurable fall curvature over 1.10s airborne (\u22486.2px deviation) (awaiting VLM confirmation)"
+    },
+    {
+     "level": "success",
+     "text": "Airborne motion is consistent with constant downward gravity."
+    }
+   ]
+  },
+  "s3_momentum": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 65.1,
+   "n_events": 33,
+   "severities": [
+    {
+     "label": "Momentum violation",
+     "value": 90
+    }
+   ],
+   "metrics": [
+    {
+     "label": "\u201ctable\u201d momentum score",
+     "value": "74",
+     "sub": "vmax 1330 px/s \u00b7 m\u0302 4.65 \u00b7 smooth 0.39"
+    },
+    {
+     "label": "\u201cplant\u201d momentum score",
+     "value": "62",
+     "sub": "vmax 1149 px/s \u00b7 m\u0302 0.15 \u00b7 smooth 0.41"
+    },
+    {
+     "label": "\u201cbox of tissues\u201d momentum score",
+     "value": "62",
+     "sub": "vmax 1523 px/s \u00b7 m\u0302 0.00 \u00b7 smooth 0.35"
+    },
+    {
+     "label": "\u201crobotic arm #2\u201d momentum score",
+     "value": "62",
+     "sub": "vmax 1866 px/s \u00b7 m\u0302 0.09 \u00b7 smooth 0.31"
+    },
+    {
+     "label": "\u201crobotic arm #1\u201d momentum score",
+     "value": "58",
+     "sub": "vmax 1095 px/s \u00b7 m\u0302 0.10 \u00b7 smooth 0.44"
+    },
+    {
+     "label": "Momentum anomalies",
+     "value": "5",
+     "sub": "0 VLM-confirmed \u00b7 24 contact episode(s)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "5 subject(s) from Object Tracker evidence (sam3 mode): \u201ctable\u201d, \u201cplant\u201d, \u201cbox of tissues\u201d, \u201crobotic arm #1\u201d, \u201crobotic arm #2\u201d"
+    },
+    {
+     "level": "info",
+     "text": "VLM relative-mass ranking applied: table=10, plant=5, box of tissues=0.1, robotic arm #1=1, robotic arm #2=1"
+    },
+    {
+     "level": "info",
+     "text": "\u201ctable\u201d: momentum score 74 \u2014 vmax 1330 px/s, path 356 px, arc h 117 px (sym 0.00), smooth 0.39, m\u0302 4.65"
+    },
+    {
+     "level": "info",
+     "text": "\u201cplant\u201d: momentum score 62 \u2014 vmax 1149 px/s, path 368 px, arc h 20 px (sym 0.00), smooth 0.41, m\u0302 0.15"
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d: momentum score 62 \u2014 vmax 1523 px/s, path 354 px, arc h 75 px (sym 0.00), smooth 0.35, m\u0302 0.00"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #1\u201d: momentum score 58 \u2014 vmax 1095 px/s, path 318 px, arc h 151 px (sym 0.00), smooth 0.44, m\u0302 0.10"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #2\u201d: momentum score 62 \u2014 vmax 1866 px/s, path 434 px, arc h 110 px (sym 0.00), smooth 0.31, m\u0302 0.09"
+    },
+    {
+     "level": "info",
+     "text": "24 contact episode(s) between subjects."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED transfer_anomaly: contact between \u201cplant\u201d and \u201cbox of tissues\u201d at t=2.55s: momentum appears from nowhere / vanishes (residual 108% of incoming momentum)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED transfer_anomaly: contact between \u201cplant\u201d and \u201cbox of tissues\u201d at t=3.02s: momentum appears from nowhere / vanishes (residual 126% of incoming momentum)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED transfer_anomaly: contact between \u201cplant\u201d and \u201cbox of tissues\u201d at t=3.48s: momentum appears from nowhere / vanishes (residual 116% of incoming momentum)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED transfer_anomaly: contact between \u201cplant\u201d and \u201cbox of tissues\u201d at t=4.29s: momentum appears from nowhere / vanishes (residual 476% of incoming momentum)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED transfer_anomaly: contact between \u201ctable\u201d and \u201cplant\u201d at t=4.29s: momentum appears from nowhere / vanishes (residual 118% of incoming momentum)."
+    },
+    {
+     "level": "info",
+     "text": "VLM: plausible cause @ t=2.55s (100%): The plant and the box of tissues are far apart and remain stationary, making the automated flag a false positive with no actual physics violation."
+    },
+    {
+     "level": "info",
+     "text": "VLM: plausible cause @ t=3.02s (99%): The plant in the background and the box of tissues on the table are spatially separated and do not come into contact, making the flagged collision a false positive."
+    },
+    {
+     "level": "info",
+     "text": "VLM: plausible cause @ t=3.48s (100%): The plant and the box of tissues are located in completely different parts of the scene (background and foreground) and do not come into contact with each other."
+    },
+    {
+     "level": "warn",
+     "text": "Momentum VIOLATION \u2014 severity 90%."
+    }
+   ]
+  },
+  "s3_friction": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 100.1,
+   "n_events": 32,
+   "severities": [
+    {
+     "label": "Friction violation",
+     "value": 90
+    }
+   ],
+   "metrics": [
+    {
+     "label": "\u201ctable\u201d friction score",
+     "value": "50",
+     "sub": "pitcher \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "\u201cplant\u201d friction score",
+     "value": "50",
+     "sub": "potted plant \u00b7 0 decel-expected segment(s) \u00b7 avg decel -593.9 px/s\u00b2"
+    },
+    {
+     "label": "\u201cbox of tissues\u201d friction score",
+     "value": "50",
+     "sub": "tissue box \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "\u201crobotic arm #1\u201d friction score",
+     "value": "50",
+     "sub": "robotic arm \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "\u201crobotic arm #2\u201d friction score",
+     "value": "50",
+     "sub": "robotic arm \u00b7 0 decel-expected segment(s) \u00b7 avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "label": "Friction anomalies",
+     "value": "2",
+     "sub": "1 VLM-confirmed \u00b7 24 contact episode(s)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "5 subject(s) from Object Tracker evidence (sam3 mode): \u201ctable\u201d, \u201cplant\u201d, \u201cbox of tissues\u201d, \u201crobotic arm #1\u201d, \u201crobotic arm #2\u201d"
+    },
+    {
+     "level": "info",
+     "text": "24 contact episode(s) between subjects."
+    },
+    {
+     "level": "info",
+     "text": "\u201ctable\u201d identified as 'pitcher' \u2014 expected motion: accelerate \u2192 decelerate"
+    },
+    {
+     "level": "info",
+     "text": "\u201cplant\u201d identified as 'potted plant' \u2014 expected motion: constant"
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d identified as 'tissue box' \u2014 expected motion: constant"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #1\u201d identified as 'robotic arm' \u2014 expected motion: constant"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #2\u201d identified as 'robotic arm' \u2014 expected motion: constant"
+    },
+    {
+     "level": "info",
+     "text": "\u201ctable\u201d (pitcher): 0 coast segment(s), friction score 50 \u2014 vavg 91 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "info",
+     "text": "\u201cplant\u201d (potted plant): 2 coast segment(s), friction score 50 \u2014 vavg 84 px/s, avg decel -593.9 px/s\u00b2"
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d (tissue box): 0 coast segment(s), friction score 50 \u2014 vavg 95 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #1\u201d (robotic arm): 0 coast segment(s), friction score 50 \u2014 vavg 79 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #2\u201d (robotic arm): 0 coast segment(s), friction score 50 \u2014 vavg 117 px/s, avg decel 0.0 px/s\u00b2"
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED abrupt_stop: \u201cplant\u201d (identified as potted plant) lost 100% of its speed in one step with no contact or visible obstacle to stop it."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED self_acceleration: \u201cplant\u201d (identified as potted plant) sped up from ~246 px/s over 0.70s (4.75\u20135.45s) though it was expected to constant (stationary object), with no contact or push visible."
+    },
+    {
+     "level": "info",
+     "text": "VLM: plausible cause @ t=0.23s (99%): The potted plant is stationary in the background across both frames, making the automated claim of a sudden loss of speed a tracking error rather than a physics violation in the video."
+    },
+    {
+     "level": "warn",
+     "text": "VLM CONFIRMS self_acceleration @ t=5.45s (90%): The potted plant is an inanimate object and there is no visible external force to cause it to speed up or move."
+    },
+    {
+     "level": "warn",
+     "text": "Friction VIOLATION \u2014 severity 90%."
+    }
+   ]
+  },
+  "s3_deformation": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 12.5,
+   "n_events": 27,
+   "severities": [
+    {
+     "label": "Deformation violation",
+     "value": 84
+    }
+   ],
+   "metrics": [
+    {
+     "label": "\u201ctable\u201d",
+     "value": "STABLE",
+     "sub": "no change-points confirmed"
+    },
+    {
+     "label": "\u201cplant\u201d",
+     "value": "STABLE",
+     "sub": "no change-points confirmed"
+    },
+    {
+     "label": "\u201cbox of tissues\u201d",
+     "value": "STABLE",
+     "sub": "no change-points confirmed"
+    },
+    {
+     "label": "\u201crobotic arm #1\u201d",
+     "value": "CHANGED",
+     "sub": "99% @ t=4.987s (createai:geminipro3_1)"
+    },
+    {
+     "label": "\u201crobotic arm #2\u201d",
+     "value": "STABLE",
+     "sub": "no change-points confirmed"
+    },
+    {
+     "label": "Change-points checked",
+     "value": "1",
+     "sub": "1 confirmed changed \u00b7 drift threshold 0.3"
+    },
+    {
+     "label": "Vanish events",
+     "value": "0",
+     "sub": "mask gaps \u2265 0.3s (grid-aware)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Reusing Object Tracker masks for 5 subject(s) from the evidence bus."
+    },
+    {
+     "level": "info",
+     "text": "\u201ctable\u201d: shape/appearance stable (peak consecutive drift 0.140, vs first 0.240, threshold 0.3)."
+    },
+    {
+     "level": "info",
+     "text": "\u201cplant\u201d: shape/appearance stable (peak consecutive drift 0.169, vs first 0.217, threshold 0.3)."
+    },
+    {
+     "level": "info",
+     "text": "\u201cbox of tissues\u201d: shape/appearance stable (peak consecutive drift 0.014, vs first 0.094, threshold 0.3)."
+    },
+    {
+     "level": "warn",
+     "text": "\u201crobotic arm #1\u201d: 1 deformation change-point(s) detected (peak 0.448 > 0.3)."
+    },
+    {
+     "level": "warn",
+     "text": "\u201crobotic arm #1\u201d @ t=4.99s (drift 0.448) \u2192 changed (99%): The rigid robotic fingers have lost their structural integrity, appearing melted and deformed in the second frame."
+    },
+    {
+     "level": "info",
+     "text": "\u201crobotic arm #2\u201d: shape/appearance stable (peak consecutive drift 0.022, vs first 0.040, threshold 0.3)."
+    },
+    {
+     "level": "warn",
+     "text": "Deformation VIOLATION \u2014 severity 84%."
+    }
+   ]
+  },
+  "s3_fluid": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 61.7,
+   "n_events": 53,
+   "severities": [
+    {
+     "label": "Fluid violation",
+     "value": 90
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Points tracked",
+     "value": "428",
+     "sub": "avg path length 27.1 frame(s)"
+    },
+    {
+     "label": "Fluid anomalies",
+     "value": "30",
+     "sub": "2 VLM-confirmed"
+    },
+    {
+     "label": "Holistic realism",
+     "value": "UNREALISTIC",
+     "sub": "90% confidence (createai:geminipro3_1)"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Loading video (aligned to Object Tracker frames)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "No fluid-like subject named by the Object Tracker \u2014 falling back to a motion-energy region."
+    },
+    {
+     "level": "info",
+     "text": "Fluid region: motion-energy region (static for the clip)."
+    },
+    {
+     "level": "info",
+     "text": "Computing dense optical flow across 48 frame(s)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "Advected 428 point path(s) through the fluid region."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.00\u20130.81s) defies gravity (curves upward) (fit R\u00b2=1.00)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=2.20\u20133.02s) defies gravity (curves upward) (fit R\u00b2=0.85)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=2.55\u20133.02s) defies gravity (curves upward) (fit R\u00b2=0.87)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=2.67\u20133.02s) defies gravity (curves upward) (fit R\u00b2=0.92)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.00\u20130.81s) defies gravity (curves upward) (fit R\u00b2=1.00)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=4.29\u20134.75s) defies gravity (curves upward) (fit R\u00b2=1.00)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=4.41\u20135.22s) defies gravity (curves upward) (fit R\u00b2=1.00)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=4.64\u20134.99s) defies gravity (curves upward) (fit R\u00b2=1.00)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=4.75\u20135.22s) defies gravity (curves upward) (fit R\u00b2=1.00)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=4.52\u20135.45s) does not fit a ballistic parabola (fit R\u00b2=0.08)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.23\u20134.64s) does not fit a ballistic parabola (fit R\u00b2=0.12)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.12\u20134.52s) does not fit a ballistic parabola (fit R\u00b2=0.12)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.35\u20134.29s) does not fit a ballistic parabola (fit R\u00b2=0.13)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.00\u20134.52s) does not fit a ballistic parabola (fit R\u00b2=0.16)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.23\u20134.29s) does not fit a ballistic parabola (fit R\u00b2=0.19)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.23\u20134.29s) does not fit a ballistic parabola (fit R\u00b2=0.20)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.00\u20134.52s) does not fit a ballistic parabola (fit R\u00b2=0.21)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.35\u20134.52s) does not fit a ballistic parabola (fit R\u00b2=0.24)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.81\u20133.25s) does not fit a ballistic parabola (fit R\u00b2=0.32)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.70\u20133.25s) does not fit a ballistic parabola (fit R\u00b2=0.34)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.46\u20133.36s) does not fit a ballistic parabola (fit R\u00b2=0.38)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.58\u20133.25s) does not fit a ballistic parabola (fit R\u00b2=0.41)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=1.04\u20133.13s) does not fit a ballistic parabola (fit R\u00b2=0.44)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.35\u20133.36s) does not fit a ballistic parabola (fit R\u00b2=0.44)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.93\u20133.13s) does not fit a ballistic parabola (fit R\u00b2=0.45)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.12\u20132.67s) does not fit a ballistic parabola (fit R\u00b2=0.49)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.12\u20132.55s) does not fit a ballistic parabola (fit R\u00b2=0.52)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.23\u20133.60s) does not fit a ballistic parabola (fit R\u00b2=0.53)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=4.75\u20135.45s) does not fit a ballistic parabola (fit R\u00b2=0.54)."
+    },
+    {
+     "level": "warn",
+     "text": "FLAGGED ballistic_arc: an airborne droplet's path (t=0.35\u20133.71s) does not fit a ballistic parabola (fit R\u00b2=0.57)."
+    },
+    {
+     "level": "info",
+     "text": "VLM: plausible cause @ t=0.00s (90%): There is no visible fluid in the annotated region; the metric appears to have erroneously tracked a non-fluid object or background element."
+    },
+    {
+     "level": "warn",
+     "text": "VLM CONFIRMS ballistic_arc @ t=2.20s (90%): The tracked airborne droplet exhibits an upward trajectory that defies gravity without any visible physical cause or acting force."
+    },
+    {
+     "level": "warn",
+     "text": "VLM CONFIRMS ballistic_arc @ t=2.55s (90%): The highlighted fluid particle follows an unnatural upward trajectory without any visible physical force to cause such movement."
+    },
+    {
+     "level": "warn",
+     "text": "Holistic realism: unrealistic (90%): The liquid inside the pitcher behaves like a solid object fixed to the glass, failing to slosh or maintain a horizontal surface relative to gravity as the pitcher is moved by the robotic arm."
+    },
+    {
+     "level": "warn",
+     "text": "Fluid VIOLATION \u2014 severity 90%."
+    }
+   ]
+  },
+  "s4_report": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 0.0,
+   "n_events": 10,
+   "severities": [
+    {
+     "label": "Global severity: critical",
+     "value": 100.0
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Included tests",
+     "value": 15,
+     "sub": "Previous non-excluded test results aggregated into this report."
+    },
+    {
+     "label": "Physics consistency score",
+     "value": 85.75,
+     "sub": "Placeholder score for first-pass testing."
+    },
+    {
+     "label": "Semantic findings",
+     "value": 34,
+     "sub": "VLM-explained, from Deformation, Collision & Contact, Momentum, Friction, Fluid, Gravity"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Diagnostic Report Generator received 15 previous test result(s)."
+    },
+    {
+     "level": "info",
+     "text": "Evidence bus: 34 VLM-explained finding(s) from 6 specialist(s) (Deformation, Collision & Contact, Momentum, Friction, Fluid, Gravity)."
+    }
+   ]
+  },
+  "s3_causality": {
+   "status": "ok",
+   "error": "",
+   "wall_s": 7.2,
+   "n_events": 16,
+   "severities": [
+    {
+     "label": "Causality violation severity",
+     "value": 3
+    }
+   ],
+   "metrics": [
+    {
+     "label": "Rules fired",
+     "value": "0/5",
+     "sub": "causality rules violated"
+    },
+    {
+     "label": "Top violation",
+     "value": "\u2014",
+     "sub": "none fired"
+    },
+    {
+     "label": "VLM+geometry agree",
+     "value": "0",
+     "sub": "rules both methods fired"
+    },
+    {
+     "label": "Causality verdict",
+     "value": "rejected",
+     "sub": "severity 3/100"
+    }
+   ],
+   "stream_errors": [],
+   "logs": [
+    {
+     "level": "info",
+     "text": "Causality Specialist \u2014 VLM rule-checker on Qwen2.5-VL 7B (~17 GB, no API key). 5 rules."
+    },
+    {
+     "level": "info",
+     "text": "Geometric motion signals ready (self-computed) \u2014 they can fire the ordering & reversal rules the VLM cannot see in still frames."
+    },
+    {
+     "level": "info",
+     "text": "Checking 5 causality rules over 8 frames (first run loads the model \u2014 may take a minute)\u2026"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 Cause must precede effect \u2014 ok (P=0.10) \u00b7 geometry: 0 event(s)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 The arrow of time \u2014 ok (P=0.00) \u00b7 geometry: 0 event(s)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 Temporal continuity \u2014 ok (P=0.03)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 Cause-effect coupling \u2014 ok (P=0.06)"
+    },
+    {
+     "level": "info",
+     "text": "\u2713 No effect without a cause \u2014 ok (P=0.03)"
+    },
+    {
+     "level": "success",
+     "text": "Causality verdict: rejected (severity 3/100, 0/5 rules fired)."
+    }
+   ]
+  }
+ }
+}

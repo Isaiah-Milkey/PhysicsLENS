@@ -1,0 +1,13 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "170 frames @ 25.0 fps \u2014 detecting 5 keypoints\u2026"}
+{"type": "log", "level": "info", "text": "Tracking\u2026 60/170 frames"}
+{"type": "log", "level": "info", "text": "Tracking\u2026 120/170 frames"}
+{"type": "log", "level": "info", "text": "Building plot\u2026"}
+{"type": "plotly", "data": "<stripped 22932 chars>", "caption": "Velocity per keypoint (top). Acceleration with red-highlighted anomalous frames (bottom)."}
+{"type": "signal", "source": "s1_temporal", "source_name": "Temporal Smoothness", "fps": 25.0, "n_frames": 170, "severity": 21, "type_severities": {"temporal_anomaly": 21}, "signals": [{"frame": 2, "signal_type": "temporal_anomaly", "score": 1522.827}, {"frame": 3, "signal_type": "temporal_anomaly", "score": 1533.897}, {"frame": 4, "signal_type": "temporal_anomaly", "score": 4806.029}, {"frame": 5, "signal_type": "temporal_anomaly", "score": 3099.195}, {"frame": 6, "signal_type": "temporal_anomaly", "score": 1871.296}, {"frame": 7, "signal_type": "temporal_anomaly", "score": 1635.206}, {"frame": 8, "signal_type": "temporal_anomaly", "score": 2091.932}, {"frame": 9, "signal_type": "temporal_anomaly", "score": 44003.12}, {"frame": 10, "signal_type": "temporal_anomaly", "score": 2.347}, {"frame": 11, "signal_type": "temporal_anomaly", "score": 2.402}, {"frame": 70, "signal_type": "temporal_anomaly", "score": 2.844}, {"frame": 71, "signal_type": "temporal_anomaly", "score": 2.844}]}
+{"type": "metric", "label": "Flagged frames", "value": "12", "sub": "of 170 total"}
+{"type": "metric", "label": "Peak acceleration", "value": "220015.6", "sub": "px/s\u00b2"}
+{"type": "metric", "label": "Mean acceleration", "value": "2073.6", "sub": "px/s\u00b2"}
+{"type": "severity", "label": "Temporal anomaly score", "value": 21, "color": "#EF9F27"}
+{"type": "log", "level": "warn", "text": "12 frame(s) show abrupt acceleration spikes."}
+{"type": "done"}

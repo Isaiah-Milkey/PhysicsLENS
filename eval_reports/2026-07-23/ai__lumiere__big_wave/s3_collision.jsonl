@@ -1,0 +1,17 @@
+{"type": "log", "level": "info", "text": "Loading video (aligned to Object Tracker frames)\u2026"}
+{"type": "log", "level": "info", "text": "Reusing Object Tracker masks for 2 subject(s) from the evidence bus."}
+{"type": "log", "level": "info", "text": "1 contact episode(s) across 1 subject pair(s) (dilated-mask adjacency \u2265 0.02)."}
+{"type": "log", "level": "info", "text": "Contact: \u201ccrashing waves\u201d \u00d7 \u201cmountain peak\u201d t=2.50\u20134.69s (peak raw overlap 87%)."}
+{"type": "log", "level": "warn", "text": "Possible interpenetration: \u201ccrashing waves\u201d \u00d7 \u201cmountain peak\u201d peaks at 87% raw overlap @ t=4.27s."}
+{"type": "log", "level": "info", "text": "VLM: normal contact \u201ccrashing waves\u201d \u00d7 \u201cmountain peak\u201d @ t=4.27s (90%): The image depicts waves crashing against a landmass or mountain peak, which is a normal physical interaction and not an example of solid objects phasing through each other."}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 96572 chars>", "caption": "\u201ccrashing waves\u201d \u00d7 \u201cmountain peak\u201d @ t=4.27s \u2014 normal_contact (90%) per createai:geminipro3_1"}
+{"type": "signal", "source": "s3_collision", "source_name": "Collision & Contact", "fps": 9.6, "n_frames": 48, "severity": 25, "type_severities": {"interpenetration": 25, "energy_gain": 0, "phantom_bounce": 0}, "signals": [{"frame": 41, "signal_type": "collision_interpenetration", "score": 0.25}]}
+{"type": "plotly", "data": "<stripped 14303 chars>", "caption": "Top: pair overlap (orange = contact, red = interpenetration threshold). Bottom: vertical velocity; dotted red lines mark violations."}
+{"type": "metric", "label": "Contact episodes", "value": "1", "sub": "1 subject pair(s) analyzed"}
+{"type": "metric", "label": "Interpenetrations", "value": "0", "sub": "of 1 candidate(s) after VLM review"}
+{"type": "metric", "label": "Energy-gain bounces", "value": "0", "sub": "restitution > 1.1"}
+{"type": "metric", "label": "Phantom bounces", "value": "0", "sub": "direction reversal with no contact"}
+{"type": "severity", "label": "Collision violation", "value": 25, "color": "#4CAF50"}
+{"type": "result", "status": "ok", "subjects": ["crashing waves", "mountain peak"], "episodes": [{"f_start": 24, "f_end": 45, "peak_overlap": 1.9803921568627452, "peak_frame": 45, "peak_raw": 0.8729198184568835, "peak_raw_frame": 41, "pair": ["crashing waves", "mountain peak"], "t_start": 2.5, "t_end": 4.688}], "violations": [{"type": "interpenetration", "pair": ["crashing waves", "mountain peak"], "t": 4.271, "frame": 41, "peak_overlap": 0.873, "duration_s": 2.188, "score": 0.25, "confirmed": false, "vlm_confidence": 0.9, "explanation": "The image depicts waves crashing against a landmass or mountain peak, which is a normal physical interaction and not an example of solid objects phasing through each other."}], "severity": 25}
+{"type": "log", "level": "success", "text": "Collision physics look plausible."}
+{"type": "done"}

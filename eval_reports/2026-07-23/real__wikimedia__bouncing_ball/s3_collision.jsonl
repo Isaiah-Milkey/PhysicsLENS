@@ -1,0 +1,4 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "warn", "text": "No Object Tracker masks on the evidence bus \u2014 segmenting inline (run the Object Tracker first to share its masks)."}
+{"type": "log", "level": "info", "text": "Primary subjects: \u201ctext\u201d, \u201cblack screen\u201d"}
+{"type": "error", "text": "No subject masks available."}

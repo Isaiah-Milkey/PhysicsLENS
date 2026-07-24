@@ -1,0 +1,11 @@
+{"type": "log", "level": "info", "text": "Loading video\u2026"}
+{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: wooden table, black plastic crate, orange ball; 13 inter-object contact event(s)"}
+{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
+{"type": "log", "level": "warn", "text": "#1 Collision & Contact \u2014 99% (t=0.3\u20130.75s): The orange ball visibly passes through the solid plastic structure of the black crate."}
+{"type": "log", "level": "info", "text": "#2 Deformation \u2014 30%: quantitative evidence (see summary)"}
+{"type": "image", "mime": "image/jpeg", "data": "<stripped 129400 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
+{"type": "plotly", "data": "<stripped 7152 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
+{"type": "metric", "label": "Collision & Contact", "value": "99%", "sub": "heuristic+vlm \u00b7 t=0.3\u20130.75s"}
+{"type": "metric", "label": "Deformation", "value": "30%", "sub": "heuristic"}
+{"type": "result", "status": "ok", "hypotheses": [{"specialist": "collision", "confidence": 0.99, "reason": "The orange ball visibly passes through the solid plastic structure of the black crate.", "t_window": [0.3, 0.75], "source": "heuristic+vlm"}, {"specialist": "deformation", "confidence": 0.3, "reason": "quantitative evidence (see summary)", "t_window": null, "source": "heuristic"}], "evidence_summary": ["- tracked subjects: wooden table, black plastic crate, orange ball", "- 13 inter-object contact event(s)"], "keyframe_ts": [0.33, 0.4, 0.43, 0.7]}
+{"type": "done"}
