@@ -197,6 +197,40 @@ def build_dataset_router(pipelines: dict) -> APIRouter:
 
         return StreamingResponse(event_stream(), media_type="application/x-ndjson")
 
+    # ── Temporal segment: trim a registered video to [t0, t1) as a new file ────
+    @router.post("/segment")
+    def segment(file_id: str = Form(...), t0: float = Form(...), t1: float = Form(...)):
+        rec = _FILES.get(file_id)
+        if not rec or not rec["path"].exists():
+            return JSONResponse({"error": "Unknown file id"}, status_code=404)
+        if t1 <= t0:
+            return JSONResponse({"error": "t1 must be greater than t0"}, status_code=400)
+
+        from tools.video import load_frames, save_frames_as_video
+
+        frames, fps = load_frames(str(rec["path"]))
+        n = len(frames)
+        if n < 2 or fps <= 0:
+            return JSONResponse({"error": "Source video too short/unreadable to segment"},
+                                status_code=400)
+        duration = n / fps
+        i0 = max(0, min(n - 1, int(round(t0 * fps))))
+        i1 = max(i0 + 1, min(n, int(round(t1 * fps))))
+        seg = frames[i0:i1]
+        if len(seg) < 2:
+            return JSONResponse(
+                {"error": f"Segment [{t0:g}, {t1:g})s is empty/too short after "
+                          f"clamping to the video's 0–{duration:.2f}s range."},
+                status_code=400)
+
+        dest = DATASET_DIR / f"{uuid.uuid4().hex}.mp4"
+        save_frames_as_video(seg, fps, str(dest))
+        stem = Path(rec["name"]).stem
+        name = f"{stem}_seg{i0 / fps:.2f}-{i1 / fps:.2f}s.mp4"
+        out = _register(dest, name)
+        return {**out, "parent_id": file_id, "t0": round(i0 / fps, 3),
+                "t1": round(i1 / fps, 3), "fps": fps, "n_frames": len(seg)}
+
     # ── Clear the in-memory registry (files are temp; left for the OS) ─────────
     @router.post("/clear")
     def clear():

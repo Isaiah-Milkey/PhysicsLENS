@@ -1,0 +1,10 @@
+# Persistent MCP store (run history, reports, video handles) — never commit.
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/

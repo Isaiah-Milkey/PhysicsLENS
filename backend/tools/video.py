@@ -105,6 +105,27 @@ def frame_to_gray(frame: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 
+def save_frames_as_video(frames: List[np.ndarray], fps: float, out_path: str) -> None:
+    """Write BGR frames to an mp4v-in-mp4 file for feeding BACK into a pipeline
+    (e.g. a trimmed segment) — not for browser display (see
+    `encode_video_browser` for that, which needs system ffmpeg for real H.264).
+    mp4v is bundled with opencv-python's wheels, so this needs no ffmpeg
+    install and `load_frames`/`cv2.VideoCapture` can always read it back.
+    """
+    if not frames:
+        raise ValueError("No frames to write.")
+    h, w = frames[0].shape[:2]
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    writer = cv2.VideoWriter(out_path, fourcc, max(1.0, float(fps)), (w, h))
+    if not writer.isOpened():
+        raise RuntimeError(f"cv2.VideoWriter failed to open '{out_path}' for mp4v output.")
+    try:
+        for f in frames:
+            writer.write(f)
+    finally:
+        writer.release()
+
+
 def encode_video_browser(
     frames: List[np.ndarray],
     fps: float,
