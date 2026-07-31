@@ -69,6 +69,33 @@ def _nd(obj: dict) -> str:
     return json.dumps(obj) + "\n"
 
 
+def _parse_hf_repo(raw: str) -> tuple[str, Optional[str]]:
+    """Accept either a bare 'namespace/repo_name' or a pasted HF URL (dataset
+    page, or a /tree/<branch>/<subpath> deep link) and return (repo_id,
+    subfolder). subfolder is None unless the URL itself pointed at one — lets
+    a copy-pasted link "just work" without the user manually splitting it.
+    """
+    raw = raw.strip()
+    if not raw.startswith(("http://", "https://")):
+        return raw, None
+
+    from urllib.parse import unquote, urlparse
+    parts = [unquote(p) for p in urlparse(raw).path.split("/") if p]
+    if parts and parts[0] == "datasets":
+        parts = parts[1:]
+    if len(parts) < 2:
+        return (parts[0] if parts else raw), None
+
+    repo = f"{parts[0]}/{parts[1]}"
+    rest = parts[2:]
+    subfolder = None
+    if rest and rest[0] in ("tree", "blob"):
+        rest = rest[2:]                 # drop "tree"/"blob" + branch name
+        if rest:
+            subfolder = "/".join(rest)
+    return repo, subfolder
+
+
 def build_dataset_router(pipelines: dict) -> APIRouter:
     """Build the /dataset router, closing over the pipeline registry."""
     router = APIRouter(prefix="/dataset", tags=["dataset"])
@@ -105,8 +132,19 @@ def build_dataset_router(pipelines: dict) -> APIRouter:
                                    f"Run: pip install huggingface_hub"})
                 return
 
-            tok = (token or "").strip() or None
-            repo = repo_id.strip()
+            # `False` (not None) when no token is supplied: huggingface_hub treats
+            # token=None as "use whatever's cached on this machine" (e.g. from
+            # `hf auth login`) — so a blank field would silently pick up and use a
+            # host-cached token, including a stale/invalid one, even for public
+            # datasets. False forces genuinely anonymous access when the user
+            # didn't provide a token.
+            tok = (token or "").strip() or False
+            repo, url_subfolder = _parse_hf_repo(repo_id)
+            sub = (subfolder or "").strip() or url_subfolder
+            if url_subfolder and not (subfolder or "").strip():
+                yield _nd({"type": "log", "level": "info",
+                           "text": f"Parsed pasted link → repo “{repo}”, "
+                                   f"subfolder “{url_subfolder}”."})
             yield _nd({"type": "log", "level": "info",
                        "text": f"Listing files in dataset “{repo}”…"})
             try:
@@ -118,8 +156,8 @@ def build_dataset_router(pipelines: dict) -> APIRouter:
                 return
 
             vids = [f for f in all_files if Path(f).suffix.lower() in VIDEO_EXTS]
-            if subfolder:
-                sf = subfolder.strip().strip("/")
+            if sub:
+                sf = sub.strip().strip("/")
                 vids = [f for f in vids if f.startswith(sf + "/")]
             vids.sort()
             if max_files and max_files > 0:
@@ -128,7 +166,7 @@ def build_dataset_router(pipelines: dict) -> APIRouter:
             if not vids:
                 yield _nd({"type": "error",
                            "text": "No video files found in that dataset"
-                                   + (f" under “{subfolder}”." if subfolder else ".")})
+                                   + (f" under “{sub}”." if sub else ".")})
                 return
 
             total = len(vids)

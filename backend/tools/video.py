@@ -62,6 +62,67 @@ def _load_gif_frames(
     return frames, fps
 
 
+def probe_video(video_path: str) -> Tuple[float, int, Tuple[int, int]]:
+    """(fps, n_frames, (H, W)) read from container metadata — no full decode.
+
+    `n_frames` is the container's own count, which some encoders get wrong (or
+    report as 0); treat it as an estimate and tolerate a short/long stream.
+    """
+    if str(video_path).lower().endswith(".gif"):
+        from PIL import Image
+        im = Image.open(video_path)
+        n = getattr(im, "n_frames", 1)
+        dur = float(im.info.get("duration", 0) or 0)
+        fps = max(1.0, min(60.0, 1000.0 / dur)) if dur > 0 else 10.0
+        return fps, int(n), (im.size[1], im.size[0])
+
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+    cap.release()
+    return float(fps), max(0, n), (h, w)
+
+
+def iter_frames(video_path: str, max_dim: Optional[int] = None):
+    """Yield BGR frames one at a time — O(1) memory instead of O(n_frames).
+
+    `load_frames` materialises the whole clip (a 450-frame 4K video is ~11 GB);
+    use this when a pipeline only needs a sliding window. `max_dim` downscales
+    each frame as it is decoded, so full-resolution frames never accumulate.
+    Same container handling as `load_frames`: Pillow for GIFs (OpenCV's
+    VideoCapture is unreliable on them), OpenCV/ffmpeg for everything else.
+    """
+    def _shrink(bgr):
+        if not max_dim:
+            return bgr
+        h, w = bgr.shape[:2]
+        s = min(1.0, max_dim / max(h, w))          # only ever downscale
+        if s >= 1.0:
+            return bgr
+        return cv2.resize(bgr, (max(1, int(round(w * s))), max(1, int(round(h * s)))),
+                          interpolation=cv2.INTER_AREA)
+
+    if str(video_path).lower().endswith(".gif"):
+        from PIL import Image, ImageSequence
+        im = Image.open(video_path)
+        for fr in ImageSequence.Iterator(im):      # already lazy
+            rgb = np.asarray(fr.convert("RGB"))
+            yield _shrink(np.ascontiguousarray(rgb[:, :, ::-1]))
+        return
+
+    cap = cv2.VideoCapture(video_path)
+    try:
+        while True:
+            ret, bgr = cap.read()
+            if not ret:
+                break
+            yield _shrink(bgr)
+    finally:
+        cap.release()
+
+
 def load_frames_rgb(
     video_path: str,
     max_frames: int = 48,
