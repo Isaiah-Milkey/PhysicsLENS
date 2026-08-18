@@ -1,0 +1,5 @@
+# One prompt per line. Blank lines and lines starting with # are ignored.
+# Be concrete about motion, materials and camera — see README.md.
+a glass marble rolls off a wooden table and bounces twice on tile, static camera, side view
+water pours from a metal jug into a glass and overflows onto the table, static camera
+a wooden crate slides across ice and slowly comes to rest, static camera, side view

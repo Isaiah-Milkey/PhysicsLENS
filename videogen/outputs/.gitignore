@@ -1,0 +1,4 @@
+# Generated videos and their sidecars are build artifacts — keep the folder, not
+# the contents.
+*
+!.gitignore
