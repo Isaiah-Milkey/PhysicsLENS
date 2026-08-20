@@ -1,0 +1,16 @@
+{
+ "family": "cosmos3",
+ "conditioning": "text+image",
+ "checkpoint": "nano",
+ "params": "Nano",
+ "model": "nvidia/Cosmos3-Nano",
+ "seconds": 5.04,
+ "prompt": "the glass marble falls and bounces on the wooden floor, static camera",
+ "negative_prompt": null,
+ "seed": 0,
+ "steps": 35,
+ "gen_seconds": 178.6,
+ "num_frames": 121,
+ "fps": 24,
+ "guidance_scale": 6.0
+}

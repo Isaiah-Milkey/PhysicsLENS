@@ -1,0 +1,16 @@
+{
+ "family": "cosmos3",
+ "conditioning": "text",
+ "checkpoint": "nano",
+ "params": "Nano",
+ "model": "nvidia/Cosmos3-Nano",
+ "seconds": 5.04,
+ "prompt": "a glass marble rolls off a wooden table and falls to the floor, static camera, side view",
+ "negative_prompt": null,
+ "seed": 0,
+ "steps": 35,
+ "gen_seconds": 179.2,
+ "num_frames": 121,
+ "fps": 24,
+ "guidance_scale": 6.0
+}

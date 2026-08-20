@@ -1,16 +1,38 @@
-# videogen — Wan video generation
+# videogen — video generation harness
 
-Drop prompts in, drop images in, run one script, get videos out. Used to generate
-clips for PhysicsLENS benchmarking. Metrics and evaluation are decided
-separately — this is only the input → model → output path.
+Multi-family video generation for PhysicsLENS benchmarking: **Wan 2.1/2.2**,
+**Cosmos-Predict 2.5** and **Cosmos 3** behind one call. Metrics and
+evaluation are decided separately — this is only the input → model → output
+path.
 
-> **Status: implemented, not yet executed.** No model has been downloaded and no
-> video generated. Argument handling, mode resolution, batch pairing and disk
-> guards are all verified with `--dry-run`; the generation defaults come from the
-> Wan model cards and have not been validated on this machine. Expect to tune
-> them on the first real run.
+## Quick single calls (any model family)
+
+```python
+from generate import generate            # run from videogen/, or add it to sys.path
+generate("a marble rolls off a wooden table")                    # wan default
+generate("the marble bounces", image="start.png")                # text+image
+generate("...", model="cosmos2.5")                               # pick family
+generate("...", model="cosmos3:nano", seconds=5, seed=3)         # family:checkpoint
+```
+
+```bash
+./gen.sh "a marble rolls off a wooden table" --model cosmos2.5
+```
+
+The model loads once per process and stays resident — repeated `generate()`
+calls are generation-cost only. Every clip gets a `.json` sidecar with the
+full settings. Conditioning terms are uniform across families (`text`,
+`text+image`, `text+video`, …) and clip length defaults to 5 seconds
+(`seconds=`). Each family lives in its own folder under `models/` — see
+**`models/README.md`** for the family list and the contract for adding one
+(including models that need a cloned vendor repo).
+
+`smoke/` holds one validation clip per (family, checkpoint, conditioning),
+same prompts everywhere, with frame strips for eyeballing.
 
 ---
+
+## Wan batch workflow
 
 ## Use it
 
@@ -105,8 +127,9 @@ Common flags: `--frames` `--height` `--width` `--guidance` `--flow-shift`
 | `vace-1.3b` * | `Wan-AI/Wan2.1-VACE-1.3B-diffusers` | 17.7 G | `ref` | efficient |
 | `vace-14b` | `Wan-AI/Wan2.1-VACE-14B-diffusers` | 70.0 G | `ref` | best |
 
-`*` = default for its mode. Models download on first use into
-`$HF_HOME` (`/data/ssagar6/hf_cache`) and are reused after that.
+`*` = default for its mode. Models download on first use into `$HF_HOME`
+(fallback: `/data/ssagar6/hf_cache`, which is read-only for most users — set
+`HF_HOME` to your own cache dir).
 
 **Sizes are larger than parameter count suggests** — every Wan repo ships its own
 copy of the ~10.6 GB UMT5-XXL text encoder, so each additional model costs about

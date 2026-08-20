@@ -1,0 +1,17 @@
+{
+ "family": "cosmos2.5",
+ "mode": "text2world",
+ "checkpoint": "2b",
+ "model": "nvidia/Cosmos-Predict2.5-2B",
+ "revision": "diffusers/base/post-trained",
+ "prompt": "a glass marble rolls off a wooden table and falls to the floor, static camera, side view",
+ "negative_prompt": "The video captures a series of frames showing ugly scenes, static with no motion, motion blur, over-saturation, shaky footage, low resolution, grainy texture, pixelated images, poorly lit areas, underexposed and overexposed scenes, poor color balance, washed out colors, choppy sequences, jerky movements, low frame rate, artifacting, color banding, unnatural transitions, outdated special effects, fake elements, unconvincing visuals, poorly edited content, jump cuts, visual noise, and flickering. Overall, the video is of poor quality.",
+ "seed": 0,
+ "steps": 36,
+ "guardrail": false,
+ "gen_seconds": 432.2,
+ "height": 704,
+ "width": 1280,
+ "num_frames": 93,
+ "fps": 16
+}

@@ -1,0 +1,19 @@
+{
+ "family": "wan",
+ "conditioning": "text+image",
+ "mode": "i2v",
+ "checkpoint": "ti2v-5b",
+ "model": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+ "seconds": 5.04,
+ "prompt": "the glass marble falls and bounces on the wooden floor, static camera",
+ "negative_prompt": "Bright tones, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, motionless image, cluttered background, three legs, many people in the background, walking backwards",
+ "seed": 0,
+ "steps": 40,
+ "n_input_images": 1,
+ "gen_seconds": 151.0,
+ "height": 704,
+ "width": 1280,
+ "num_frames": 121,
+ "fps": 24,
+ "guidance_scale": 5.0
+}
