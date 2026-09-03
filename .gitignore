@@ -35,3 +35,7 @@ Thumbs.db
 .idea/
 
 docs/
+
+# Eval harness artifacts (staged clips + per-run reports; regenerate, don't commit)
+data/
+eval_reports/

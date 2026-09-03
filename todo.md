@@ -59,6 +59,32 @@ The two evals are complementary and worth reporting together:
 
 ---
 
+## Progress (2026-07-30)
+
+**Done** — branch `som-benchmark` off `origin/framework-eval`, commit `1cef21b`:
+- `rapidata_prepare.py` stages the Sora clips + a labels file, reusing
+  `load_labels`/`stratified_sample` from `vlm_rapidata_eval.py` so the clip set is
+  identical to the VLM benchmark.
+- `eval_framework.py` gains `--videos-dir`, `--labels`, `--bootstrap` and a
+  `human_agreement()` report. No second harness.
+- Validated the analysis on synthetic summaries with a planted correlation:
+  recovers rho=0.83 on the seeded pipeline, 0.13 with a CI spanning zero on a
+  pure-noise one.
+- Live-tested `s1_temporal`, `s1_optical_flow`, `s1_vlm` (CreateAI) on real clips.
+
+**Fixed a blocker:** `.env` defined `CREATEAI_KEY`, but `tools/createai.py` reads
+`CREATEAI_TOKEN` — the name appears nowhere in the codebase. Every CreateAI call
+would have failed with "set CREATEAI_TOKEN in the .env file". Added the correct
+name locally (`.env` is gitignored, so nothing to commit). **Worth telling Isaiah
+and Aditya** — anyone else with the same `.env` hits this.
+
+**Early smell, n=2 so do not over-read:** `s1_temporal` returned severity 100 on
+both clips and `s1_vlm` returned 95 on both. A screen that saturates carries no
+ranking signal regardless of how accurate it is. The per-pipeline table in
+`human_agreement()` is built to show exactly this — check it on the real run.
+
+---
+
 ## Tasks
 
 ### 1. Pin the baseline before anyone changes anything — do this first
