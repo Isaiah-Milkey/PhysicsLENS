@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "RC_002",
+  "frame": "RC_002_obs.webp",
+  "taxonomy": {
+    "code": "RC",
+    "domain": "Rigid Contact & Collision",
+    "matter_state": "Solid",
+    "type": "Single"
+  },
+  "observability": "observable",
+  "scene": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside.",
+  "action": "The robotic arm begins to lower the box into the container.",
+  "expected_outcome": "As the box is lowered, it makes contact with the boxes already inside the container. Due to the rigid nature of the boxes and the controlled movement of the robotic arm, the box settles among the others without significant displacement of surrounding boxes or the container itself.",
+  "video_prompt": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside. The robotic arm begins to lower the box into the container.",
+  "needs_manual_outcome": false,
+  "objects": [
+    "robotic arm",
+    "gripper",
+    "cardboard box",
+    "open container",
+    "boxes inside container"
+  ],
+  "physics_focus": "contact points",
+  "annotation_note": null,
+  "marker_leaks": [],
+  "generated_by": {
+    "backend": "createai-vision",
+    "model": "openai/gpt4o",
+    "generated_at": "2026-08-20T14:42:41+00:00"
+  }
+}

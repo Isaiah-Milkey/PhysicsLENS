@@ -1,0 +1,206 @@
+{
+ "family": "lerobot",
+ "group": "ALOHA (lerobot/*)",
+ "agent_rows": [
+  21,
+  22,
+  69,
+  86,
+  97,
+  98
+ ],
+ "codebase_version": "v3.0",
+ "camera_key_for_all_rows": "observation.images.cam_high",
+ "view_mapping_note": "All 6 rows are view 'Wrist / overhead' -> overhead camera = observation.images.cam_high. Wrist cams (cam_left_wrist/cam_right_wrist) and cam_low were NOT used.",
+ "layout": {
+  "video_path_template": "videos/{video_key}/chunk-{chunk_index:03d}/file-{file_index:03d}.mp4",
+  "data_path_template": "data/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet",
+  "episode_index_source": "meta/episodes/chunk-000/file-000.parquet",
+  "episode_index_columns_used": [
+   "episode_index",
+   "videos/observation.images.cam_high/chunk_index",
+   "videos/observation.images.cam_high/file_index",
+   "videos/observation.images.cam_high/from_timestamp",
+   "videos/observation.images.cam_high/to_timestamp",
+   "length"
+  ],
+  "source_codec": "av1 (yuv420p) in mp4",
+  "source_resolution": "640x480 (features shape [480,640,3])",
+  "source_fps": 50.0
+ },
+ "method_description": {
+  "name": "v3_segment_cut",
+  "why": "LeRobot v3.0 concatenates many episodes into one large per-chunk mp4 (150-520 MB each). One episode is a [from_timestamp, to_timestamp) slice of that file.",
+  "no_full_download": "The big source mp4 is NEVER downloaded. ffmpeg reads the HF resolve URL over https and range-fetches only the moov atom plus the leading bytes covering the episode window (~5-25 MB of network per row).",
+  "command_template": "ffmpeg -y -ss <from_timestamp> -i 'https://huggingface.co/datasets/<repo>/resolve/main/<video_path>' -t <to_timestamp - from_timestamp> -map 0:v:0 -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -an -movflags +faststart <out>",
+  "ss_note": "Every row in this group has from_timestamp == 0.0, so -ss is omitted in practice and only -t is used; native fps 50 is preserved (no -r).",
+  "transcode_reason": "Source is AV1; output must be H.264, so a re-encode is mandatory (stream copy is not an option)."
+ },
+ "rows": [
+  {
+   "id": 21,
+   "repo": "lerobot/aloha_mobile_wash_pan",
+   "episode_index": 0,
+   "camera_key": "observation.images.cam_high",
+   "method": "v3_segment_cut",
+   "out_name": "021_aloha_mobile_wash_pan_ep0.mp4",
+   "source_paths": [
+    "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+    "meta/episodes/chunk-000/file-000.parquet",
+    "meta/info.json"
+   ],
+   "source_file_size_mb": 514.03,
+   "from_timestamp": 0.0,
+   "to_timestamp": 22.0,
+   "duration_s": 22.0,
+   "expected_frames": 1100,
+   "fps": 50.0,
+   "width": 640,
+   "height": 480,
+   "est_mb": 5.0,
+   "status": "planned",
+   "substitution_note": "",
+   "screening": "KEPT"
+  },
+  {
+   "id": 22,
+   "repo": "lerobot/aloha_mobile_wipe_wine",
+   "episode_index": 0,
+   "camera_key": "observation.images.cam_high",
+   "method": "v3_segment_cut",
+   "out_name": "022_aloha_mobile_wipe_wine_ep0.mp4",
+   "source_paths": [
+    "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+    "meta/episodes/chunk-000/file-000.parquet",
+    "meta/info.json"
+   ],
+   "source_file_size_mb": 519.1,
+   "from_timestamp": 0.0,
+   "to_timestamp": 26.0,
+   "duration_s": 26.0,
+   "expected_frames": 1300,
+   "fps": 50.0,
+   "width": 640,
+   "height": 480,
+   "est_mb": 6.5,
+   "status": "planned",
+   "substitution_note": "",
+   "screening": "KEPT"
+  },
+  {
+   "id": 69,
+   "repo": "lerobot/aloha_mobile_chair",
+   "episode_index": 0,
+   "camera_key": "observation.images.cam_high",
+   "method": "v3_segment_cut",
+   "out_name": "069_aloha_mobile_chair_ep0.mp4",
+   "source_paths": [
+    "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+    "meta/episodes/chunk-000/file-000.parquet",
+    "meta/info.json"
+   ],
+   "source_file_size_mb": 508.48,
+   "from_timestamp": 0.0,
+   "to_timestamp": 40.0,
+   "duration_s": 40.0,
+   "expected_frames": 2000,
+   "fps": 50.0,
+   "width": 640,
+   "height": 480,
+   "est_mb": 16.0,
+   "status": "planned",
+   "substitution_note": "High-motion mobile-base scene; probe bitrate ~3.2 Mbps, so this is the largest output of the group.",
+   "screening": "DROPPED-IN-SCREENING"
+  },
+  {
+   "id": 86,
+   "repo": "lerobot/aloha_static_ziploc_slide",
+   "episode_index": 0,
+   "camera_key": "observation.images.cam_high",
+   "method": "v3_segment_cut",
+   "out_name": "086_aloha_static_ziploc_slide_ep0.mp4",
+   "source_paths": [
+    "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+    "meta/episodes/chunk-000/file-000.parquet",
+    "meta/info.json"
+   ],
+   "source_file_size_mb": 149.3,
+   "from_timestamp": 0.0,
+   "to_timestamp": 6.0,
+   "duration_s": 6.0,
+   "expected_frames": 300,
+   "fps": 50.0,
+   "width": 640,
+   "height": 480,
+   "est_mb": 1.07,
+   "status": "DONE",
+   "verified": {
+    "path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/086_aloha_static_ziploc_slide_ep0.mp4",
+    "cv2_decoded_frames": 300,
+    "width": 640,
+    "height": 480,
+    "fps": 50.0,
+    "codec": "h264 (High) avc1",
+    "bytes": 1120935
+   },
+   "substitution_note": "Used as the end-to-end proof row for the whole group.",
+   "screening": "KEPT"
+  },
+  {
+   "id": 97,
+   "repo": "lerobot/aloha_mobile_shrimp",
+   "episode_index": 0,
+   "camera_key": "observation.images.cam_high",
+   "method": "v3_segment_cut",
+   "out_name": "097_aloha_mobile_shrimp_ep0.mp4",
+   "source_paths": [
+    "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+    "meta/episodes/chunk-000/file-000.parquet",
+    "meta/info.json"
+   ],
+   "source_file_size_mb": 178.89,
+   "from_timestamp": 0.0,
+   "to_timestamp": 75.0,
+   "duration_s": 75.0,
+   "expected_frames": 3750,
+   "fps": 50.0,
+   "width": 640,
+   "height": 480,
+   "est_mb": 18.0,
+   "status": "planned",
+   "substitution_note": "Longest episode in the group (75 s). Repo has only 18 episodes but cam_high is split across file-000..file-003; episode 0 lives entirely in file-000.",
+   "screening": "KEPT"
+  },
+  {
+   "id": 98,
+   "repo": "lerobot/aloha_static_coffee",
+   "episode_index": 0,
+   "camera_key": "observation.images.cam_high",
+   "method": "v3_segment_cut",
+   "out_name": "098_aloha_static_coffee_ep0.mp4",
+   "source_paths": [
+    "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+    "meta/episodes/chunk-000/file-000.parquet",
+    "meta/info.json"
+   ],
+   "source_file_size_mb": 502.45,
+   "from_timestamp": 0.0,
+   "to_timestamp": 22.0,
+   "duration_s": 22.0,
+   "expected_frames": 1100,
+   "fps": 50.0,
+   "width": 640,
+   "height": 480,
+   "est_mb": 5.5,
+   "status": "planned",
+   "substitution_note": "",
+   "screening": "KEPT"
+  }
+ ],
+ "totals": {
+  "rows": 6,
+  "est_output_mb": 52.07,
+  "est_network_mb": "~70 (range-reads only; zero full-file downloads)"
+ },
+ "blockers": []
+}

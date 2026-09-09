@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "id": "RC_002_MI_steel",
+  "frame": "RC_002_obs.webp",
+  "taxonomy": {
+    "code": "MI",
+    "domain": "Momentum & Inertia",
+    "matter_state": "Solid",
+    "type": "Single"
+  },
+  "observability": "unobservable",
+  "base_id": "RC_002",
+  "property_spec": "The box is packed with a solid steel block and weighs about 12 kilograms, although it looks exactly like the other lightbulb boxes.",
+  "scene": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside.",
+  "action": "The robotic arm begins to lower the box into the container.",
+  "video_prompt": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside. The box is packed with a solid steel block and weighs about 12 kilograms, although it looks exactly like the other lightbulb boxes. The robotic arm begins to lower the box into the container.",
+  "expected_outcome": "The arm moves noticeably more slowly and sags slightly under the load, and the gripper fingers visibly compress against the box. When the box is set down it drops the last few centimetres and lands hard, driving the surrounding lightbulb boxes aside and denting the ones beneath it. The bin shifts under the impact.",
+  "needs_manual_outcome": false,
+  "objects": [
+    "robotic arm",
+    "gripper",
+    "cardboard box",
+    "open container",
+    "boxes inside container"
+  ],
+  "physics_focus": "hidden mass / grasp load",
+  "annotation_note": "Ablation of RC_002: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+  "marker_leaks": [],
+  "prompt_conflicts": [],
+  "scene_overridden": false,
+  "generated_by": {
+    "backend": "createai-vision",
+    "model": "openai/gpt4o",
+    "generated_at": "2026-08-20T14:42:41+00:00",
+    "derived_from": "RC_002"
+  }
+}

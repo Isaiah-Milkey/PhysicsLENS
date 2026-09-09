@@ -1,0 +1,86 @@
+[
+ {
+  "id": 23,
+  "dataset": "DexWild",
+  "repo": "boardd/dexwild-dataset",
+  "repo_type": "dataset",
+  "family": "dexwild",
+  "task": "Spray - spray bottle actually sprayed",
+  "manifest_selector": {
+   "subset": "Spray (robot subset)",
+   "episode": 1
+  },
+  "episode_group": "ep_0001",
+  "camera_key": "right_pinky_cam",
+  "manifest_view": "Wrist / overhead",
+  "method": "hdf5_to_mp4",
+  "out_name": "023_dexwild_spray_robot_ep1.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/023_dexwild_spray_robot_ep1.mp4",
+  "source_paths": [
+   "spray_data/robot/robot_spray_data.part_00",
+   "spray_data/robot/robot_spray_data.part_01",
+   "spray_data/robot/robot_spray_data.part_02"
+  ],
+  "source_inner_path": "robot_spray_data.hdf5:/ep_0001/right_pinky_cam/*.jpg",
+  "byte_range_used": {
+   "h5_start": 85258515,
+   "h5_end": 181065700,
+   "note": "episode object-header addresses; +metadata runs near 239-306 MB and scattered root b-tree nodes at ~19.4 GB and ~53.6 GB"
+  },
+  "bytes_downloaded_mb": 108,
+  "est_mb": 3.03,
+  "n_frames": 388,
+  "fps": 30,
+  "fps_measured_mean": 28.895,
+  "fps_measured_median": 30.018,
+  "duration_s": 13.393,
+  "width": 320,
+  "height": 240,
+  "codec": "h264 High, yuv420p, crf 18",
+  "status": "DONE - downloaded, encoded, verified (cv2: 388/388 frames decoded, 320x240, 30.000 fps)",
+  "substitution_note": "NO ZED STREAM EXISTS in the robot Spray subset. Every one of the 388 robot episodes contains exactly these children: right_arm_eef, right_leapv1, right_leapv2, right_manus, right_pinky_cam, right_thumb_cam, timesteps. The zed/zed_obs groups shown in the repo README's structure diagram are present only in the human subsets. Substituted right_pinky_cam (240x320 fisheye, hand-mounted -> closest available to the manifest's 'Wrist / overhead' view). Chose pinky over thumb after comparing 8-frame montages of both for ep_0001: the pinky cam frames the green spray bottle and the sprayed stainless surface far more clearly. Note the real resolution is 320x240, not the 224x224 assumed in the source document.",
+  "screening": "DROPPED-IN-SCREENING"
+ },
+ {
+  "id": 24,
+  "dataset": "DexWild",
+  "repo": "boardd/dexwild-dataset",
+  "repo_type": "dataset",
+  "family": "dexwild",
+  "task": "Spray - spray bottle actually sprayed",
+  "manifest_selector": {
+   "subset": "Spray (robot subset)",
+   "episode": 2
+  },
+  "episode_group": "ep_0002",
+  "camera_key": "right_pinky_cam",
+  "manifest_view": "Wrist / overhead",
+  "method": "hdf5_to_mp4",
+  "out_name": "024_dexwild_spray_robot_ep2.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/024_dexwild_spray_robot_ep2.mp4",
+  "source_paths": [
+   "spray_data/robot/robot_spray_data.part_00",
+   "spray_data/robot/robot_spray_data.part_01",
+   "spray_data/robot/robot_spray_data.part_02"
+  ],
+  "source_inner_path": "robot_spray_data.hdf5:/ep_0002/right_pinky_cam/*.jpg",
+  "byte_range_used": {
+   "h5_start": 181065700,
+   "h5_end": 320686885,
+   "note": "prefetched 179-400 MB to also cover this episode's separately-allocated metadata blocks"
+  },
+  "bytes_downloaded_mb": 227,
+  "est_mb": 3.56,
+  "n_frames": 454,
+  "fps": 30,
+  "fps_measured_mean": 30.0,
+  "fps_measured_median": 29.996,
+  "duration_s": 15.1,
+  "width": 320,
+  "height": 240,
+  "codec": "h264 High, yuv420p, crf 18",
+  "status": "DONE - downloaded, encoded, verified (cv2: 454/454 frames decoded, 320x240, 30.000 fps)",
+  "substitution_note": "Same substitution as id 23: no ZED stream in the robot Spray subset; used right_pinky_cam. Sampled frames show the green spray bottle pointed at a stainless surface, a visible wet smear appearing on that surface, then a cloth wipe - consistent with 'spray bottle actually sprayed'.",
+  "screening": "DROPPED-IN-SCREENING"
+ }
+]

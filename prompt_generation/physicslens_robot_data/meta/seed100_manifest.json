@@ -1,0 +1,1329 @@
+[
+ {
+  "id": 1,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+  "selector": {
+   "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 2,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+  "selector": {
+   "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+   "nth": 2
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 3,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+  "selector": {
+   "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+   "nth": 3
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 4,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/pour_water_into_a_cup",
+  "selector": {
+   "task": "Basic/pour_water_into_a_cup",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 5,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Articulated/turn_on_the_faucet_handle",
+  "selector": {
+   "task": "Articulated/turn_on_the_faucet_handle",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 6,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Articulated/turn_on_the_faucet_handle",
+  "selector": {
+   "task": "Articulated/turn_on_the_faucet_handle",
+   "nth": 2
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 7,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Wipe_Table",
+  "task": "Wipe the water off the table with a rag.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 8,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Wipe_Table",
+  "task": "Wipe the water off the table with a rag.",
+  "selector": {
+   "episode_index": 100
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 9,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Wipe_Table",
+  "task": "Wipe the water off the table with a rag.",
+  "selector": {
+   "episode_index": 199
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 10,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_SyringeWaterTransfer",
+  "task": "Syringe water transfer",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 11,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_SyringeWaterTransfer",
+  "task": "Syringe water transfer",
+  "selector": {
+   "episode_index": 516
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 12,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_SyringeWaterTransfer",
+  "task": "Syringe water transfer",
+  "selector": {
+   "episode_index": 1033
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 13,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Unitree_G1edu_u3_pour_drink",
+  "task": "Grasp the cup under the faucet to collect the drink, then remove the cup.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 14,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Unitree_G1edu_u3_pour_drink",
+  "task": "Grasp the cup under the faucet to collect the drink, then remove the cup.",
+  "selector": {
+   "episode_index": 648
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 15,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Unitree_G1edu_u3_pour_drink",
+  "task": "Grasp the cup under the faucet to collect the drink, then remove the cup.",
+  "selector": {
+   "episode_index": 1297
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 16,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_pour_water",
+  "task": "Grasp the thermos with one hand and pour water into the cup lid.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 17,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_shake_bottle",
+  "task": "Grasp the erlenmeyer flask, shake it three times, then place it back.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 18,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_shake_bottle",
+  "task": "Grasp the erlenmeyer flask, shake it three times, then place it back.",
+  "selector": {
+   "episode_index": 393
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 19,
+  "dataset": "AgiBot World Alpha",
+  "source": "weijian-sun/agibotworld-lerobot",
+  "task": "Water Pouring in Restaurant - teapot with colored tea into an empty cup",
+  "selector": {
+   "subset": "task_410",
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "agibot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 20,
+  "dataset": "PH2D (UCSD)",
+  "source": "RogerQi/PH2D",
+  "task": "Pour water in front of a drink vending machine (robot, H1)",
+  "selector": {
+   "folder": "501-pouring-2024_11_12-23_39_22",
+   "pick": "first HDF5"
+  },
+  "view": "Egocentric",
+  "family": "ph2d",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 21,
+  "dataset": "Mobile ALOHA",
+  "source": "lerobot/aloha_mobile_wash_pan",
+  "task": "Pick up the pan, rinse it in the sink and then place it in the drying rack.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Wrist / overhead",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 22,
+  "dataset": "Mobile ALOHA",
+  "source": "lerobot/aloha_mobile_wipe_wine",
+  "task": "Pick up the wet cloth and clean the spilled wine on the table.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Wrist / overhead",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 23,
+  "dataset": "DexWild",
+  "source": "boardd/dexwild-dataset",
+  "task": "Spray - spray bottle actually sprayed",
+  "selector": {
+   "subset": "Spray (robot subset)",
+   "episode": 1
+  },
+  "view": "Wrist / overhead",
+  "family": "dexwild",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 24,
+  "dataset": "DexWild",
+  "source": "boardd/dexwild-dataset",
+  "task": "Spray - spray bottle actually sprayed",
+  "selector": {
+   "subset": "Spray (robot subset)",
+   "episode": 2
+  },
+  "view": "Wrist / overhead",
+  "family": "dexwild",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 25,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "deformable/fold_towel",
+  "selector": {
+   "task": "deformable/fold_towel",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 26,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "deformable/fold_towel",
+  "selector": {
+   "task": "deformable/fold_towel",
+   "nth": 2
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 27,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "deformable/squeeze_a_ball",
+  "selector": {
+   "task": "deformable/squeeze_a_ball",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 28,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "deformable/squeeze_a_toy",
+  "selector": {
+   "task": "deformable/squeeze_a_toy",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 29,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "deformable/compress_a_plastic_bag",
+  "selector": {
+   "task": "deformable/compress_a_plastic_bag",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 30,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Fold_Towel",
+  "task": "Fold the towel and set it aside.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 31,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Fold_Towel",
+  "task": "Fold the towel and set it aside.",
+  "selector": {
+   "episode_index": 199
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 32,
+  "dataset": "NVIDIA GR00T-Teleop-GR1",
+  "source": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "task": "gr1_unified.fold_cloth_long_robot",
+  "selector": {
+   "subset": "Inlab_Eval",
+   "task": "gr1_unified.fold_cloth_long_robot",
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "nvidia_gr00t",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 33,
+  "dataset": "NVIDIA GR00T-Teleop-GR1",
+  "source": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "task": "gr1_unified.fold_cloth_long_robot",
+  "selector": {
+   "subset": "Inlab_Eval",
+   "task": "gr1_unified.fold_cloth_long_robot",
+   "episode_index": 257
+  },
+  "view": "Egocentric",
+  "family": "nvidia_gr00t",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 34,
+  "dataset": "NVIDIA GR00T-Teleop-GR1",
+  "source": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "task": "crumple_flatten_paper",
+  "selector": {
+   "subset": "EgoDex_Eval",
+   "task": "crumple_flatten_paper",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "nvidia_gr00t",
+  "note": "single episode with this task",
+  "kept": true
+ },
+ {
+  "id": 35,
+  "dataset": "NVIDIA GR00T-Teleop-GR1",
+  "source": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "task": "braid_unbraid",
+  "selector": {
+   "subset": "EgoDex_Eval",
+   "task": "braid_unbraid",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "nvidia_gr00t",
+  "note": "single episode with this task",
+  "kept": true
+ },
+ {
+  "id": 36,
+  "dataset": "AgiBot World Alpha",
+  "source": "weijian-sun/agibotworld-lerobot",
+  "task": "Fold shorts (laid out on the bed)",
+  "selector": {
+   "subset": "task_362",
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "agibot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 37,
+  "dataset": "RoboCook (OXE)",
+  "source": "stanford_robocook_converted_externally_to_rlds",
+  "task": "Play-Doh: roll / press / pinch with tools",
+  "selector": {
+   "tool": "roller"
+  },
+  "view": "Third-person",
+  "family": "oxe",
+  "note": "5 fps, reference only",
+  "kept": false
+ },
+ {
+  "id": 38,
+  "dataset": "RoboCook (OXE)",
+  "source": "stanford_robocook_converted_externally_to_rlds",
+  "task": "Play-Doh: roll / press / pinch with tools",
+  "selector": {
+   "tool": "press"
+  },
+  "view": "Third-person",
+  "family": "oxe",
+  "note": "5 fps, reference only",
+  "kept": false
+ },
+ {
+  "id": 39,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_ZipUp",
+  "task": "Zip up",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 40,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Galbot_G1_pull_curtain",
+  "task": "Open the curtains by pulling them apart.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 41,
+  "dataset": "Unitree G1_Dex3",
+  "source": "unitreerobotics/G1_Dex3_BlockStacking_Dataset",
+  "task": "Stack the three cubic blocks on the black tape.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 42,
+  "dataset": "Unitree G1_Dex3",
+  "source": "unitreerobotics/G1_Dex3_BlockStacking_Dataset",
+  "task": "Stack the three cubic blocks on the black tape.",
+  "selector": {
+   "episode_index": 150
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 43,
+  "dataset": "Unitree G1_Dex3",
+  "source": "unitreerobotics/G1_Dex3_BlockStacking_Dataset",
+  "task": "Stack the three cubic blocks on the black tape.",
+  "selector": {
+   "episode_index": 300
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 44,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Stack_Block",
+  "task": "Stack the red, green, and yellow blocks.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 45,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Stack_Block",
+  "task": "Stack the red, green, and yellow blocks.",
+  "selector": {
+   "episode_index": 199
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 46,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/stack_two_cubes_g1",
+  "selector": {
+   "task": "Basic/stack_two_cubes_g1",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 47,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/unstack_two_cubes_g1",
+  "selector": {
+   "task": "Basic/unstack_two_cubes_g1",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 48,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Tool_use/pick_the_hammer_and_hit_desk",
+  "selector": {
+   "task": "Tool_use/pick_the_hammer_and_hit_desk",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 49,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Tool_use/pick_the_hammer_and_hit_desk",
+  "selector": {
+   "task": "Tool_use/pick_the_hammer_and_hit_desk",
+   "nth": 2
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 50,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/push_duck_g1",
+  "selector": {
+   "task": "Basic/push_duck_g1",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 51,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_clink_glasses",
+  "task": "Pick up one cup with a gripper and tap it against the other cup.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 52,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_clink_glasses",
+  "task": "Pick up one cup with a gripper and tap it against the other cup.",
+  "selector": {
+   "episode_index": 392
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 53,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_stack_cups",
+  "task": "Stack the three plastic cups sequentially using one hand.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 54,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_stack_blocks",
+  "task": "Pick the topmost block from the stack and place it on the table.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 55,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_PaperCupStacking",
+  "task": "Paper cup stacking",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 56,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_StackBowls",
+  "task": "Stack bowls",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 57,
+  "dataset": "NVIDIA GR00T-Teleop-GR1",
+  "source": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "task": "gr1_unified.pour_items_into_basket_robot",
+  "selector": {
+   "subset": "Inlab_Eval",
+   "task": "gr1_unified.pour_items_into_basket_robot",
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "nvidia_gr00t",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 58,
+  "dataset": "NVIDIA GR00T-Teleop-GR1",
+  "source": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "task": "gr1_unified.pour_items_into_basket_robot",
+  "selector": {
+   "subset": "Inlab_Eval",
+   "task": "gr1_unified.pour_items_into_basket_robot",
+   "episode_index": 50
+  },
+  "view": "Egocentric",
+  "family": "nvidia_gr00t",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 59,
+  "dataset": "NVIDIA GR00T-Teleop-GR1",
+  "source": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "task": "gr1_unified.pour_items_into_basket_robot",
+  "selector": {
+   "subset": "Inlab_Eval",
+   "task": "gr1_unified.pour_items_into_basket_robot",
+   "episode_index": 99
+  },
+  "view": "Egocentric",
+  "family": "nvidia_gr00t",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 60,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Pour_Medicine",
+  "task": "Pour the medicine from the bottle into the box.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 61,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Pour_Medicine",
+  "task": "Pour the medicine from the bottle into the box.",
+  "selector": {
+   "episode_index": 100
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 62,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Pour_Medicine",
+  "task": "Pour the medicine from the bottle into the box.",
+  "selector": {
+   "episode_index": 199
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 63,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/pour_out_some_sunflower_seeds",
+  "selector": {
+   "task": "Basic/pour_out_some_sunflower_seeds",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 64,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/pour_out_some_sunflower_seeds",
+  "selector": {
+   "task": "Basic/pour_out_some_sunflower_seeds",
+   "nth": 2
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 65,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Locomanip/throw_away_a_piece_of_paper_to_trashcan",
+  "selector": {
+   "task": "Locomanip/throw_away_a_piece_of_paper_to_trashcan",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 66,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_pour_mung_beans",
+  "task": "Pick up the cup and pour the mung beans from the cup into the bowl.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 67,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/AI2_Alphabot_2_pour_mung_beans",
+  "task": "Pick up the cup and pour the mung beans from the cup into the bowl.",
+  "selector": {
+   "episode_index": 212
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 68,
+  "dataset": "DLR Sara Pour (OXE)",
+  "source": "dlr_sara_pour_converted_externally_to_rlds",
+  "task": "Pour into the mug (two ping-pong balls stand in for liquid)",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Third-person",
+  "family": "oxe",
+  "note": "reference only",
+  "kept": true
+ },
+ {
+  "id": 69,
+  "dataset": "Mobile ALOHA",
+  "source": "lerobot/aloha_mobile_chair",
+  "task": "Push the chairs in front of the desk to place them against it.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Wrist / overhead",
+  "family": "lerobot",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 70,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/push_the_tape_towards_the_notebook",
+  "selector": {
+   "task": "Basic/push_the_tape_towards_the_notebook",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 71,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/push_a_box_of_screws_from_the_left_side_of_the_desk_to_the_right_next_to_the_tape",
+  "selector": {
+   "task": "Basic/push_a_box_of_screws_from_the_left_side_of_the_desk_to_the_right_next_to_the_tape",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 72,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Basic/push_the_pencil_case_next_to_the_container",
+  "selector": {
+   "task": "Basic/push_the_pencil_case_next_to_the_container",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 73,
+  "dataset": "RH20T",
+  "source": "RH20T",
+  "task": "Hit a pool ball with a cue",
+  "selector": {
+   "cfg": "RH20T_cfg1",
+   "task": "task_0016",
+   "scene": "scene_0001"
+  },
+  "view": "Third-person",
+  "family": "rh20t",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 74,
+  "dataset": "RH20T",
+  "source": "RH20T",
+  "task": "Hit a pool ball with a cue",
+  "selector": {
+   "cfg": "RH20T_cfg1",
+   "task": "task_0016",
+   "scene": "scene_0002"
+  },
+  "view": "Third-person",
+  "family": "rh20t",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 75,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_ConveyorSorting",
+  "task": "Conveyor sorting",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 76,
+  "dataset": "Unitree UniBot-V1",
+  "source": "unitreerobotics/G1_Dex1_ConveyorSorting",
+  "task": "Conveyor sorting",
+  "selector": {
+   "episode_index": 1048
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 77,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Tool_use/use_a_soft_sponge_to_wipe_off_a_dry_surface",
+  "selector": {
+   "task": "Tool_use/use_a_soft_sponge_to_wipe_off_a_dry_surface",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 78,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Tool_use/wipe_a_table_with_an_eraser",
+  "selector": {
+   "task": "Tool_use/wipe_a_table_with_an_eraser",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 79,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Locomanip/clean_the_window",
+  "selector": {
+   "task": "Locomanip/clean_the_window",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 80,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Erase_Board",
+  "task": "Clean the blackboard with the eraser.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 81,
+  "dataset": "Unitree G1_Dex1",
+  "source": "unitreerobotics/G1_Dex1_Erase_Board",
+  "task": "Clean the blackboard with the eraser.",
+  "selector": {
+   "episode_index": 199
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 82,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Galbot_G1_clear_table_residue_1",
+  "task": "Sweep shrimp from table into container with towel, then put container into takeout bag.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 83,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Galbot_G1_wipe_mirror",
+  "task": "Pick up the towel from the sink counter and wipe the mirror surface.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 84,
+  "dataset": "AgiBot World Alpha",
+  "source": "weijian-sun/agibotworld-lerobot",
+  "task": "Pick up the item to wipe away the stain",
+  "selector": {
+   "subset": "task_421",
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "agibot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 85,
+  "dataset": "AgiBot World Alpha",
+  "source": "weijian-sun/agibotworld-lerobot",
+  "task": "Pick up the item to wipe away the stain",
+  "selector": {
+   "subset": "task_421",
+   "episode_index": 950
+  },
+  "view": "Egocentric",
+  "family": "agibot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 86,
+  "dataset": "Static ALOHA",
+  "source": "lerobot/aloha_static_ziploc_slide",
+  "task": "Slide open the ziploc bag.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Wrist / overhead",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 87,
+  "dataset": "Unitree G1_Dex3",
+  "source": "unitreerobotics/G1_Dex3_ToastedBread_Dataset",
+  "task": "Place the bread into the toaster; hand the toast to the human.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 88,
+  "dataset": "Unitree G1_Dex3",
+  "source": "unitreerobotics/G1_Dex3_ToastedBread_Dataset",
+  "task": "Place the bread into the toaster; hand the toast to the human.",
+  "selector": {
+   "episode_index": 208
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 89,
+  "dataset": "Unitree G1_Dex3",
+  "source": "unitreerobotics/G1_Dex3_ToastedBread_Dataset",
+  "task": "Place the bread into the toaster; hand the toast to the human.",
+  "selector": {
+   "episode_index": 417
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 90,
+  "dataset": "Unitree Z1 dual-arm",
+  "source": "unitreerobotics/Z1_Dual_Dex1_PourCoffee_Dataset",
+  "task": "Operate the coffee machine: insert capsule, brew, place glass cup on tray.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Third-person",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 91,
+  "dataset": "Unitree Z1 dual-arm",
+  "source": "unitreerobotics/Z1_Dual_Dex1_PourCoffee_Dataset",
+  "task": "Operate the coffee machine: insert capsule, brew, place glass cup on tray.",
+  "selector": {
+   "episode_index": 330
+  },
+  "view": "Third-person",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 92,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Articulated/compress_a_small_air_pump_g1",
+  "selector": {
+   "task": "Articulated/compress_a_small_air_pump_g1",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": false
+ },
+ {
+  "id": 93,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Precision/press_start_boiling_button",
+  "selector": {
+   "task": "Precision/press_start_boiling_button",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 94,
+  "dataset": "Humanoid Everyday",
+  "source": "USC-GVL/humanoid-everyday",
+  "task": "Locomanip/pick_up_a_kettle_place_it_on_base_and_turn_on",
+  "selector": {
+   "task": "Locomanip/pick_up_a_kettle_place_it_on_base_and_turn_on",
+   "nth": 1
+  },
+  "view": "Egocentric",
+  "family": "humanoid_everyday",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 95,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Galbot_G1_scrub_toilet",
+  "task": "Open the toilet lid, clean the bowl with a brush, close the lid, and flush.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 96,
+  "dataset": "RoboCOIN",
+  "source": "RoboCOIN/Galbot_G1_scrub_toilet",
+  "task": "Open the toilet lid, clean the bowl with a brush, close the lid, and flush.",
+  "selector": {
+   "episode_index": 186
+  },
+  "view": "Egocentric",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 97,
+  "dataset": "Mobile ALOHA",
+  "source": "lerobot/aloha_mobile_shrimp",
+  "task": "Saute the raw shrimp on both sides, then serve it in the bowl.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Wrist / overhead",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ },
+ {
+  "id": 98,
+  "dataset": "Static ALOHA",
+  "source": "lerobot/aloha_static_coffee",
+  "task": "Place the coffee capsule, then push the Hot Water and Travel Mug buttons.",
+  "selector": {
+   "episode_index": 0
+  },
+  "view": "Wrist / overhead",
+  "family": "lerobot",
+  "note": "",
+  "kept": true
+ }
+]

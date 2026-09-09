@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "id": "RC_001_MI_tungsten",
+  "frame": "RC_001_obs.jpg",
+  "taxonomy": {
+    "code": "MI",
+    "domain": "Momentum & Inertia",
+    "matter_state": "Solid",
+    "type": "Single"
+  },
+  "observability": "unobservable",
+  "base_id": "RC_001",
+  "property_spec": "The ball is solid tungsten and weighs about 45 kilograms, although it looks exactly like an ordinary soccer ball.",
+  "scene": "A humanoid robot roughly the size of an adult stands on an indoor artificial-turf pitch marked with white lines. A standard-size soccer ball, about 22 cm across, rests on the turf directly in front of the robot. A goal frame stands to the left behind the robot.",
+  "action": "The robot is in the motion of kicking the soccer ball with its right leg.",
+  "video_prompt": "A humanoid robot roughly the size of an adult stands on an indoor artificial-turf pitch marked with white lines. A standard-size soccer ball, about 22 cm across, rests on the turf directly in front of the robot. A goal frame stands to the left behind the robot. The ball is solid tungsten and weighs about 45 kilograms, although it looks exactly like an ordinary soccer ball. The robot is in the motion of kicking the soccer ball with its right leg.",
+  "expected_outcome": "The robot's foot strikes the ball and the ball barely moves, shifting at most a few centimetres. Because the ball's mass is comparable to the robot's own, the impulse is absorbed by the robot instead: its leg is stopped abruptly and it loses balance, rocking backwards or stumbling.",
+  "needs_manual_outcome": false,
+  "objects": [
+    "humanoid robot",
+    "soccer ball",
+    "synthetic grass soccer field",
+    "goalpost"
+  ],
+  "physics_focus": "hidden mass / momentum transfer",
+  "annotation_note": "Ablation of RC_001: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+  "marker_leaks": [],
+  "prompt_conflicts": [],
+  "scene_overridden": true,
+  "generated_by": {
+    "backend": "createai-vision",
+    "model": "openai/gpt4o",
+    "generated_at": "2026-08-20T14:42:36+00:00",
+    "derived_from": "RC_001"
+  },
+  "outcome_source": "recovered from output/"
+}

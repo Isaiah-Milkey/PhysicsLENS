@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "RC_001",
+  "frame": "RC_001_obs.jpg",
+  "taxonomy": {
+    "code": "RC",
+    "domain": "Rigid Contact & Collision",
+    "matter_state": "Solid",
+    "type": "Single"
+  },
+  "observability": "observable",
+  "scene": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background.",
+  "action": "The robot is in the motion of kicking the soccer ball with its right leg.",
+  "expected_outcome": "The robot's foot strikes the soccer ball, propelling it forward across the field. The force from the robot's kick transfers to the ball, causing it to move due to the impulse of the collision. The ball travels in the direction the foot strikes it, likely towards the goalpost.",
+  "video_prompt": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background. The robot is in the motion of kicking the soccer ball with its right leg.",
+  "needs_manual_outcome": false,
+  "objects": [
+    "humanoid robot",
+    "soccer ball",
+    "synthetic grass soccer field",
+    "goalpost"
+  ],
+  "physics_focus": "collision impulse",
+  "annotation_note": null,
+  "marker_leaks": [],
+  "generated_by": {
+    "backend": "createai-vision",
+    "model": "openai/gpt4o",
+    "generated_at": "2026-08-20T14:42:36+00:00"
+  }
+}

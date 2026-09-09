@@ -1,0 +1,94 @@
+[
+ {
+  "id": 19,
+  "repo": "weijian-sun/agibotworld-lerobot",
+  "repo_type": "dataset",
+  "subset": "task_410",
+  "episode_index": 0,
+  "camera_key": "observation.images.top_head",
+  "method": "direct_mp4",
+  "out_name": "019_agibot_task410_water_pouring_ep0.mp4",
+  "source_paths": [
+   "task_410/videos/chunk-000/observation.images.top_head/episode_000000.mp4"
+  ],
+  "est_mb": 7.04,
+  "est_out_mb": 3.83,
+  "src_codec": "av1",
+  "fps": 30,
+  "resolution": "640x480",
+  "expected_frames": 813,
+  "transcode_cmd": "ffmpeg -y -i SRC -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -an -movflags +faststart -r 30 OUT",
+  "substitution_note": "",
+  "status": "DONE - downloaded, transcoded, cv2-verified (813 frames, 640x480, 30fps)",
+  "screening": "KEPT"
+ },
+ {
+  "id": 36,
+  "repo": "weijian-sun/agibotworld-lerobot",
+  "repo_type": "dataset",
+  "subset": "task_362",
+  "episode_index": 0,
+  "camera_key": "observation.images.top_head",
+  "method": "direct_mp4",
+  "out_name": "036_agibot_task362_fold_shorts_ep0.mp4",
+  "source_paths": [
+   "task_362/videos/chunk-000/observation.images.top_head/episode_000000.mp4"
+  ],
+  "est_mb": 20.94,
+  "est_out_mb": 11.4,
+  "src_codec": "av1",
+  "fps": 30,
+  "resolution": "640x480",
+  "expected_frames": 1520,
+  "transcode_cmd": "ffmpeg -y -i SRC -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -an -movflags +faststart -r 30 OUT",
+  "substitution_note": "",
+  "status": "PLANNED - path + size confirmed via get_paths_info",
+  "screening": "KEPT"
+ },
+ {
+  "id": 84,
+  "repo": "weijian-sun/agibotworld-lerobot",
+  "repo_type": "dataset",
+  "subset": "task_421",
+  "episode_index": 0,
+  "camera_key": "observation.images.top_head",
+  "method": "direct_mp4",
+  "out_name": "084_agibot_task421_wipe_stain_ep0.mp4",
+  "source_paths": [
+   "task_421/videos/chunk-000/observation.images.top_head/episode_000000.mp4"
+  ],
+  "est_mb": 16.82,
+  "est_out_mb": 9.2,
+  "src_codec": "av1",
+  "fps": 30,
+  "resolution": "640x480",
+  "expected_frames": 1460,
+  "transcode_cmd": "ffmpeg -y -i SRC -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -an -movflags +faststart -r 30 OUT",
+  "substitution_note": "",
+  "status": "PLANNED - path + size confirmed via get_paths_info",
+  "screening": "KEPT"
+ },
+ {
+  "id": 85,
+  "repo": "weijian-sun/agibotworld-lerobot",
+  "repo_type": "dataset",
+  "subset": "task_421",
+  "episode_index": 950,
+  "camera_key": "observation.images.top_head",
+  "method": "direct_mp4",
+  "out_name": "085_agibot_task421_wipe_stain_ep950.mp4",
+  "source_paths": [
+   "task_421/videos/chunk-000/observation.images.top_head/episode_000950.mp4"
+  ],
+  "est_mb": 10.49,
+  "est_out_mb": 5.8,
+  "src_codec": "av1",
+  "fps": 30,
+  "resolution": "640x480",
+  "expected_frames": 1282,
+  "transcode_cmd": "ffmpeg -y -i SRC -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -an -movflags +faststart -r 30 OUT",
+  "substitution_note": "No substitution needed. task_421 has total_episodes=951 (indices 0..950), so episode 950 is the last valid episode and it exists; confirmed present in meta/episodes.jsonl (length=1282) and the mp4 exists at 10.49 MB.",
+  "status": "PLANNED - path + size confirmed via get_paths_info",
+  "screening": "KEPT"
+ }
+]

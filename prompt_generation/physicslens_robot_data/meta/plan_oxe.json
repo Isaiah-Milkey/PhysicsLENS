@@ -1,0 +1,110 @@
+[
+ {
+  "id": 37,
+  "dataset": "RoboCook (OXE)",
+  "oxe_name": "stanford_robocook_converted_externally_to_rlds",
+  "repo": "lerobot/stanford_robocook",
+  "repo_type": "dataset",
+  "codebase_version": "v3.0",
+  "camera_key": "observation.images.image_1",
+  "episode_index": 4,
+  "episode_task": "roll the dough with a large rolling pin",
+  "method": "v3_segment_cut",
+  "out_name": "037_robocook_roll_dough_large_rolling_pin_ep4.mp4",
+  "source_paths": [
+   "videos/observation.images.image_1/chunk-000/file-000.mp4",
+   "meta/episodes/chunk-000/file-000.parquet",
+   "meta/info.json",
+   "meta/tasks.parquet"
+  ],
+  "source_url": "https://huggingface.co/datasets/lerobot/stanford_robocook/resolve/main/videos/observation.images.image_1/chunk-000/file-000.mp4",
+  "src_file_bytes": 523290300,
+  "segment": {
+   "from_timestamp": 34.2,
+   "to_timestamp": 50.4,
+   "duration_s": 16.2
+  },
+  "expected_frames": 81,
+  "fps": 5,
+  "resolution": "256x256",
+  "src_codec": "av1",
+  "est_mb": 0.8,
+  "est_src_read_mb": 1.5,
+  "transcode_cmd": "ffmpeg -y -ss 34.2 -i URL -t 16.2 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -r 5 -movflags +faststart OUT",
+  "substitution_note": "Manifest selector was tool='roller'; RoboCook task strings are 'roll the dough with a large rolling pin' / '... small rolling pin'. Chose episode 4 (large rolling pin) - it is both the longest roll episode (81 frames) among the early episodes and the earliest one in the concatenated video, so the HTTP range read is minimal. NOT downloaded from the OXE GCS tfrecords: used the official LeRobot v3.0 mirror instead (no tensorflow needed).",
+  "status": "DONE - cut from remote mp4 over HTTPS, cv2-verified (81 frames, 256x256, 5.0 fps, 16.20 s)",
+  "screening": "DROPPED-IN-SCREENING"
+ },
+ {
+  "id": 38,
+  "dataset": "RoboCook (OXE)",
+  "oxe_name": "stanford_robocook_converted_externally_to_rlds",
+  "repo": "lerobot/stanford_robocook",
+  "repo_type": "dataset",
+  "codebase_version": "v3.0",
+  "camera_key": "observation.images.image_1",
+  "episode_index": 73,
+  "episode_task": "press the dough with a square press",
+  "method": "v3_segment_cut",
+  "out_name": "038_robocook_press_dough_square_press_ep73.mp4",
+  "source_paths": [
+   "videos/observation.images.image_1/chunk-000/file-000.mp4",
+   "meta/episodes/chunk-000/file-000.parquet",
+   "meta/info.json",
+   "meta/tasks.parquet"
+  ],
+  "source_url": "https://huggingface.co/datasets/lerobot/stanford_robocook/resolve/main/videos/observation.images.image_1/chunk-000/file-000.mp4",
+  "src_file_bytes": 523290300,
+  "segment": {
+   "from_timestamp": 669.4,
+   "to_timestamp": 678.8,
+   "duration_s": 9.4
+  },
+  "expected_frames": 47,
+  "fps": 5,
+  "resolution": "256x256",
+  "src_codec": "av1",
+  "est_mb": 0.46,
+  "est_src_read_mb": 1.0,
+  "transcode_cmd": "ffmpeg -y -ss 669.4 -i URL -t 9.4 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -r 5 -movflags +faststart OUT",
+  "substitution_note": "Manifest selector was tool='press'. RoboCook has 4 press-family tasks: 'circle press', 'square press', 'circle punch', 'square punch'. Picked a literal press tool (square press) rather than a punch. Episode 73 is the longest literal-press episode (47 frames) inside the first ~700 s of the concatenated video; all press episodes are short (22-54 frames, i.e. 4-11 s at 5 fps).",
+  "status": "DONE - cut from remote mp4 over HTTPS, cv2-verified (47 frames, 256x256, 5.0 fps, 9.40 s)",
+  "screening": "DROPPED-IN-SCREENING"
+ },
+ {
+  "id": 68,
+  "dataset": "DLR Sara Pour (OXE)",
+  "oxe_name": "dlr_sara_pour_converted_externally_to_rlds",
+  "repo": "lerobot/dlr_sara_pour",
+  "repo_type": "dataset",
+  "codebase_version": "v3.0",
+  "camera_key": "observation.images.image",
+  "episode_index": 0,
+  "episode_task": "Pour into the mug",
+  "method": "v3_segment_cut",
+  "out_name": "068_dlr_sara_pour_into_mug_ep0.mp4",
+  "source_paths": [
+   "videos/observation.images.image/chunk-000/file-000.mp4",
+   "meta/episodes/chunk-000/file-000.parquet",
+   "meta/info.json",
+   "meta/tasks.parquet"
+  ],
+  "source_url": "https://huggingface.co/datasets/lerobot/dlr_sara_pour/resolve/main/videos/observation.images.image/chunk-000/file-000.mp4",
+  "src_file_bytes": 159385231,
+  "segment": {
+   "from_timestamp": 0.0,
+   "to_timestamp": 40.0,
+   "duration_s": 40.0
+  },
+  "expected_frames": 200,
+  "fps": 5,
+  "resolution": "640x480",
+  "src_codec": "av1",
+  "est_mb": 1.93,
+  "est_src_read_mb": 3.0,
+  "transcode_cmd": "ffmpeg -y -ss 0 -i URL -frames:v 200 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -fps_mode passthrough -movflags +faststart OUT",
+  "substitution_note": "FPS DISCREPANCY: the brief said 480x640 @10fps (the OXE table's documented control frequency), but the LeRobot v3.0 mirror stores this dataset at 5 fps end-to-end and is internally consistent at 5 fps (meta/info.json fps=5; source mp4 stream = 5 fps; concatenated video duration 2594.2 s x 5 fps = 12971 frames = total_frames; episode 0 = 200 frames = 0.0-40.0 s). The RLDS source has no per-step timestamps, so 5 fps is the only rate verifiable from the data. Encoded at the source-native 5 fps. To retime the identical 200 frames to 10 fps instead: ffmpeg -y -i 068_...mp4 -an -vf \"setpts=N/10/TB\" -fps_mode passthrough -c:v libx264 -crf 18 -pix_fmt yuv420p OUT10.mp4",
+  "status": "DONE - cut from remote mp4 over HTTPS, cv2-verified (200 frames, 640x480, 5.0 fps, 40.00 s)",
+  "screening": "KEPT"
+ }
+]

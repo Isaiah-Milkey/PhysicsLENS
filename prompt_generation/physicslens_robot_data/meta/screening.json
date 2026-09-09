@@ -1,0 +1,152 @@
+{
+ "screened_by": "manual review after download",
+ "requested": 98,
+ "kept": 82,
+ "dropped": 16,
+ "dropped_rows": [
+  {
+   "id": 1,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+   "file": "001_humanoid_everyday_pour_water_from_a_kettle_into_a_cup_ep3372.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 2,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+   "file": "002_humanoid_everyday_pour_water_from_a_kettle_into_a_cup_ep3373.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 3,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Basic/pour_water_from_a_kettle_into_a_cup",
+   "file": "003_humanoid_everyday_pour_water_from_a_kettle_into_a_cup_ep3374.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 4,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Basic/pour_water_into_a_cup",
+   "file": "004_humanoid_everyday_pour_water_into_a_cup_ep3452.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 5,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Articulated/turn_on_the_faucet_handle",
+   "file": "005_humanoid_everyday_turn_on_the_faucet_handle_ep1800.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 6,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Articulated/turn_on_the_faucet_handle",
+   "file": "006_humanoid_everyday_turn_on_the_faucet_handle_ep1801.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 13,
+   "dataset": "RoboCOIN",
+   "repo": "RoboCOIN/Unitree_G1edu_u3_pour_drink",
+   "task": "Grasp the cup under the faucet to collect the drink, then remove the cup.",
+   "file": "013_unitree_g1edu_u3_pour_drink_ep0.mp4",
+   "camera_key": "observation.images.cam_high_rgb",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 20,
+   "dataset": "PH2D (UCSD)",
+   "repo": "RogerQi/PH2D",
+   "task": "Pour water in front of a drink vending machine (robot, H1)",
+   "file": "020_ph2d_pouring_h1_ep11.mp4",
+   "camera_key": "observation.image.left",
+   "method": "hdf5_to_mp4"
+  },
+  {
+   "id": 23,
+   "dataset": "DexWild",
+   "repo": "boardd/dexwild-dataset",
+   "task": "Spray - spray bottle actually sprayed",
+   "file": "023_dexwild_spray_robot_ep1.mp4",
+   "camera_key": "right_pinky_cam",
+   "method": "hdf5_to_mp4"
+  },
+  {
+   "id": 24,
+   "dataset": "DexWild",
+   "repo": "boardd/dexwild-dataset",
+   "task": "Spray - spray bottle actually sprayed",
+   "file": "024_dexwild_spray_robot_ep2.mp4",
+   "camera_key": "right_pinky_cam",
+   "method": "hdf5_to_mp4"
+  },
+  {
+   "id": 37,
+   "dataset": "RoboCook (OXE)",
+   "repo": "lerobot/stanford_robocook",
+   "task": "Play-Doh: roll / press / pinch with tools",
+   "file": "037_robocook_roll_dough_large_rolling_pin_ep4.mp4",
+   "camera_key": "observation.images.image_1",
+   "method": "v3_segment_cut"
+  },
+  {
+   "id": 38,
+   "dataset": "RoboCook (OXE)",
+   "repo": "lerobot/stanford_robocook",
+   "task": "Play-Doh: roll / press / pinch with tools",
+   "file": "038_robocook_press_dough_square_press_ep73.mp4",
+   "camera_key": "observation.images.image_1",
+   "method": "v3_segment_cut"
+  },
+  {
+   "id": 40,
+   "dataset": "RoboCOIN",
+   "repo": "RoboCOIN/Galbot_G1_pull_curtain",
+   "task": "Open the curtains by pulling them apart.",
+   "file": "040_galbot_g1_pull_curtain_ep0.mp4",
+   "camera_key": "observation.images.cam_left_head_rgb",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 65,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Locomanip/throw_away_a_piece_of_paper_to_trashcan",
+   "file": "065_humanoid_everyday_throw_away_piece_paper_trashcan_ep7037.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  },
+  {
+   "id": 69,
+   "dataset": "Mobile ALOHA",
+   "repo": "lerobot/aloha_mobile_chair",
+   "task": "Push the chairs in front of the desk to place them against it.",
+   "file": "069_aloha_mobile_chair_ep0.mp4",
+   "camera_key": "",
+   "method": ""
+  },
+  {
+   "id": 92,
+   "dataset": "Humanoid Everyday",
+   "repo": "USC-GVL/humanoid-everyday",
+   "task": "Articulated/compress_a_small_air_pump_g1",
+   "file": "092_humanoid_everyday_compress_a_small_air_pump_g1_ep641.mp4",
+   "camera_key": "observation.images.egocentric",
+   "method": "direct_mp4"
+  }
+ ]
+}

@@ -1,0 +1,43 @@
+[
+  {
+    "id": "RC_001_MI_tungsten",
+    "base": "RC_001",
+    "code": "MI",
+    "property_spec": "The ball is solid tungsten and weighs about 45 kilograms, although it looks exactly like an ordinary soccer ball.",
+    "physics_focus": "hidden mass / momentum transfer",
+    "expected_outcome": null,
+    "scene": "A humanoid robot roughly the size of an adult stands on an indoor artificial-turf pitch marked with white lines. A standard-size soccer ball, about 22 cm across, rests on the turf directly in front of the robot. A goal frame stands to the left behind the robot."
+  },
+  {
+    "id": "RC_001_MI_foam",
+    "base": "RC_001",
+    "code": "MI",
+    "property_spec": "The ball is moulded from lightweight foam and weighs only about 20 grams, although it looks exactly like an ordinary soccer ball.",
+    "physics_focus": "hidden mass / momentum transfer",
+    "expected_outcome": null
+  },
+  {
+    "id": "RC_001_FR_ice",
+    "base": "RC_001",
+    "code": "FR",
+    "property_spec": "The surface under the ball is a sheet of frictionless ice, although it looks exactly like the surrounding turf.",
+    "physics_focus": "hidden surface friction",
+    "expected_outcome": null
+  },
+  {
+    "id": "RC_002_MI_steel",
+    "base": "RC_002",
+    "code": "MI",
+    "property_spec": "The box is packed with a solid steel block and weighs about 12 kilograms, although it looks exactly like the other lightbulb boxes.",
+    "physics_focus": "hidden mass / grasp load",
+    "expected_outcome": "The arm moves noticeably more slowly and sags slightly under the load, and the gripper fingers visibly compress against the box. When the box is set down it drops the last few centimetres and lands hard, driving the surrounding lightbulb boxes aside and denting the ones beneath it. The bin shifts under the impact."
+  },
+  {
+    "id": "RC_002_FR_slippery",
+    "base": "RC_002",
+    "code": "FR",
+    "property_spec": "The outside of the box is coated with a slick oily film, although it looks exactly like the other lightbulb boxes.",
+    "physics_focus": "hidden surface friction / grip slip",
+    "expected_outcome": null
+  }
+]

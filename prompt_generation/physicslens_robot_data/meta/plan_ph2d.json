@@ -1,0 +1,54 @@
+[
+ {
+  "id": 20,
+  "repo": "RogerQi/PH2D",
+  "repo_type": "dataset",
+  "dataset": "PH2D (UCSD)",
+  "family": "ph2d",
+  "view": "Egocentric",
+  "camera_key": "observation.image.left",
+  "camera_key_note": "Left eye of the side-by-side ZED Mini stereo pair, mounted on the H1 head = the egocentric stream. Confirmed against cet/post_process_zed.py in RogerQi/human-policy, which splits the SBS stereo mp4 into left_imgs/right_imgs and writes them to 'observation.image.left'/'observation.image.right'. The 'observation.image.right' dataset is the right eye of the SAME head camera, not a second viewpoint.",
+  "method": "hdf5_to_mp4",
+  "out_name": "020_ph2d_pouring_h1_ep11.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/020_ph2d_pouring_h1_ep11.mp4",
+  "source_paths": [
+   "501-pouring-2024_11_12-23_39_22/processed_episode_11.hdf5"
+  ],
+  "source_size_bytes": 37265543,
+  "est_mb": 37.3,
+  "output_mb": 5.44,
+  "hdf5_keys": [
+   "action (813, 128) float32",
+   "observation.image.left (813, 22465) uint8",
+   "observation.image.right (813, 22338) uint8",
+   "observation.state (813, 128) float32"
+  ],
+  "hdf5_root_attrs": {
+   "description": "grasp a black chocolate bottle on the yellow plate with the right hand, grasp a gray plastic cup with the left hand, pour the black chocolate into the cup, place the cup back, place the bottle on the purple plate",
+   "embodiment": "h1_inspire",
+   "sim": false
+  },
+  "encoding": {
+   "image_storage": "per-frame JPEG byte arrays, zero-padded to a fixed row width; decode with cv2.imdecode(row, cv2.IMREAD_COLOR) (trailing zero padding after the JPEG EOI is tolerated)",
+   "native_fps": 30,
+   "fps_source": "ZED_FREQ = 30 in cet/post_process_zed.py (RogerQi/human-policy); ph2d_metadata.json maps embodiment h1_inspire -> camera UCSD_H1_ZED",
+   "frame_size": "640x480",
+   "ffmpeg": "rawvideo bgr24 640x480 @30 -> libx264 crf 18 preset medium, yuv420p, +faststart"
+  },
+  "verified": {
+   "frames_written": 813,
+   "decode_failures": 0,
+   "cv2_frame_count": 813,
+   "cv2_width": 640,
+   "cv2_height": 480,
+   "cv2_fps": 30.0,
+   "duration_s": 27.1,
+   "codec": "h264 High / yuv420p",
+   "sequential_read_frames": 813
+  },
+  "substitution_note": "Two deviations from the brief, both verified against the data rather than assumed. (1) RESOLUTION: the brief said the ZED Mini stream is 1280x720, but the JPEGs stored inside the processed HDF5 decode to 640x480. 1280x720 is the RAW sensor resolution recorded in ph2d_metadata.json (cameras.UCSD_H1_ZED.resolution) and used as original_res in the post-processing script; the released HDF5s hold a cropped/downscaled 640x480 version. 640x480 is the highest resolution actually available in this file - no 720p source exists in the repo. (2) TASK LABEL: the manifest describes row 20 as 'Pour water in front of a drink vending machine'. The actual episode is a tabletop pour - per the HDF5's own description attribute, the H1 grasps a chocolate-drink bottle and a gray plastic cup and pours between them on a table. No vending machine is visible in the frames. The folder specified by the manifest selector was used verbatim, so the video is the intended source; only the manifest's task text is inaccurate.",
+  "selector_resolution": "Manifest selector was folder='501-pouring-2024_11_12-23_39_22', pick='first HDF5'. The folder sits at the TOP LEVEL of the repo (no nesting) and holds 48 files, processed_episode_{11..61}.hdf5 with gaps (14, 31, 56 absent). processed_episode_11.hdf5 is first under BOTH lexicographic and numeric ordering, so 'first HDF5' is unambiguous.",
+  "provenance": "Folder 501-* is listed under 'train' in hdt/configs/datasets/pouring/pouring_teleop.json in RogerQi/human-policy, confirming it is robot teleop (H1) data and not a human demonstration - consistent with the manifest's '(robot, H1)'. ph2d_metadata.json per_task_attributes gives task_type=pouring, embodiment_type=h1_inspire, left_hand=true, right_hand=true.",
+  "screening": "DROPPED-IN-SCREENING"
+ }
+]

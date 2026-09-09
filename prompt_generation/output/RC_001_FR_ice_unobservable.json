@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "id": "RC_001_FR_ice",
+  "frame": "RC_001_obs.jpg",
+  "taxonomy": {
+    "code": "FR",
+    "domain": "Friction & Sliding",
+    "matter_state": "Solid",
+    "type": "Single"
+  },
+  "observability": "unobservable",
+  "base_id": "RC_001",
+  "property_spec": "The surface under the ball is a sheet of frictionless ice, although it looks exactly like the surrounding turf.",
+  "scene": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background.",
+  "action": "The robot is in the motion of kicking the soccer ball with its right leg.",
+  "video_prompt": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background. The surface under the ball is a sheet of frictionless ice, although it looks exactly like the surrounding turf. The robot is in the motion of kicking the soccer ball with its right leg.",
+  "expected_outcome": null,
+  "needs_manual_outcome": true,
+  "objects": [
+    "humanoid robot",
+    "soccer ball",
+    "synthetic grass soccer field",
+    "goalpost"
+  ],
+  "physics_focus": "hidden surface friction",
+  "annotation_note": "Ablation of RC_001: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+  "marker_leaks": [],
+  "prompt_conflicts": [],
+  "scene_overridden": false,
+  "generated_by": {
+    "backend": "createai-vision",
+    "model": "openai/gpt4o",
+    "generated_at": "2026-08-20T14:42:36+00:00",
+    "derived_from": "RC_001"
+  }
+}

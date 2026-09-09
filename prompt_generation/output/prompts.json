@@ -1,0 +1,259 @@
+{
+  "schema_version": "1.0",
+  "count": 7,
+  "pending_manual_outcome": [
+    "RC_001_FR_ice",
+    "RC_001_MI_foam",
+    "RC_002_FR_slippery"
+  ],
+  "needs_marker_review": [],
+  "needs_prompt_review": [],
+  "records": [
+    {
+      "schema_version": "1.0",
+      "id": "RC_001",
+      "frame": "RC_001_obs.jpg",
+      "taxonomy": {
+        "code": "RC",
+        "domain": "Rigid Contact & Collision",
+        "matter_state": "Solid",
+        "type": "Single"
+      },
+      "observability": "observable",
+      "scene": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background.",
+      "action": "The robot is in the motion of kicking the soccer ball with its right leg.",
+      "expected_outcome": "The robot's foot strikes the soccer ball, propelling it forward across the field. The force from the robot's kick transfers to the ball, causing it to move due to the impulse of the collision. The ball travels in the direction the foot strikes it, likely towards the goalpost.",
+      "video_prompt": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background. The robot is in the motion of kicking the soccer ball with its right leg.",
+      "needs_manual_outcome": false,
+      "objects": [
+        "humanoid robot",
+        "soccer ball",
+        "synthetic grass soccer field",
+        "goalpost"
+      ],
+      "physics_focus": "collision impulse",
+      "annotation_note": null,
+      "marker_leaks": [],
+      "generated_by": {
+        "backend": "createai-vision",
+        "model": "openai/gpt4o",
+        "generated_at": "2026-08-20T14:42:36+00:00"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "id": "RC_001_FR_ice",
+      "frame": "RC_001_obs.jpg",
+      "taxonomy": {
+        "code": "FR",
+        "domain": "Friction & Sliding",
+        "matter_state": "Solid",
+        "type": "Single"
+      },
+      "observability": "unobservable",
+      "base_id": "RC_001",
+      "property_spec": "The surface under the ball is a sheet of frictionless ice, although it looks exactly like the surrounding turf.",
+      "scene": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background.",
+      "action": "The robot is in the motion of kicking the soccer ball with its right leg.",
+      "video_prompt": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background. The surface under the ball is a sheet of frictionless ice, although it looks exactly like the surrounding turf. The robot is in the motion of kicking the soccer ball with its right leg.",
+      "expected_outcome": null,
+      "needs_manual_outcome": true,
+      "objects": [
+        "humanoid robot",
+        "soccer ball",
+        "synthetic grass soccer field",
+        "goalpost"
+      ],
+      "physics_focus": "hidden surface friction",
+      "annotation_note": "Ablation of RC_001: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+      "marker_leaks": [],
+      "prompt_conflicts": [],
+      "scene_overridden": false,
+      "generated_by": {
+        "backend": "createai-vision",
+        "model": "openai/gpt4o",
+        "generated_at": "2026-08-20T14:42:36+00:00",
+        "derived_from": "RC_001"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "id": "RC_001_MI_foam",
+      "frame": "RC_001_obs.jpg",
+      "taxonomy": {
+        "code": "MI",
+        "domain": "Momentum & Inertia",
+        "matter_state": "Solid",
+        "type": "Single"
+      },
+      "observability": "unobservable",
+      "base_id": "RC_001",
+      "property_spec": "The ball is moulded from lightweight foam and weighs only about 20 grams, although it looks exactly like an ordinary soccer ball.",
+      "scene": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background.",
+      "action": "The robot is in the motion of kicking the soccer ball with its right leg.",
+      "video_prompt": "A humanoid robot is standing on a synthetic grass soccer field. In front of the robot, there is a soccer ball which is approximately one-third the height of the robot. The soccer field is enclosed with walls on the sides, and a goalpost is visible in the background. The ball is moulded from lightweight foam and weighs only about 20 grams, although it looks exactly like an ordinary soccer ball. The robot is in the motion of kicking the soccer ball with its right leg.",
+      "expected_outcome": null,
+      "needs_manual_outcome": true,
+      "objects": [
+        "humanoid robot",
+        "soccer ball",
+        "synthetic grass soccer field",
+        "goalpost"
+      ],
+      "physics_focus": "hidden mass / momentum transfer",
+      "annotation_note": "Ablation of RC_001: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+      "marker_leaks": [],
+      "prompt_conflicts": [],
+      "scene_overridden": false,
+      "generated_by": {
+        "backend": "createai-vision",
+        "model": "openai/gpt4o",
+        "generated_at": "2026-08-20T14:42:36+00:00",
+        "derived_from": "RC_001"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "id": "RC_001_MI_tungsten",
+      "frame": "RC_001_obs.jpg",
+      "taxonomy": {
+        "code": "MI",
+        "domain": "Momentum & Inertia",
+        "matter_state": "Solid",
+        "type": "Single"
+      },
+      "observability": "unobservable",
+      "base_id": "RC_001",
+      "property_spec": "The ball is solid tungsten and weighs about 45 kilograms, although it looks exactly like an ordinary soccer ball.",
+      "scene": "A humanoid robot roughly the size of an adult stands on an indoor artificial-turf pitch marked with white lines. A standard-size soccer ball, about 22 cm across, rests on the turf directly in front of the robot. A goal frame stands to the left behind the robot.",
+      "action": "The robot is in the motion of kicking the soccer ball with its right leg.",
+      "video_prompt": "A humanoid robot roughly the size of an adult stands on an indoor artificial-turf pitch marked with white lines. A standard-size soccer ball, about 22 cm across, rests on the turf directly in front of the robot. A goal frame stands to the left behind the robot. The ball is solid tungsten and weighs about 45 kilograms, although it looks exactly like an ordinary soccer ball. The robot is in the motion of kicking the soccer ball with its right leg.",
+      "expected_outcome": "The robot's foot strikes the ball and the ball barely moves, shifting at most a few centimetres. Because the ball's mass is comparable to the robot's own, the impulse is absorbed by the robot instead: its leg is stopped abruptly and it loses balance, rocking backwards or stumbling.",
+      "needs_manual_outcome": false,
+      "objects": [
+        "humanoid robot",
+        "soccer ball",
+        "synthetic grass soccer field",
+        "goalpost"
+      ],
+      "physics_focus": "hidden mass / momentum transfer",
+      "annotation_note": "Ablation of RC_001: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+      "marker_leaks": [],
+      "prompt_conflicts": [],
+      "scene_overridden": true,
+      "generated_by": {
+        "backend": "createai-vision",
+        "model": "openai/gpt4o",
+        "generated_at": "2026-08-20T14:42:36+00:00",
+        "derived_from": "RC_001"
+      },
+      "outcome_source": "recovered from output/"
+    },
+    {
+      "schema_version": "1.0",
+      "id": "RC_002",
+      "frame": "RC_002_obs.webp",
+      "taxonomy": {
+        "code": "RC",
+        "domain": "Rigid Contact & Collision",
+        "matter_state": "Solid",
+        "type": "Single"
+      },
+      "observability": "observable",
+      "scene": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside.",
+      "action": "The robotic arm begins to lower the box into the container.",
+      "expected_outcome": "As the box is lowered, it makes contact with the boxes already inside the container. Due to the rigid nature of the boxes and the controlled movement of the robotic arm, the box settles among the others without significant displacement of surrounding boxes or the container itself.",
+      "video_prompt": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside. The robotic arm begins to lower the box into the container.",
+      "needs_manual_outcome": false,
+      "objects": [
+        "robotic arm",
+        "gripper",
+        "cardboard box",
+        "open container",
+        "boxes inside container"
+      ],
+      "physics_focus": "contact points",
+      "annotation_note": null,
+      "marker_leaks": [],
+      "generated_by": {
+        "backend": "createai-vision",
+        "model": "openai/gpt4o",
+        "generated_at": "2026-08-20T14:42:41+00:00"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "id": "RC_002_FR_slippery",
+      "frame": "RC_002_obs.webp",
+      "taxonomy": {
+        "code": "FR",
+        "domain": "Friction & Sliding",
+        "matter_state": "Solid",
+        "type": "Single"
+      },
+      "observability": "unobservable",
+      "base_id": "RC_002",
+      "property_spec": "The outside of the box is coated with a slick oily film, although it looks exactly like the other lightbulb boxes.",
+      "scene": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside.",
+      "action": "The robotic arm begins to lower the box into the container.",
+      "video_prompt": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside. The outside of the box is coated with a slick oily film, although it looks exactly like the other lightbulb boxes. The robotic arm begins to lower the box into the container.",
+      "expected_outcome": null,
+      "needs_manual_outcome": true,
+      "objects": [
+        "robotic arm",
+        "gripper",
+        "cardboard box",
+        "open container",
+        "boxes inside container"
+      ],
+      "physics_focus": "hidden surface friction / grip slip",
+      "annotation_note": "Ablation of RC_002: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+      "marker_leaks": [],
+      "prompt_conflicts": [],
+      "scene_overridden": false,
+      "generated_by": {
+        "backend": "createai-vision",
+        "model": "openai/gpt4o",
+        "generated_at": "2026-08-20T14:42:41+00:00",
+        "derived_from": "RC_002"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "id": "RC_002_MI_steel",
+      "frame": "RC_002_obs.webp",
+      "taxonomy": {
+        "code": "MI",
+        "domain": "Momentum & Inertia",
+        "matter_state": "Solid",
+        "type": "Single"
+      },
+      "observability": "unobservable",
+      "base_id": "RC_002",
+      "property_spec": "The box is packed with a solid steel block and weighs about 12 kilograms, although it looks exactly like the other lightbulb boxes.",
+      "scene": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside.",
+      "action": "The robotic arm begins to lower the box into the container.",
+      "video_prompt": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside. The box is packed with a solid steel block and weighs about 12 kilograms, although it looks exactly like the other lightbulb boxes. The robotic arm begins to lower the box into the container.",
+      "expected_outcome": "The arm moves noticeably more slowly and sags slightly under the load, and the gripper fingers visibly compress against the box. When the box is set down it drops the last few centimetres and lands hard, driving the surrounding lightbulb boxes aside and denting the ones beneath it. The bin shifts under the impact.",
+      "needs_manual_outcome": false,
+      "objects": [
+        "robotic arm",
+        "gripper",
+        "cardboard box",
+        "open container",
+        "boxes inside container"
+      ],
+      "physics_focus": "hidden mass / grasp load",
+      "annotation_note": "Ablation of RC_002: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+      "marker_leaks": [],
+      "prompt_conflicts": [],
+      "scene_overridden": false,
+      "generated_by": {
+        "backend": "createai-vision",
+        "model": "openai/gpt4o",
+        "generated_at": "2026-08-20T14:42:41+00:00",
+        "derived_from": "RC_002"
+      }
+    }
+  ]
+}

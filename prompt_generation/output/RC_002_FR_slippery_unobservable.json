@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "id": "RC_002_FR_slippery",
+  "frame": "RC_002_obs.webp",
+  "taxonomy": {
+    "code": "FR",
+    "domain": "Friction & Sliding",
+    "matter_state": "Solid",
+    "type": "Single"
+  },
+  "observability": "unobservable",
+  "base_id": "RC_002",
+  "property_spec": "The outside of the box is coated with a slick oily film, although it looks exactly like the other lightbulb boxes.",
+  "scene": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside.",
+  "action": "The robotic arm begins to lower the box into the container.",
+  "video_prompt": "A robotic arm with multiple joints is holding a cardboard box with a two-fingered gripper. The box is rectangular and appears to contain an indoor flood light. Below the arm, there is an open container filled with similar boxes, arranged haphazardly inside. The outside of the box is coated with a slick oily film, although it looks exactly like the other lightbulb boxes. The robotic arm begins to lower the box into the container.",
+  "expected_outcome": null,
+  "needs_manual_outcome": true,
+  "objects": [
+    "robotic arm",
+    "gripper",
+    "cardboard box",
+    "open container",
+    "boxes inside container"
+  ],
+  "physics_focus": "hidden surface friction / grip slip",
+  "annotation_note": "Ablation of RC_002: scene/action copied verbatim from the base record, only property_spec differs. Fill expected_outcome by hand -- it is the ground truth for whether the generated video obeyed property_spec.",
+  "marker_leaks": [],
+  "prompt_conflicts": [],
+  "scene_overridden": false,
+  "generated_by": {
+    "backend": "createai-vision",
+    "model": "openai/gpt4o",
+    "generated_at": "2026-08-20T14:42:41+00:00",
+    "derived_from": "RC_002"
+  }
+}

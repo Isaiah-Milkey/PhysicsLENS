@@ -1,0 +1,822 @@
+[
+ {
+  "id": 7,
+  "f": "007_unitree_g1dex1_wipe_table_ep0.mp4",
+  "mb": 2.51,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 370,
+  "dec": 3
+ },
+ {
+  "id": 8,
+  "f": "008_unitree_g1dex1_wipe_table_ep100.mp4",
+  "mb": 2.76,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 374,
+  "dec": 3
+ },
+ {
+  "id": 9,
+  "f": "009_unitree_g1dex1_wipe_table_ep199.mp4",
+  "mb": 3.06,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 423,
+  "dec": 3
+ },
+ {
+  "id": 10,
+  "f": "010_unitree_g1dex1_syringe_water_transfer_ep0.mp4",
+  "mb": 7.73,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 661,
+  "dec": 3
+ },
+ {
+  "id": 11,
+  "f": "011_unitree_g1dex1_syringe_water_transfer_ep516.mp4",
+  "mb": 4.0,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 508,
+  "dec": 3
+ },
+ {
+  "id": 12,
+  "f": "012_unitree_g1dex1_syringe_water_transfer_ep1033.mp4",
+  "mb": 3.14,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 390,
+  "dec": 3
+ },
+ {
+  "id": 14,
+  "f": "014_unitree_g1edu_u3_pour_drink_ep648.mp4",
+  "mb": 3.0,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 721,
+  "dec": 3
+ },
+ {
+  "id": 15,
+  "f": "015_unitree_g1edu_u3_pour_drink_ep1297.mp4",
+  "mb": 3.0,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 701,
+  "dec": 3
+ },
+ {
+  "id": 16,
+  "f": "016_ai2_alphabot_2_pour_water_ep0.mp4",
+  "mb": 3.03,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1021,
+  "dec": 3
+ },
+ {
+  "id": 17,
+  "f": "017_ai2_alphabot_2_shake_bottle_ep0.mp4",
+  "mb": 4.68,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 876,
+  "dec": 3
+ },
+ {
+  "id": 18,
+  "f": "018_ai2_alphabot_2_shake_bottle_ep393.mp4",
+  "mb": 5.07,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 826,
+  "dec": 3
+ },
+ {
+  "id": 19,
+  "f": "019_agibot_task410_water_pouring_ep0.mp4",
+  "mb": 3.83,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 813,
+  "dec": 3
+ },
+ {
+  "id": 21,
+  "f": "021_aloha_mobile_wash_pan_ep0.mp4",
+  "mb": 4.79,
+  "w": 640,
+  "h": 480,
+  "fps": 50.0,
+  "n": 1100,
+  "dec": 3
+ },
+ {
+  "id": 22,
+  "f": "022_aloha_mobile_wipe_wine_ep0.mp4",
+  "mb": 5.64,
+  "w": 640,
+  "h": 480,
+  "fps": 50.0,
+  "n": 1300,
+  "dec": 3
+ },
+ {
+  "id": 25,
+  "f": "025_humanoid_everyday_fold_towel_ep4838.mp4",
+  "mb": 1.01,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 377,
+  "dec": 3
+ },
+ {
+  "id": 26,
+  "f": "026_humanoid_everyday_fold_towel_ep4839.mp4",
+  "mb": 0.93,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 341,
+  "dec": 3
+ },
+ {
+  "id": 27,
+  "f": "027_humanoid_everyday_squeeze_a_ball_ep5118.mp4",
+  "mb": 0.5,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 347,
+  "dec": 3
+ },
+ {
+  "id": 28,
+  "f": "028_humanoid_everyday_squeeze_a_toy_ep5158.mp4",
+  "mb": 0.4,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 278,
+  "dec": 3
+ },
+ {
+  "id": 29,
+  "f": "029_humanoid_everyday_compress_a_plastic_bag_ep4598.mp4",
+  "mb": 1.07,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 510,
+  "dec": 3
+ },
+ {
+  "id": 30,
+  "f": "030_unitree_g1dex1_fold_towel_ep0.mp4",
+  "mb": 10.07,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1358,
+  "dec": 3
+ },
+ {
+  "id": 31,
+  "f": "031_unitree_g1dex1_fold_towel_ep199.mp4",
+  "mb": 11.34,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1463,
+  "dec": 3
+ },
+ {
+  "id": 32,
+  "f": "032_gr00t_gr1_fold_cloth_long_ep0.mp4",
+  "mb": 9.02,
+  "w": 1280,
+  "h": 800,
+  "fps": 20.0,
+  "n": 376,
+  "dec": 3
+ },
+ {
+  "id": 33,
+  "f": "033_gr00t_gr1_fold_cloth_long_ep257.mp4",
+  "mb": 33.49,
+  "w": 1280,
+  "h": 800,
+  "fps": 20.0,
+  "n": 1445,
+  "dec": 3
+ },
+ {
+  "id": 34,
+  "f": "034_gr00t_egodex_crumple_flatten_paper_ep56.mp4",
+  "mb": 57.72,
+  "w": 1280,
+  "h": 800,
+  "fps": 20.0,
+  "n": 2213,
+  "dec": 3
+ },
+ {
+  "id": 35,
+  "f": "035_gr00t_egodex_braid_unbraid_ep63.mp4",
+  "mb": 99.98,
+  "w": 1280,
+  "h": 800,
+  "fps": 20.0,
+  "n": 4452,
+  "dec": 3
+ },
+ {
+  "id": 36,
+  "f": "036_agibot_task362_fold_shorts_ep0.mp4",
+  "mb": 14.72,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1520,
+  "dec": 3
+ },
+ {
+  "id": 39,
+  "f": "039_unitree_g1dex1_zip_up_ep0.mp4",
+  "mb": 3.68,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 513,
+  "dec": 3
+ },
+ {
+  "id": 41,
+  "f": "041_unitree_g1dex3_block_stacking_ep0.mp4",
+  "mb": 4.21,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1173,
+  "dec": 3
+ },
+ {
+  "id": 42,
+  "f": "042_unitree_g1dex3_block_stacking_ep150.mp4",
+  "mb": 3.09,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 846,
+  "dec": 3
+ },
+ {
+  "id": 43,
+  "f": "043_unitree_g1dex3_block_stacking_ep300.mp4",
+  "mb": 3.03,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 791,
+  "dec": 3
+ },
+ {
+  "id": 44,
+  "f": "044_unitree_g1dex1_stack_block_ep0.mp4",
+  "mb": 3.9,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 490,
+  "dec": 3
+ },
+ {
+  "id": 45,
+  "f": "045_unitree_g1dex1_stack_block_ep199.mp4",
+  "mb": 5.73,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 740,
+  "dec": 3
+ },
+ {
+  "id": 46,
+  "f": "046_humanoid_everyday_stack_two_cubes_g1_ep4358.mp4",
+  "mb": 0.52,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 447,
+  "dec": 3
+ },
+ {
+  "id": 47,
+  "f": "047_humanoid_everyday_unstack_two_cubes_g1_ep4518.mp4",
+  "mb": 0.55,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 317,
+  "dec": 3
+ },
+ {
+  "id": 48,
+  "f": "048_humanoid_everyday_pick_the_hammer_and_hit_desk_ep8398.mp4",
+  "mb": 0.71,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 422,
+  "dec": 3
+ },
+ {
+  "id": 49,
+  "f": "049_humanoid_everyday_pick_the_hammer_and_hit_desk_ep8399.mp4",
+  "mb": 0.69,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 426,
+  "dec": 3
+ },
+ {
+  "id": 50,
+  "f": "050_humanoid_everyday_push_duck_g1_ep3612.mp4",
+  "mb": 0.68,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 574,
+  "dec": 3
+ },
+ {
+  "id": 51,
+  "f": "051_ai2_alphabot_2_clink_glasses_ep0.mp4",
+  "mb": 5.51,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1069,
+  "dec": 3
+ },
+ {
+  "id": 52,
+  "f": "052_ai2_alphabot_2_clink_glasses_ep392.mp4",
+  "mb": 3.83,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 883,
+  "dec": 3
+ },
+ {
+  "id": 53,
+  "f": "053_ai2_alphabot_2_stack_cups_ep0.mp4",
+  "mb": 3.13,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 841,
+  "dec": 3
+ },
+ {
+  "id": 54,
+  "f": "054_ai2_alphabot_2_stack_blocks_ep0.mp4",
+  "mb": 2.87,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 612,
+  "dec": 3
+ },
+ {
+  "id": 55,
+  "f": "055_unitree_g1dex1_paper_cup_stacking_ep0.mp4",
+  "mb": 3.67,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 543,
+  "dec": 3
+ },
+ {
+  "id": 56,
+  "f": "056_unitree_g1dex1_stack_bowls_ep0.mp4",
+  "mb": 2.58,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 480,
+  "dec": 3
+ },
+ {
+  "id": 57,
+  "f": "057_gr00t_gr1_pour_items_into_basket_ep0.mp4",
+  "mb": 5.56,
+  "w": 1280,
+  "h": 800,
+  "fps": 20.0,
+  "n": 237,
+  "dec": 3
+ },
+ {
+  "id": 58,
+  "f": "058_gr00t_gr1_pour_items_into_basket_ep50.mp4",
+  "mb": 7.48,
+  "w": 1280,
+  "h": 800,
+  "fps": 20.0,
+  "n": 328,
+  "dec": 3
+ },
+ {
+  "id": 59,
+  "f": "059_gr00t_gr1_pour_items_into_basket_ep99.mp4",
+  "mb": 10.38,
+  "w": 1280,
+  "h": 800,
+  "fps": 20.0,
+  "n": 443,
+  "dec": 3
+ },
+ {
+  "id": 60,
+  "f": "060_unitree_g1dex1_pour_medicine_ep0.mp4",
+  "mb": 7.19,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 905,
+  "dec": 3
+ },
+ {
+  "id": 61,
+  "f": "061_unitree_g1dex1_pour_medicine_ep100.mp4",
+  "mb": 7.04,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 879,
+  "dec": 3
+ },
+ {
+  "id": 62,
+  "f": "062_unitree_g1dex1_pour_medicine_ep199.mp4",
+  "mb": 5.71,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 708,
+  "dec": 3
+ },
+ {
+  "id": 63,
+  "f": "063_humanoid_everyday_pour_out_some_sunflower_seeds_ep3292.mp4",
+  "mb": 0.91,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 635,
+  "dec": 3
+ },
+ {
+  "id": 64,
+  "f": "064_humanoid_everyday_pour_out_some_sunflower_seeds_ep3293.mp4",
+  "mb": 0.99,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 685,
+  "dec": 3
+ },
+ {
+  "id": 66,
+  "f": "066_ai2_alphabot_2_pour_mung_beans_ep0.mp4",
+  "mb": 6.07,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 956,
+  "dec": 3
+ },
+ {
+  "id": 67,
+  "f": "067_ai2_alphabot_2_pour_mung_beans_ep212.mp4",
+  "mb": 5.92,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 864,
+  "dec": 3
+ },
+ {
+  "id": 68,
+  "f": "068_dlr_sara_pour_into_mug_ep0.mp4",
+  "mb": 1.93,
+  "w": 640,
+  "h": 480,
+  "fps": 5.0,
+  "n": 200,
+  "dec": 3
+ },
+ {
+  "id": 70,
+  "f": "070_humanoid_everyday_push_the_tape_towards_the_notebook_ep3720.mp4",
+  "mb": 0.42,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 259,
+  "dec": 3
+ },
+ {
+  "id": 71,
+  "f": "071_humanoid_everyday_push_box_screws_left_desk_right_ep3572.mp4",
+  "mb": 0.49,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 301,
+  "dec": 3
+ },
+ {
+  "id": 72,
+  "f": "072_humanoid_everyday_push_pencil_case_container_ep3680.mp4",
+  "mb": 0.64,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 311,
+  "dec": 3
+ },
+ {
+  "id": 73,
+  "f": "073_rh20t_cfg1_hit_pool_ball_scene0001_ep2194.mp4",
+  "mb": 2.35,
+  "w": 640,
+  "h": 360,
+  "fps": 10.0,
+  "n": 271,
+  "dec": 3
+ },
+ {
+  "id": 74,
+  "f": "074_rh20t_cfg1_hit_pool_ball_scene0002_ep2464.mp4",
+  "mb": 6.78,
+  "w": 640,
+  "h": 360,
+  "fps": 10.0,
+  "n": 765,
+  "dec": 3
+ },
+ {
+  "id": 75,
+  "f": "075_unitree_g1dex1_conveyor_sorting_ep0.mp4",
+  "mb": 4.17,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 407,
+  "dec": 3
+ },
+ {
+  "id": 76,
+  "f": "076_unitree_g1dex1_conveyor_sorting_ep1048.mp4",
+  "mb": 6.2,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 345,
+  "dec": 3
+ },
+ {
+  "id": 77,
+  "f": "077_humanoid_everyday_use_soft_sponge_wipe_dry_surface_ep8634.mp4",
+  "mb": 0.5,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 344,
+  "dec": 3
+ },
+ {
+  "id": 78,
+  "f": "078_humanoid_everyday_wipe_a_table_with_an_eraser_ep8914.mp4",
+  "mb": 0.74,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 387,
+  "dec": 3
+ },
+ {
+  "id": 79,
+  "f": "079_humanoid_everyday_clean_the_window_ep7001.mp4",
+  "mb": 3.64,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1440,
+  "dec": 3
+ },
+ {
+  "id": 80,
+  "f": "080_unitree_g1dex1_erase_board_ep0.mp4",
+  "mb": 4.6,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 674,
+  "dec": 3
+ },
+ {
+  "id": 81,
+  "f": "081_unitree_g1dex1_erase_board_ep199.mp4",
+  "mb": 5.14,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 655,
+  "dec": 3
+ },
+ {
+  "id": 82,
+  "f": "082_galbot_g1_clear_table_residue_1_ep0.mp4",
+  "mb": 27.36,
+  "w": 960,
+  "h": 720,
+  "fps": 30.0,
+  "n": 1111,
+  "dec": 3
+ },
+ {
+  "id": 83,
+  "f": "083_galbot_g1_wipe_mirror_ep0.mp4",
+  "mb": 20.87,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1348,
+  "dec": 3
+ },
+ {
+  "id": 84,
+  "f": "084_agibot_task421_wipe_stain_ep0.mp4",
+  "mb": 8.21,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1460,
+  "dec": 3
+ },
+ {
+  "id": 85,
+  "f": "085_agibot_task421_wipe_stain_ep950.mp4",
+  "mb": 4.87,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1282,
+  "dec": 3
+ },
+ {
+  "id": 86,
+  "f": "086_aloha_static_ziploc_slide_ep0.mp4",
+  "mb": 1.12,
+  "w": 640,
+  "h": 480,
+  "fps": 50.0,
+  "n": 300,
+  "dec": 3
+ },
+ {
+  "id": 87,
+  "f": "087_unitree_g1dex3_toasted_bread_ep0.mp4",
+  "mb": 2.65,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 620,
+  "dec": 3
+ },
+ {
+  "id": 88,
+  "f": "088_unitree_g1dex3_toasted_bread_ep208.mp4",
+  "mb": 2.38,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 652,
+  "dec": 3
+ },
+ {
+  "id": 89,
+  "f": "089_unitree_g1dex3_toasted_bread_ep417.mp4",
+  "mb": 3.32,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 768,
+  "dec": 3
+ },
+ {
+  "id": 90,
+  "f": "090_unitree_z1_dual_pour_coffee_ep0.mp4",
+  "mb": 1.94,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1487,
+  "dec": 3
+ },
+ {
+  "id": 91,
+  "f": "091_unitree_z1_dual_pour_coffee_ep330.mp4",
+  "mb": 2.03,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 1358,
+  "dec": 3
+ },
+ {
+  "id": 93,
+  "f": "093_humanoid_everyday_press_start_boiling_button_ep8078.mp4",
+  "mb": 0.1,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 112,
+  "dec": 3
+ },
+ {
+  "id": 94,
+  "f": "094_humanoid_everyday_pick_up_kettle_place_base_turn_ep7022.mp4",
+  "mb": 4.49,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 2173,
+  "dec": 3
+ },
+ {
+  "id": 95,
+  "f": "095_galbot_g1_scrub_toilet_ep0.mp4",
+  "mb": 46.0,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 5143,
+  "dec": 3
+ },
+ {
+  "id": 96,
+  "f": "096_galbot_g1_scrub_toilet_ep186.mp4",
+  "mb": 19.77,
+  "w": 640,
+  "h": 480,
+  "fps": 30.0,
+  "n": 2009,
+  "dec": 3
+ },
+ {
+  "id": 97,
+  "f": "097_aloha_mobile_shrimp_ep0.mp4",
+  "mb": 12.93,
+  "w": 640,
+  "h": 480,
+  "fps": 50.0,
+  "n": 3750,
+  "dec": 3
+ },
+ {
+  "id": 98,
+  "f": "098_aloha_static_coffee_ep0.mp4",
+  "mb": 4.41,
+  "w": 640,
+  "h": 480,
+  "fps": 50.0,
+  "n": 1100,
+  "dec": 3
+ }
+]

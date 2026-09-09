@@ -1,0 +1,12 @@
+# The repo-root .gitignore excludes `.env.*`, which would swallow this
+# template too. Re-include it: it documents the key name, holds no secret.
+!.env.example
+
+# Regenerable per-frame model output cache
+testset_cache/
+
+# Source videos are 575 MB and live outside git; only meta/ and logs/ are tracked
+physicslens_robot_data/videos/
+
+__pycache__/
+*.py[cod]

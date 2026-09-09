@@ -1,0 +1,156 @@
+[
+ {
+  "id": 32,
+  "repo": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "subset": "In-lab_Eval",
+  "task_folder": "gr1_unified.fold_cloth_long_robot",
+  "episode_index": 0,
+  "camera_key": "observation.images.ego_view_freq20",
+  "method": "direct_mp4",
+  "out_name": "032_gr00t_gr1_fold_cloth_long_ep0.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/032_gr00t_gr1_fold_cloth_long_ep0.mp4",
+  "source_paths": [
+   "In-lab_Eval/gr1_unified.fold_cloth_long_robot/videos/chunk-000/observation.images.ego_view_freq20/episode_000000.mp4"
+  ],
+  "est_mb": 9.0,
+  "expected_frames": 376,
+  "fps": 20.0,
+  "resolution": "1280x800",
+  "codec": "h264 High yuv420p (no transcode needed)",
+  "substitution_note": "Manifest says subset 'Inlab_Eval'; actual repo folder is 'In-lab_Eval' (hyphen). episode_index 0 valid (258 eps, 0..257).",
+  "status": "downloaded_verified",
+  "screening": "KEPT"
+ },
+ {
+  "id": 33,
+  "repo": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "subset": "In-lab_Eval",
+  "task_folder": "gr1_unified.fold_cloth_long_robot",
+  "episode_index": 257,
+  "camera_key": "observation.images.ego_view_freq20",
+  "method": "direct_mp4",
+  "out_name": "033_gr00t_gr1_fold_cloth_long_ep257.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/033_gr00t_gr1_fold_cloth_long_ep257.mp4",
+  "source_paths": [
+   "In-lab_Eval/gr1_unified.fold_cloth_long_robot/videos/chunk-000/observation.images.ego_view_freq20/episode_000257.mp4"
+  ],
+  "est_mb": 33.5,
+  "expected_frames": 1445,
+  "fps": 20.0,
+  "resolution": "1280x800",
+  "codec": "h264 High yuv420p (no transcode needed)",
+  "substitution_note": "Manifest subset 'Inlab_Eval' -> actual 'In-lab_Eval'. episode_index 257 valid; it is the LAST episode (total_episodes=258).",
+  "status": "downloaded_verified",
+  "screening": "KEPT"
+ },
+ {
+  "id": 34,
+  "repo": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "subset": "EgoDex_Eval",
+  "task_folder": null,
+  "episode_index": 56,
+  "camera_key": "observation.images.ego_view_freq20",
+  "method": "direct_mp4",
+  "out_name": "034_gr00t_egodex_crumple_flatten_paper_ep56.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/034_gr00t_egodex_crumple_flatten_paper_ep56.mp4",
+  "source_paths": [
+   "EgoDex_Eval/videos/chunk-000/observation.images.ego_view_freq20/episode_000056.mp4"
+  ],
+  "est_mb": 57.7,
+  "expected_frames": 2213,
+  "fps": 20.0,
+  "resolution": "1280x800",
+  "codec": "h264 High yuv420p (no transcode needed)",
+  "substitution_note": "Manifest selector was task-name + nth=1, no episode_index. Resolved via EgoDex_Eval/meta/episodes.jsonl: task 'locked waist: crumple_flatten_paper' -> episode_index 56 (exactly one episode, as the manifest note predicted).",
+  "status": "downloaded_verified",
+  "screening": "KEPT"
+ },
+ {
+  "id": 35,
+  "repo": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "subset": "EgoDex_Eval",
+  "task_folder": null,
+  "episode_index": 63,
+  "camera_key": "observation.images.ego_view_freq20",
+  "method": "direct_mp4",
+  "out_name": "035_gr00t_egodex_braid_unbraid_ep63.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/035_gr00t_egodex_braid_unbraid_ep63.mp4",
+  "source_paths": [
+   "EgoDex_Eval/videos/chunk-000/observation.images.ego_view_freq20/episode_000063.mp4"
+  ],
+  "est_mb": 100.0,
+  "expected_frames": 4452,
+  "fps": 20.0,
+  "resolution": "1280x800",
+  "codec": "h264 High yuv420p (no transcode needed)",
+  "substitution_note": "Manifest selector was task-name + nth=1, no episode_index. Resolved via EgoDex_Eval/meta/episodes.jsonl: task 'locked waist: braid_unbraid' -> episode_index 63 (exactly one episode). Largest file in group at 100.0 MB / 4452 frames (~3.7 min).",
+  "status": "downloaded_verified",
+  "screening": "KEPT"
+ },
+ {
+  "id": 57,
+  "repo": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "subset": "In-lab_Eval",
+  "task_folder": "gr1_unified.pour_items_into_basket_robot",
+  "episode_index": 0,
+  "camera_key": "observation.images.ego_view_freq20",
+  "method": "direct_mp4",
+  "out_name": "057_gr00t_gr1_pour_items_into_basket_ep0.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/057_gr00t_gr1_pour_items_into_basket_ep0.mp4",
+  "source_paths": [
+   "In-lab_Eval/gr1_unified.pour_items_into_basket_robot/videos/chunk-000/observation.images.ego_view_freq20/episode_000000.mp4"
+  ],
+  "est_mb": 5.6,
+  "expected_frames": 237,
+  "fps": 20.0,
+  "resolution": "1280x800",
+  "codec": "h264 High yuv420p (no transcode needed)",
+  "substitution_note": "Manifest subset 'Inlab_Eval' -> actual 'In-lab_Eval'. episode_index 0 valid (100 eps, 0..99).",
+  "status": "downloaded_verified",
+  "screening": "KEPT"
+ },
+ {
+  "id": 58,
+  "repo": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "subset": "In-lab_Eval",
+  "task_folder": "gr1_unified.pour_items_into_basket_robot",
+  "episode_index": 50,
+  "camera_key": "observation.images.ego_view_freq20",
+  "method": "direct_mp4",
+  "out_name": "058_gr00t_gr1_pour_items_into_basket_ep50.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/058_gr00t_gr1_pour_items_into_basket_ep50.mp4",
+  "source_paths": [
+   "In-lab_Eval/gr1_unified.pour_items_into_basket_robot/videos/chunk-000/observation.images.ego_view_freq20/episode_000050.mp4"
+  ],
+  "est_mb": 7.5,
+  "expected_frames": 328,
+  "fps": 20.0,
+  "resolution": "1280x800",
+  "codec": "h264 High yuv420p (no transcode needed)",
+  "substitution_note": "Manifest subset 'Inlab_Eval' -> actual 'In-lab_Eval'. episode_index 50 valid.",
+  "status": "downloaded_verified",
+  "screening": "KEPT"
+ },
+ {
+  "id": 59,
+  "repo": "nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1",
+  "subset": "In-lab_Eval",
+  "task_folder": "gr1_unified.pour_items_into_basket_robot",
+  "episode_index": 99,
+  "camera_key": "observation.images.ego_view_freq20",
+  "method": "direct_mp4",
+  "out_name": "059_gr00t_gr1_pour_items_into_basket_ep99.mp4",
+  "out_path": "/Users/xinyua11/Documents/Research/PhysicsLENS/data/videos/059_gr00t_gr1_pour_items_into_basket_ep99.mp4",
+  "source_paths": [
+   "In-lab_Eval/gr1_unified.pour_items_into_basket_robot/videos/chunk-000/observation.images.ego_view_freq20/episode_000099.mp4"
+  ],
+  "est_mb": 10.4,
+  "expected_frames": 443,
+  "fps": 20.0,
+  "resolution": "1280x800",
+  "codec": "h264 High yuv420p (no transcode needed)",
+  "substitution_note": "Manifest subset 'Inlab_Eval' -> actual 'In-lab_Eval'. episode_index 99 valid; it is the LAST episode (total_episodes=100).",
+  "status": "downloaded_verified",
+  "screening": "KEPT"
+ }
+]
