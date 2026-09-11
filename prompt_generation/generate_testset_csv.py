@@ -311,9 +311,14 @@ def run(args: argparse.Namespace) -> int:
         w.writeheader()
         for r in rows:
             rid = int(r["id"])
-            if only and rid not in only:
-                continue
+            # Not skipped for --only-id: fall back to the cached record so a
+            # targeted re-run refreshes one row rather than truncating the CSV.
             rec = results.get(rid)
+            if rec is None and frames_by_id.get(rid):
+                cache = os.path.join(args.cache_dir, f"{rid:03d}.json")
+                if os.path.exists(cache):
+                    with open(cache, encoding="utf-8") as fh:
+                        rec = json.load(fh)
             if rec is None:
                 fname = frames_by_id.get(rid)
                 w.writerow({"id": rid, "video_file": r["file"], "task": r["task"],

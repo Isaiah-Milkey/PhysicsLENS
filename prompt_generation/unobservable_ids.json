@@ -1,0 +1,53 @@
+{
+  "_comment": "Testset ids that get a second, unobservable version of the prompt. Group picks the default hidden-property category and worked example. Add an entry to 'overrides' to force a category or to hand-write any generated field for one id.",
+  "groups": {
+    "pouring": [
+      10,
+      11,
+      12,
+      16,
+      19,
+      60,
+      62,
+      63,
+      66,
+      68
+    ],
+    "wiping": [
+      7,
+      9,
+      22,
+      77,
+      78,
+      80,
+      84,
+      85
+    ],
+    "deformable": [
+      25,
+      27,
+      28,
+      29,
+      30,
+      32,
+      34
+    ],
+    "pushing": [
+      50,
+      70,
+      71,
+      73,
+      74
+    ]
+  },
+  "overrides": {
+    "71": {
+      "_why": "The model kept dropping 'transparent' because its chosen property (filled with dense metal) would be visible through a clear box. Hand-written instead: the box stays transparent and looks empty, which makes the weight genuinely unobservable rather than contradictory.",
+      "hidden_property": "mass",
+      "hidden_property_value": "extremely heavy, roughly 4 kg despite appearing empty",
+      "scene": "A white desk supports two main objects. On the left side, there is a red tape dispenser holding blue tape, approximately medium-sized and made of plastic. On the right side, a small transparent container with a label on top sits on a black rectangular pad. The container appears empty but weighs roughly 4 kilograms and will strongly resist being pushed. The robot has two arms positioned in front of the desk, both oriented toward the objects. The desk surface is dry and smooth.",
+      "expected_outcome": "The box barely shifts as the arm presses against it, sliding at most a few centimetres while the arm visibly strains, and it may not move at all.",
+      "failure_signature": "The box slides lightly and smoothly across the desk as an empty plastic container would."
+    }
+  }
+}

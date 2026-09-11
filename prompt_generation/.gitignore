@@ -4,6 +4,7 @@
 
 # Regenerable per-frame model output cache
 testset_cache/
+unobservable_cache/
 
 # Source videos are 575 MB and live outside git; only meta/ and logs/ are tracked
 physicslens_robot_data/videos/

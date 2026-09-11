@@ -226,6 +226,75 @@ separate columns so the format can be changed without regenerating.
    the physics under test never happens. The prompt demands the complete
    manipulation instead. This cut approach-only actions from 22/81 to 3.
 
+## Unobservable variants (`generate_unobservable_csv.py`)
+
+A second, **unobservable** version of the prompt for selected testset frames ->
+`testset_prompts_unobservable.csv`. The frame does not change. Relative to the
+observable prompt:
+
+* the **scene** is rewritten: the visual cue that reveals the physical property
+  is removed ("a cup filled with red liquid" -> "a translucent plastic cup") and
+  a hidden property is stated in words instead;
+* the **action is copied byte-for-byte** from the observable record and is never
+  regenerated, so the paired prompts differ only in the scene;
+* ground-truth fields are added: `hidden_property`, `hidden_property_value`,
+  `expected_outcome`, `failure_signature`.
+
+`expected_outcome` and `failure_signature` are scoring ground truth and are kept
+**out of** the prompt — including them would hand the model the answer.
+
+```bash
+python generate_unobservable_csv.py --only-id 10    # one first
+python generate_unobservable_csv.py                 # all ids in the spec
+```
+
+Which ids get a variant lives in `unobservable_ids.json`, grouped by task type.
+The group selects the default property category and the worked example shown to
+the model:
+
+| group | category | example value |
+|---|---|---|
+| pouring | `viscosity` | high viscosity, honey-like consistency |
+| wiping | `surface_condition` | silicone-coated, repels liquid |
+| pushing | `mass` | very heavy, filled with dense material |
+| deformable | `elasticity` | filled with dense gel, resists compression |
+
+`hidden_property` must be one of: `mass, viscosity, density, friction,
+elasticity, material_composition, thermal_state, surface_condition`.
+
+### Overrides
+
+`overrides` in `unobservable_ids.json` lets you force a category or hand-write
+any generated field for one id. Id 71 uses one: the model kept dropping
+"transparent" from the scene because the property it picked (filled with dense
+metal) would be visible through a clear box — a fair objection. The override
+keeps the box transparent and *looking empty* while stating it weighs 4 kg,
+which makes the mass genuinely unobservable rather than self-contradictory.
+
+### What is checked
+
+Every row is re-checked at write time (not trusted from cache, so older records
+are not exempted from newer rules) and anything suspect lands in the `review`
+column:
+
+- **`hidden_property`** is one of the eight categories.
+- **A visual cue actually disappeared** — `removed_cues` lists which words.
+- **The property is stated in the scene**, not merely recorded in a field.
+- **No leftover contradiction** — "watery" surviving a viscosity rewrite. A word
+  that also appears in `hidden_property_value` is exempt, since "appears empty
+  but weighs 4 kg" is a deliberate apparent/actual contrast.
+- **The property diverges from default behaviour.** Saying a plastic bag is
+  "easily compressed" is useless — an ordinary bag already does that, so a model
+  ignoring the text produces the same video. Caught on id 29's first pass.
+- **The scene was not over-rewritten** — `scene_similarity` (currently 0.67–0.90,
+  median 0.85). Note this uses `autojunk=False`; the default `SequenceMatcher`
+  heuristic reports ~0.03 for what is really a one-clause edit on long strings.
+- **The action still resolves.** The rewrite must not strip a descriptor the
+  fixed action uses to name its target — 5 of 30 first-pass rows said "a small
+  container" while the action said "the transparent box".
+
+Fixable faults are re-asked automatically, quoting the problem back.
+
 ## CreateAI API notes
 
 Worth writing down, since these cost some trial and error:
