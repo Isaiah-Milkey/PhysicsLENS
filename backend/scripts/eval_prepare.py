@@ -43,6 +43,7 @@ Usage:
 import argparse
 import json
 import random
+import re
 import shutil
 import sys
 from collections import Counter
@@ -76,9 +77,30 @@ ALIASES = {
     "is_clean": ["is_clean", "clean", "no_violation", "ok", "valid", "correct"],
     "rating2": ["rating2", "rating_b", "score2", "second_rating", "annotator2"],
 }
-# our seven specialists; anything else an annotator writes lands in `other`
+# our specialists; anything else an annotator writes lands in `other`
 CATEGORIES = ["collision", "gravity", "momentum", "friction", "deformation",
-              "fluid", "permanence"]
+              "fluid", "permanence", "causality"]
+# Annotators reach for the pipeline's specialist names, or plain English, rather
+# than the eval taxonomy's spelling. Fold those in instead of dropping them to
+# `other` — a mis-spelled category is a lost clip, and we do not have spares.
+SYNONYMS = {
+    "contact": "collision",       # contact_specialist was merged into collision
+    "impact": "collision",
+    "penetration": "collision",
+    "rigidity": "deformation",
+    "shape": "deformation",
+    "morphing": "deformation",
+    "object permanence": "permanence",
+    "disappearance": "permanence",
+    "vanishing": "permanence",
+    "cause": "causality",
+    "temporal": "causality",
+    "liquid": "fluid",
+    "inertia": "momentum",
+    "velocity": "momentum",
+    "support": "gravity",
+    "floating": "gravity",
+}
 
 TRUE = {"1", "true", "yes", "y", "t"}
 FALSE = {"0", "false", "no", "n", "f"}
@@ -97,11 +119,20 @@ def as_bool(v):
 
 
 def split_cats(v):
-    """'collision;permanence' -> ['collision', 'permanence']. Unknown -> 'other'."""
-    if not v:
+    """'Collision, Deformation' -> ['collision', 'deformation']. Unknown -> 'other'."""
+    if v is None:
         return []
-    parts = [p.strip().lower() for p in str(v).replace(",", ";").split(";")]
-    return [p if p in CATEGORIES else "other" for p in parts if p]
+    s = str(v).strip()
+    if not s or s.lower() in ("nan", "none"):
+        return []
+    out = []
+    for p in re.split(r"[,;/|]", s):
+        p = p.strip().lower()
+        if not p:
+            continue
+        p = SYNONYMS.get(p, p)
+        out.append(p if p in CATEGORIES else "other")
+    return out
 
 
 def auc_ci(n_pos, n_neg, auc=0.70):
@@ -117,7 +148,21 @@ def auc_ci(n_pos, n_neg, auc=0.70):
 
 
 def read_labels(path: Path):
-    """JSON (list, or dict keyed by id) or CSV. Returns list of dicts."""
+    """JSON (list, or dict keyed by id), CSV/TSV, or XLSX. Returns list of dicts.
+
+    XLSX is supported because annotation actually happens in a spreadsheet —
+    asking a team to export to CSV first is one more step to get wrong, and the
+    export silently drops which sheet the data was on.
+    """
+    if path.suffix.lower() in (".xlsx", ".xls"):
+        import pandas as pd
+        xl = pd.ExcelFile(path)
+        if len(xl.sheet_names) > 1:
+            print(f"   note: {len(xl.sheet_names)} sheets {xl.sheet_names}, "
+                  f"reading '{xl.sheet_names[0]}'")
+        df = xl.parse(xl.sheet_names[0])
+        # NaN -> "" so downstream "is this cell empty" checks behave like CSV
+        return df.where(df.notna(), "").to_dict("records")
     if path.suffix.lower() in (".csv", ".tsv"):
         import csv
         delim = "\t" if path.suffix.lower() == ".tsv" else ","
@@ -143,10 +188,17 @@ def read_labels(path: Path):
 
 
 def build_mapping(rows, explicit):
-    """Work out which source column feeds which internal field."""
+    """Work out which source column feeds which internal field.
+
+    Two passes. Exact lowercase match first, then substring, because real
+    spreadsheets name columns things like `physical_plausibility_1_4` and
+    `description_of_issue` — recognisable, but never equal to a bare alias. The
+    substring pass only uses aliases of 5+ characters and never reuses a column
+    already claimed, so it cannot quietly hijack a field that matched exactly.
+    """
     keys = set()
     for r in rows[:50]:
-        keys |= set(r)
+        keys |= set(map(str, r))
     mapping = {}
     for field, aliases in ALIASES.items():
         if field in explicit:
@@ -157,7 +209,20 @@ def build_mapping(rows, explicit):
             if hit:
                 mapping[field] = hit
                 break
-    return mapping, sorted(keys)
+    used = set(mapping.values())
+    fuzzy = {}
+    for field, aliases in ALIASES.items():
+        if field in mapping:
+            continue
+        for a in (x for x in aliases if len(x) >= 5):
+            hit = next((k for k in sorted(keys)
+                        if a in k.lower() and k not in used), None)
+            if hit:
+                mapping[field] = hit
+                fuzzy[field] = hit
+                used.add(hit)
+                break
+    return mapping, sorted(keys), fuzzy
 
 
 def to_1_5(values):
@@ -370,7 +435,7 @@ def main():
 
     rows = read_labels(Path(a.labels))
     explicit = dict(kv.split("=", 1) for kv in a.map.split(",") if "=" in kv)
-    mapping, all_keys = build_mapping(rows, explicit)
+    mapping, all_keys, fuzzy = build_mapping(rows, explicit)
 
     print(f"{len(rows)} label rows | columns present: {', '.join(all_keys)}")
     NOTE = {
@@ -385,7 +450,8 @@ def main():
     print("\nfield mapping:")
     for f in ALIASES:
         src = mapping.get(f)
-        print(f"   {f:14s} <- {src if src else '— not found —'} {NOTE.get(f, '')}")
+        tag = "  [fuzzy match — check this]" if f in fuzzy else ""
+        print(f"   {f:14s} <- {src if src else '— not found —'} {NOTE.get(f, '')}{tag}")
     for req in ("id", "rating"):
         if req not in mapping:
             sys.exit(f"\nERROR: no column found for '{req}'. "

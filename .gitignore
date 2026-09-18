@@ -39,3 +39,6 @@ docs/
 # Eval harness artifacts (staged clips + per-run reports; regenerate, don't commit)
 data/
 eval_reports/
+
+# Raw dataset drops — large, and re-derivable from the staged copy
+*.zip
