@@ -31,6 +31,7 @@ Usage:
 """
 import argparse
 import json
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -266,25 +267,221 @@ BATTERIES["winners"] = [
     ("w_deformation", dict(BATTERIES["deformation_v2"])["d2_length_change"]),
     ("w_friction",    dict(BATTERIES["friction"])["f_no_rolling_link"]),
     ("w_momentum",    dict(BATTERIES["momentum"])["m_gains_energy"]),
+    # fl_shape won the fluid sweep on VideoPhy-2 at 0.867 (vs fl_vanish 0.846,
+    # fl_no_splash 0.812). Added here so `winners` covers all seven; the choice
+    # was made on VideoPhy-2, so it stays pre-registered w.r.t. any new dataset.
+    ("w_fluid",       dict(BATTERIES["fluid"])["fl_shape"]),
 ]
 
+# Causality had no probe: VideoPhy-2's rule text almost never described one, so
+# the category never appeared in our taxonomy counts. Robot-manipulation data is
+# full of it — "rag moves across the table without the arm actually moving it".
+#
+# NOT PRE-REGISTERED. Written after seeing this dataset's category list (not its
+# scores), so its number is a first look, not a held-out result. Worded as
+# "what do you see" rather than "what caused what" on purpose: across 30
+# sub-checks the questions that worked asked the model to compare or count
+# something visible, and the ones asking about cause or timing did not.
+BATTERIES["causality"] = [
+    ("cz_uncaused_motion",
+     "Does an object move, change shape or change state on its own, without "
+     "anything visibly touching it or acting on it?"),
+    ("cz_no_effect",
+     "Does something make contact with an object without producing the effect "
+     "that contact should have caused?"),
+]
+BATTERIES["winners"].append(
+    ("w_causality", dict(BATTERIES["causality"])["cz_uncaused_motion"]))
+
+# ── robot-manipulation rewrite of the same eight ──────────────────────────────
+# The `winners` set was tuned on VideoPhy-2, where failures are loud: a ball
+# through a wall, a body folding in half. On robot data five of eight probes
+# returned one constant value for ~every clip — the model answers "nothing
+# wrong" because nothing dramatic happens.
+#
+# These are rewritten from the annotators' own 124 issue descriptions, whose
+# vocabulary is overwhelmingly about CONTACT and APPEARANCE, not rates:
+# "moves on its own no contact" (x11), "appears out of nowhere" (x9),
+# "deforms/grew/morphs" (x20), "grasp without touching" (x6).
+#
+# Same design rule that separated the live probes from the dead ones: ask the
+# model to COMPARE two named frames or COUNT something visible. Never ask about
+# speed, rate, or what caused what — those are exactly the probes that flatlined,
+# and the shuffle control says the model cannot read frame order anyway.
+# Deliberately mentions the gripper/hand, because in every one of these clips the
+# only legitimate cause of motion is the robot touching something.
+BATTERIES["robot"] = [
+    ("w_gravity",
+     "Look for an object that is resting on nothing — not on a surface, not "
+     "held by the gripper or hand.\n"
+     "Is such an object hanging in the air across several frames instead of "
+     "dropping to the surface below it?"),
+    ("w_permanence",
+     "Count the separate objects on the work surface in the FIRST frame, then "
+     "count them again in the LAST frame.\n"
+     "Is an object present in one of those frames and simply absent in the "
+     "other, with no hand having carried it away?"),
+    ("w_collision",
+     "Look at the gripper or hand and the object it is working on, at the frame "
+     "where they are closest.\n"
+     "Is there still a visible GAP between them, or do they overlap into the "
+     "same space, rather than meeting cleanly at their surfaces?"),
+    ("w_deformation",
+     "Pick one rigid object — a bottle, cup, tool, box or the gripper itself.\n"
+     "Compare its outline in the first frame and in the last frame. Has its "
+     "shape, length or thickness visibly changed?"),
+    ("w_friction",
+     "Look for an object sliding across the surface.\n"
+     "Does it keep sliding while nothing is pushing it, or slide underneath a "
+     "gripper that is holding it still?"),
+    ("w_momentum",
+     "Find an object the hand or gripper has let go of, or knocked.\n"
+     "Compare how far it moves between frames just before and just after that "
+     "moment. Does it visibly travel FARTHER per frame afterwards?"),
+    ("w_fluid",
+     "Look at any liquid, spray, foam or smoke.\n"
+     "Compare its amount and its outline between frames. Does it appear from "
+     "nowhere, vanish, or hold a stiff unmoving shape?"),
+    ("w_causality",
+     "Find an object that changes position between two frames.\n"
+     "In those frames, are the gripper and both hands clearly somewhere else — "
+     "not touching it — so that nothing visible moved it?"),
+]
+
+# ── Stage-1/2 evidence injected into the prompt ───────────────────────────────
+# Stages 1 and 2 already measure motion, tracks and where a clip goes wrong, and
+# none of it currently reaches Stage 3. This turns those numbers into a short
+# factual block the VLM can read.
+#
+# Values are expressed as DATASET PERCENTILES, not raw units. "0.83 px/frame of
+# residual motion" is meaningless to a language model and unanchored across
+# datasets; "more motion than 90% of clips" is a judgement it can actually use.
+# Only signals above/below a decisive percentile are mentioned at all — listing
+# every signal on every clip would make the block constant, and a constant
+# preamble carries no information while still costing tokens and attention.
+INJECT_TEMPLATES = {
+    "s1_obj_motion":       ("the objects move much more than usual",
+                            "the objects barely move"),
+    "s2_accel_p95":        ("motion speeds up and slows down far more sharply "
+                            "than usual", "motion is unusually steady"),
+    "s2_jerk_p95":         ("movement is unusually jerky",
+                            "movement is unusually smooth"),
+    "s2_inner_death_frac": ("many tracked points disappear in the middle of the "
+                            "frame, away from any edge", ""),
+    "s2_track_survival":   ("", "most tracked points are lost before the end"),
+    "sp_deform_spread":    ("the outline of the tracked object changes size a "
+                            "lot", ""),
+    "sp_deform_drift":     ("object outlines drift and wobble more than usual",
+                            ""),
+    "sp_momentum_gain":    ("something moves faster after an interaction than "
+                            "before it", ""),
+    "sp_reversals":        ("tracked points reverse direction unusually often",
+                            ""),
+    "sp_gravity_flat":     ("downward motion is unusually steady rather than "
+                            "speeding up", ""),
+    "sp_min_approach":     ("two groups of tracked points come unusually close "
+                            "together", ""),
+    "s1_cam_frac":         ("most of the motion is the camera moving, not the "
+                            "scene", ""),
+    "s1_flow_entropy":     ("motion directions are unusually disordered", ""),
+}
+HI, LO = 85.0, 15.0
+
+
+def build_injection(cid, sigstats):
+    """One short evidence block for a clip, or '' if nothing stands out."""
+    if not sigstats:
+        return ""
+    pct, bits = sigstats.get(cid) or {}, []
+    for k, (hi_txt, lo_txt) in INJECT_TEMPLATES.items():
+        p = pct.get(k)
+        if p is None:
+            continue
+        if p >= HI and hi_txt:
+            bits.append(hi_txt)
+        elif p <= LO and lo_txt:
+            bits.append(lo_txt)
+    if not bits:
+        return ""
+    if len(bits) > 4:
+        bits = bits[:4]
+    return ("Automated motion analysis of this clip reports that "
+            + "; ".join(bits) + ".\n")
+
+
+def percentile_table(sig_path):
+    """signal -> per-clip percentile within this dataset."""
+    d = json.loads(Path(sig_path).read_text())
+    sig, keys = d["signals"], d["keys"]
+    ids = [c for c in sig if sig[c]]
+    out = {c: {} for c in ids}
+    for k in keys:
+        v = np.array([sig[c].get(k, 0.0) for c in ids], float)
+        order = v.argsort().argsort()
+        p = 100.0 * order / max(len(v) - 1, 1)
+        for c, x in zip(ids, p):
+            out[c][k] = float(x)
+    return out
+
+
+def caption_for(clip, mode="full"):
+    """Caption variants, cut from the UNTRUNCATED caption.
+
+    Every run before this one effectively used `scene`: staging capped the
+    caption at 400 chars and the prompt cut it again at 200, so the "Action:"
+    line — the only part saying what was supposed to HAPPEN — reached the model
+    on almost no clip. The specialists were told what the scene looked like and
+    never what it was meant to do.
+
+    scene  = appearance only. A specialist that scores well on this alone is
+             probably reading render quality, not physics.
+    action = the intended event, from the generation prompt.
+    task   = the robot's goal, one line, from the source dataset.
+    """
+    full = (clip.get("caption_full") or clip.get("caption") or "")
+    if mode == "none":
+        return ""
+    if mode == "task":
+        return (clip.get("task") or "")[:200]
+    m_s = re.search(r"Scene:\s*(.*?)(?:\n\s*Action:|$)", full, re.S)
+    m_a = re.search(r"Action:\s*(.*)$", full, re.S)
+    scene = (m_s.group(1).strip() if m_s else full).strip()
+    action = (m_a.group(1).strip() if m_a else "").strip()
+    if mode == "scene":
+        return scene[:280]
+    if mode == "action":
+        return action[:200] or (clip.get("task") or "")[:200]
+    # full: keep the action even when the scene is long — the action is the
+    # short, high-value half and truncation used to delete exactly it
+    return (scene[:260] + (". " + action[:200] if action else ""))[:480]
+
+
 def score_clip(c, data, clip, probes, model=MODEL, caption=True,
-               order="temporal", nframes=8):
+               order="temporal", nframes=8, sigstats=None, capmode="full"):
     imgs = frames_ordered(data, clip, nframes, order)
-    if caption:
-        head = _P.format(n=len(imgs), caption=clip.get("caption", "")[:200])
+    cap = caption_for(clip, capmode) if caption else ""
+    if cap:
+        head = _P.format(n=len(imgs), caption=cap)
     else:
         # Caption-free control: every domain question embeds the clip caption,
         # so a detector could be scoring the PROMPT TEXT rather than the pixels.
         head = (f"Look at these {len(imgs)} frames, sampled in order from a "
                 "video.\n")
-    out = {}
+    if sigstats is not None:
+        head += build_injection(clip["clip_id"], sigstats)
+    out, ans = {}, {}
     for name, q in probes:
         try:
             p = _token_probs(c, model, imgs, head + q + _A)
             # len(k)==1 guard: "" is a substring of every string, and the gateway
             # does emit empty tokens, so a bare `k in "12345"` lets int("") raise.
             mass = {int(k): v for k, v in p.items() if len(k) == 1 and k in "12345"}
+            if mass:
+                # The DISCRETE answer: the digit the model would actually emit
+                # under greedy decoding, i.e. argmax of this same distribution.
+                # Stored alongside the continuous score so the two readings of
+                # one identical call can be compared without re-querying.
+                ans[name] = int(max(mass.items(), key=lambda kv: kv[1])[0])
             if sum(mass.values()) > 1e-4:
                 # Score = 1 - P("1"), i.e. P(the defect is present to ANY degree).
                 # Not the expected value over digits: when the model is confident
@@ -298,7 +495,7 @@ def score_clip(c, data, clip, probes, model=MODEL, caption=True,
         except Exception as e:  # noqa: BLE001
             print(f"    {name} fail {clip['clip_id'][:26]}: {str(e)[:45]}",
                   file=sys.stderr)
-    return out
+    return {"scores": out, "answers": ans}
 
 
 def main():
@@ -309,7 +506,16 @@ def main():
     ap.add_argument("--model", default=MODEL,
                     help="gateway model id; the question set is identical across "
                          "models so the ensemble stays apples-to-apples")
+    ap.add_argument("--inject", default=None,
+                    help="stage_signals.json — inject a Stage-1/2 evidence "
+                         "block into every prompt")
+    ap.add_argument("--all-clips", action="store_true",
+                    help="also score clips with no rule text — enables the "
+                         "clean-vs-broken detection test, not just attribution")
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--capmode", default="full",
+                    choices=["full", "scene", "action", "task", "none"],
+                    help="which part of the caption to show")
     ap.add_argument("--no-caption", action="store_true",
                     help="strip the caption from the prompt (ablation)")
     ap.add_argument("--order", default="temporal",
@@ -320,7 +526,15 @@ def main():
 
     data, clips = load(a.data)
     # rule-annotated clips only: that is exactly the discriminative set
-    clips = [c for c in clips if len(c.get("violated_rules") or "") > 4]
+    if not a.all_clips:
+        # default: rule-annotated clips only, so the negatives are "a clip with a
+        # DIFFERENT violation" — the attribution test.
+        clips = [c for c in clips if len(c.get("violated_rules") or "") > 4]
+    else:
+        # keep unannotated clips too. On a dataset that marks clean clips, this
+        # makes the same run support the detection test as well (this violation
+        # vs no violation at all), which the rule-text filter silently prevents.
+        print("   --all-clips: clean clips kept as negatives")
     if a.limit:
         clips = clips[:a.limit]
 
@@ -328,6 +542,11 @@ def main():
     probes = [(nm, q) for cat in cats for nm, q in BATTERIES[cat]]
     print(f"domain probes: {len(cats)} categories, {len(probes)} sub-probes, "
           f"{len(clips)} clips = {len(probes)*len(clips)} calls", flush=True)
+
+    SIG = percentile_table(data / a.inject) if a.inject else None
+    if SIG:
+        n_any = sum(1 for cid in SIG if build_injection(cid, SIG))
+        print(f"   --inject: evidence block on {n_any}/{len(SIG)} clips")
 
     c = client()
     t0 = time.time()
@@ -337,7 +556,8 @@ def main():
     def work(i):
         res[i] = score_clip(c, data, clips[i], probes, a.model,
                             caption=not a.no_caption, order=a.order,
-                            nframes=a.frames)
+                            nframes=a.frames, sigstats=SIG,
+                            capmode=a.capmode)
         done[0] += 1
         if done[0] % 50 == 0:
             el = time.time() - t0
@@ -347,7 +567,8 @@ def main():
     with ThreadPoolExecutor(max_workers=a.workers) as ex:
         list(ex.map(work, range(len(clips))))
 
-    out = {cl["clip_id"]: r for cl, r in zip(clips, res) if r}
+    out = {cl["clip_id"]: r["scores"] for cl, r in zip(clips, res) if r and r["scores"]}
+    answers = {cl["clip_id"]: r["answers"] for cl, r in zip(clips, res) if r and r["answers"]}
     tag = '_'.join(cats) + ('' if a.model == MODEL else f"__{a.model}")
     if a.no_caption:
         tag += "__nocap"
@@ -355,11 +576,35 @@ def main():
         tag += f"__{a.order}"
     if a.frames != 8:
         tag += f"__f{a.frames}"
+    if a.inject:
+        tag += "__inject"
+    if a.capmode != "full":
+        tag += f"__cap{a.capmode}"
     outp = data / f"domain_probes_{tag}.json"
-    outp.write_text(json.dumps({"model": MODEL, "cats": cats, "n": len(out),
-                                "probe_scores": out}, indent=1))
+    # a.model, NOT the module default. Writing the default here mislabelled every
+    # non-default run: domain_probes_winners__qwen3-vl-32b-instruct.json recorded
+    # "model": "gemma4-31b-it" while actually holding qwen3-vl scores, so the
+    # filename and the provenance field disagreed and only the filename was right.
+    outp.write_text(json.dumps({"model": a.model, "cats": cats, "n": len(out),
+                                "probe_scores": out,
+                                "probe_answers": answers}, indent=1))
     print(f"\n  {len(out)}/{len(clips)} clips ({time.time()-t0:.0f}s)")
     print(f"  -> {outp}")
+
+    # Fail loudly on a mostly-empty run. This silently produced six 0-cell files
+    # that exited 0 and looked "complete" in 2.5 minutes: the gateway had begun
+    # rejecting 8-image prompts with
+    #   "At most 4 image(s) may be provided in one prompt"
+    # on some backends of the gemma4-31b-it model group but not others, so the
+    # failure was partial, intermittent, and invisible in the exit status.
+    cells = sum(len(v) for v in out.values())
+    want = len(clips) * len(probes)
+    if want and cells < 0.5 * want:
+        print(f"\nERROR: only {cells}/{want} cells ({100*cells/want:.0f}%) were "
+              f"scored — refusing to report this as a completed condition.\n"
+              f"       Check the log for the failure mode; if it is the image "
+              f"cap, re-run with --frames 4.", file=sys.stderr)
+        sys.exit(2)
 
 
 if __name__ == "__main__":

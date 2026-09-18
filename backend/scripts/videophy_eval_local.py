@@ -34,6 +34,9 @@ MODELS = {
     "internvl3-8b":  "OpenGVLab/InternVL3-8B-hf",
     "internvl3-14b": "OpenGVLab/InternVL3-14B-hf",
     "qwen2.5-vl-32b": "Qwen/Qwen2.5-VL-32B-Instruct",
+    # third local family (neither Qwen nor InternVL) — architectural
+    # diversity is what could make per-specialist judge choice real
+    "smolvlm2-2.2b": "HuggingFaceTB/SmolVLM2-2.2B-Instruct",
 }
 
 
