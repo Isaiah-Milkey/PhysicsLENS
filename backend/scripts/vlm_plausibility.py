@@ -111,7 +111,16 @@ def prompts(cl, nframes, only=None):
         q = {k: Q[k][0].replace("Ignore whether the robot finishes the task",
                                  "Ignore whether the action succeeds")
                         .replace("did the robot", "did it") for k in only}
-        return {k: h + q[k] for k in only}
+        out = {}
+        for k in only:
+            if k == "hidden":   # needs the scene's property; unobservable clips only
+                if cl.get("observability") == "unobservable" and cl.get("hidden_property"):
+                    out[k] = HEAD.format(n=nframes, task=task) + Q["hidden"][0].format(
+                        hp=cl["hidden_property"].replace("_", " "),
+                        hv=cl.get("hidden_value", ""), exp=cl.get("expected_outcome", ""))
+            else:
+                out[k] = h + q[k]
+        return out
     out = {k: HEAD.format(n=nframes, task=task) + Q[k][0] for k in ("plaus", "action")}
     if cl.get("observability") == "unobservable" and cl.get("hidden_property"):
         out["hidden"] = HEAD.format(n=nframes, task=task) + Q["hidden"][0].format(
