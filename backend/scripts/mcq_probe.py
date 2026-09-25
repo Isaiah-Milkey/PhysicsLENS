@@ -170,6 +170,10 @@ def main():
                 [{"role": "user", "content": content}],
                 add_generation_prompt=True, tokenize=True,
                 return_dict=True, return_tensors="pt").to(model.device)
+            # some processors (Mistral-3) emit float32 pixels for bf16 weights
+            for _k, _v in list(inputs.items()):
+                if hasattr(_v, "is_floating_point") and _v.is_floating_point():
+                    inputs[_k] = _v.to(model.dtype)
             with torch_.no_grad():
                 o = model.generate(**inputs, max_new_tokens=1, do_sample=False,
                                    output_scores=True,

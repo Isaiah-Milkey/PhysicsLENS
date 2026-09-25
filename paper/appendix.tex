@@ -1,0 +1,155 @@
+\section{Dataset Details}
+\label{app:dataset-details}
+
+\subsection{Image and Prompt Preparation}
+Source frames were captured or collected at, or upscaled to, $1280\times720$ (16:9). Frames below this resolution were padded to a 16:9 aspect ratio when necessary and upscaled with bicubic interpolation rather than generative enhancement. Each frame depicts the scene immediately before the relevant action begins, never mid-action, so that the conditioning image specifies the initial state.
+
+A vision-language model generated scene and action descriptions under a fixed annotation schema, after which the descriptions were reviewed for accuracy. Every rendered prompt appends a fixed instruction specifying a static, fixed-viewpoint camera without panning, zooming, or motion. This constraint reduces the risk that camera movement is misattributed to object physics during evaluation.
+
+\subsection{Taxonomy and curation notes}
+Collision and Friction scenarios were comparatively easy to source, reflecting the prevalence of pick-and-place and surface-manipulation footage. Fluid and Deformation scenarios were harder to find, while Gravity scenarios that isolated free fall were rare outside incidental object drops. Table~\ref{tab:dataset-stats} reports the resulting domain distribution. These observations describe our curation process only; establishing the distribution of public robotics video would require a systematic survey of available sources.
+
+\paragraph{Annotation procedure.} Scenarios were curated from public robotics video sources rather than authored domain-first, and each scenario was subsequently annotated with its governing physical domain by manual review of its action and outcome. This annotation was performed independently of the taxonomy's construction to avoid circularity: the seven domains were fixed in advance from the specialist families, and each scenario was assigned to the domain its physics most directly tests, rather than domains being defined post hoc to fit whatever scenarios happened to be available.
+
+\paragraph{Interaction with observability.} The observable/unobservable axis introduced in \S\ref{sec:observability} is orthogonal to domain: a scenario's domain label is fixed by the physical law under test, while its observability condition determines whether the property governing that law is visually apparent or text-specified. Both matched members of an observable/unobservable pair therefore carry the same domain label, allowing the accuracy gap described in \S\ref{sec:observability} to be reported per domain rather than only in aggregate.
+
+\section{Human annotation}
+\subsection{Human Annotation Rubrics}
+\label{app:annotation-details}
+
+\paragraph{Physical plausibility.}
+Each video receives a physical-plausibility rating $P\in\{1,2,3,4\}$ based on visible contact, motion, deformation, and object persistence:
+\begin{enumerate}
+    \item \textbf{Clearly breaks physics:} clipping, floating, object appearance or disappearance, or impossible motion.
+    \item \textbf{Mostly implausible:} one clear issue or several smaller issues.
+    \item \textbf{Mostly plausible:} minor oddities only.
+    \item \textbf{Physically realistic:} the interaction looks real.
+\end{enumerate}
+These scores are human judgments of visible behavior, not measurements of agreement with a physical simulator.
+
+\paragraph{Hidden-property adherence.}
+For unobservable scenarios, annotators receive a question identifying the stated property and asking whether it is reflected in the generated behavior. Adherence is rated as $H\in\{1,2,3,4\}$:
+\begin{enumerate}
+    \item \textbf{Completely ignored:} the outcome shows no indication of the stated property.
+    \item \textbf{Mostly ignored:} the property is indicated only faintly or inconsistently.
+    \item \textbf{Mostly followed:} the property is reflected, but with incorrect magnitude, timing, or degree.
+    \item \textbf{Fully followed:} the property is fully and correctly reflected in the outcome.
+\end{enumerate}
+Adherence is not rated for observable scenarios, and missing adherence values are not treated as zero or as failures. The rubric does not separately encode a visible contradiction of the property and a failure to perform the interaction needed to reveal it; we retain this distinction when interpreting low scores.
+
+\paragraph{Action completion.}
+Annotators answer the binary question, ``Is the task done by the end, even if the physics looked wrong?'' We encode this response as $A\in\{0,1\}$. Completion is evaluated separately because a video may finish the action through implausible behavior or depict plausible behavior without completing the task.
+
+\paragraph{Issue descriptions and violation labels.}
+The annotation form requests a short description of the physical issue and permits multiple labels: Causality, Collision, Contact, Deformation, Fluid, Friction, Gravity, and Momentum. Although annotators select the most obvious issue first and the export preserves this order, our frequency analysis treats the labels as an unordered set. Selection order is not interpreted as severity.
+
+These eight annotation labels differ from the seven physical families used to organize the benchmark and its specialists. In particular, Contact and Collision remain separate in the human-label analyses rather than being merged through an undocumented mapping. A blank category field means that no violation label was recorded, not that the video was independently verified as physically correct.
+
+\paragraph{Annotator background and allocation.}
+Annotators were master's students, PhD candidates, and PhD holders from a computer science research environment. Videos were randomly allocated without conditioning on model or scenario. For HunyuanVideo, MAGI, and Wan, observable annotations were assigned in groups of 16--17 videos per annotator. Unobservable annotations were assigned in groups of six, except for one group of five for HunyuanVideo. Observable Cosmos records used a different allocation and include a combined annotator label.
+
+Each clip received one annotation rather than independent ratings from multiple annotators, so inter-annotator reliability cannot be estimated. In 99 of the 119 available video-level matched pairs, the recorded annotator labels differ between conditions. Paired analyses therefore control for scenario identity but not for differences in annotator calibration.
+
+\paragraph{Aggregation.}
+We report rating distributions, descriptive means of the ordinal scores, and action-completion proportions. We interpret $P\geq3$ as mostly plausible or physically realistic and $H\geq3$ as mostly or fully adhering to the specified property. We also examine the joint distribution of $P$ and $H$, including the proportion of videos with $H\leq2$ among those with $P\geq3$. These dimensions are reported separately rather than combined into a single score.
+\section{Additional Results}
+\label{app:additional-results}
+Table~\ref{tab:stage-ablation} adds the PhysicsLENS stages one at a time. For violation detection, every stage adds evidence: the Stage-1 and Stage-2 signals improve every VLM (e.g.\ InternVL3-8B: 0.67 to 0.72; Gemma-3-12B: 0.65 to 0.71). For plausibility, the signals bring weaker VLMs up toward the strongest; on top of Qwen3-VL-32B with the PhysicsLENS question they add little, because their main contribution, object speed, is the activity cue that the question already corrects for. Table~\ref{tab:pipeline-human-agreement} reports agreement with the annotators on their own 1--4 scale: $\kappa_w{=}0.32$ for plausibility, $\kappa{=}0.38$ for task completion and $\kappa_w{=}0.21$ for property adherence.
+
+\begin{table}[h]
+    \centering
+    \small
+    \setlength{\tabcolsep}{5pt}
+    \begin{tabular}{@{}lcccc|cccc@{}}
+        \toprule
+        & \multicolumn{4}{c|}{Violation detection (AUC)} & \multicolumn{4}{c}{Plausibility (AUC)} \\
+        MLLM backbone & VLM & S1 & S1+2 & Full tool & VLM & S1 & S1+2 & Full tool \\
+        \midrule
+        No VLM (signals only) & --- & 0.68 & 0.70 & --- & --- & 0.58 & 0.62 & --- \\
+        Qwen3-VL-32B & 0.74 & 0.75 & 0.76 & 0.75 & 0.74 & 0.69 & 0.71 & 0.72 \\
+        Qwen3-VL-8B & 0.74 & 0.74 & 0.75 & 0.76 & 0.69 & 0.66 & 0.67 & 0.68 \\
+        InternVL3-14B & 0.66 & 0.70 & 0.72 & 0.71 & 0.69 & 0.66 & 0.69 & 0.70 \\
+        InternVL3-8B & 0.67 & 0.71 & 0.72 & 0.68 & 0.64 & 0.63 & 0.65 & 0.62 \\
+        Gemma-3-12B & 0.65 & 0.70 & 0.71 & 0.73 & 0.59 & 0.60 & 0.62 & 0.62 \\
+        Qwen2.5-VL-7B & 0.70 & 0.73 & 0.75 & 0.73 & 0.62 & 0.62 & 0.64 & 0.63 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Cumulative stage ablation on the 439 annotated clips. \emph{VLM}: the backbone's debiased screening question alone. \emph{S1}: fused with Stage-1 screening signals (frame differences, optical flow, camera motion). \emph{S1+2}: additionally Stage-2 track kinematics (camera-compensated Lucas--Kanade tracks, track loss, per-object speed and acceleration). \emph{Full tool}: additionally the Stage-3 specialist judgment ($1-P(\text{no violation})$ from a single forced-choice query over the seven constraint families). Numeric signals are selected and oriented on training folds only; channels are combined by an unweighted rank mean. Violation detection separates clips with any human-recorded violation ($n{=}333$) from clips with none ($n{=}106$). Stage~4 organizes and
+      summarizes findings but contributes no additional score, so the full tool
+      is Stages~1--3.}
+    \label{tab:stage-ablation}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lrcccccc@{}}
+        \toprule
+        & & \multicolumn{2}{c}{Plausibility} & \multicolumn{2}{c}{Hidden property} & \multicolumn{2}{c}{Completion} \\
+        \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+        Generator & $n$ & $\kappa_w$ & AUC & $\kappa_w$ & AUC & $\kappa$ & AUC \\
+        \midrule
+        Wan 2.2 & 110 & 0.18 & 0.73 & 0.18 & 0.64 & 0.21 & 0.69 \\
+        Cosmos-nano 1 & 110 & 0.29 & 0.70 & 0.03 & 0.51 & 0.27 & 0.70 \\
+        HunyuanVideo 1.5 & 109 & 0.10 & 0.58 & 0.02 & 0.63 & 0.17 & 0.65 \\
+        MAGI 4.5B distill & 110 & 0.36 & 0.78 & 0.44 & --- & -0.02 & 0.90 \\
+        \midrule
+        Overall & 439 & 0.32 & 0.74 & 0.21 & 0.71 & 0.38 & 0.79 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Agreement between automated diagnosis and human annotation. Ratings are obtained from continuous scores by quantile matching fitted on training folds only (5-fold cross-validation grouped by task, so the observable and unobservable versions of a scenario never straddle a fold). $\kappa_w$ is linearly weighted Cohen's $\kappa$ on the 1--4 scale; completion uses unweighted $\kappa$. AUC separates ratings 3--4 from 1--2 (completion: yes vs.\ no). Plausibility: debiased Qwen3-VL-32B prompt; hidden property (unobservable clips only, $n{=}119$): Llama-4-Scout with the stated property plus Stage-1/2 signals; completion: Qwen3-VL-8B plus Stage-1/2 signals. Overall 95\% bootstrap CIs: plausibility [0.25, 0.39], hidden property [0.08, 0.35], completion [0.29, 0.47].}
+    \label{tab:pipeline-human-agreement}
+\end{table}
+
+\section{PhysicsLENS diagnostic pipeline Details}
+\label{app:pipeline-details}
+
+The automated pipeline contains four stages---screening, localization, specialist evaluation, and reporting---supported by a shared evidence store containing tracks, masks, timestamps, measurements, and diagnostic findings. Routing depends on available evidence and the computational budget. The architecture defines the intended diagnostic process; it does not by itself establish diagnostic accuracy or cost savings.
+
+\paragraph{Screening.}
+The screening stage examines the generated video and its conditioning information to identify candidate physical inconsistencies and relevant constraint families. A screening flag is a candidate for further examination, not a verified violation.
+
+\paragraph{Localization.}
+The localization stage associates candidate issues with relevant temporal intervals and interacting objects, connecting each diagnosis to visible evidence rather than leaving it as a video-level assertion.
+
+\paragraph{Specialist evaluation.}
+Domain specialists assess candidate events against the physical constraints in Table~\ref{tab:specialists-scope}. Property-specific assessment uses the stated physical condition rather than assuming that a visually familiar object has its usual material properties. Specialist judgments also distinguish an observed inconsistency from insufficient visual evidence.
+
+\paragraph{Reporting.}
+The reporting stage organizes findings into a structured account of the implicated constraints, relevant events, and supporting observations. These stages specify intended functional roles and do not establish diagnostic accuracy.
+
+\subsection{Domain-Specific Diagnostic Checks}
+A single event may implicate multiple constraint families. Table~\ref{tab:specialists-scope} defines the intended scope of each specialist rather than claiming validated detector capabilities.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{Intended scope of the seven PhysicsLENS specialists. Checks require visible evidence or an explicit property specification; they do not assume access to hidden forces, complete material parameters, or a reference outcome.}
+    \label{tab:specialists-scope}
+    \begin{tabular}{@{}p{0.16\linewidth}p{0.77\linewidth}@{}}
+        \toprule
+        Specialist & Diagnostic questions \\
+        \midrule
+        Collision & Do interactions respect object boundaries? Is apparent penetration inconsistent with object rigidity, and is motion attributed to contact supported by visible interaction? \\
+        Friction & Is sticking, slipping, or sliding consistent with visible contact and any stated surface condition? Are changes in resistance supported by the interaction? \\
+        Momentum & Are abrupt changes in translational or rotational motion supported by an interaction? Where mass is specified, does the video provide enough evidence to assess its consequences? \\
+        Fluid & Is flow consistent with the visible container geometry and interaction? Are stated properties such as viscosity reflected when the action exposes them? \\
+        Deformation & Do changes in shape follow the interaction and any stated material properties? Are apparent changes physical deformation or unsupported morphing? \\
+        Gravity & Is unsupported motion consistent with gravity, accounting for visible support and contact? Is apparent floating distinguishable from unresolved support or perspective? \\
+        Causality & Do object appearances, disappearances, and state changes have visible or otherwise supported causes? Could an apparent discontinuity instead result from occlusion? \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Comparison with Human Judgments}
+\label{app:pipeline-human-comparison}
+The human ratings provide a reference for agreement, not error-free physical ground truth. Section~\ref{sec:pipeline-human-comparison} specifies the comparison and Section~\ref{sec:results-tool} reports it: AUC and linearly weighted Cohen's $\kappa$ for the ordinal ratings, AUC and Cohen's $\kappa$ for action completion, and per-family detection and attribution AUC for violations, with Contact merged into Collision. Hidden-property adherence is compared only on unobservable scenarios. Every fitted choice uses five-fold cross-validation grouped by scenario; the debiased judge prompt, written after inspecting these videos, is validated on VideoPhy-2.
+
+The current annotations do not contain structured temporal boundaries or object-level ground truth. They therefore cannot establish localization accuracy, which would require additional annotation.
+
+\subsection{Reference-Outcome-Free Diagnosis}
+\label{app:ground-truth-free}
+During inference, the pipeline does not receive \texttt{expected\_outcome}, a reference video, or human evaluation labels. Its permitted evidence comprises the generated video and conditioning information, including the initial image, requested action, and any text-specified physical property.
+
+The stated property is part of the model input and is therefore available to the evaluator; this differs from providing a reference description of how the action should unfold. Human labels may be used afterward to measure agreement but are not supplied to the diagnostic stages. Because forces, material parameters, occluded contacts, and other quantities may remain unknown, diagnoses should be supported by available evidence and permit an insufficient-evidence outcome.

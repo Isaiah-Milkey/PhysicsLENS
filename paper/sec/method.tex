@@ -1,0 +1,60 @@
+\section{PhysicsLENS Tool}
+PhysicsLENS diagnoses physical inconsistencies in generated videos by combining motion measurements with semantic assessment. Its design addresses a central ambiguity: an abrupt visual change may indicate a physical violation, but may also arise from a valid interaction, camera motion, or tracking error. Numerical tools identify measurable irregularities, while vision--language models (VLMs) assess their physical context and provide explanations. The resulting workflow comprises four stages---screening, localization and differential diagnosis, specialist evaluation, and reporting---connected through reusable evidence (Figure~\ref{fig:pipeline}). Broad analysis supplies candidate events and object representations, which guide the selection and application of more specialized checks.
+
+% Diagnosing physical implausibility in generated video is constrained by an asymmetry between what is cheap to measure and what is meaningful to report. Signal-level statistics---optical flow, keypoint kinematics, embedding trajectories---are inexpensive enough to apply to every frame of every clip, but they are agnostic to physics: they indicate \emph{that} something changed abruptly, not which law was violated, by which object, or why. Vision--language models supply the missing semantics, but they remain unreliable at fine-grained motion measurement (\S2.3) and are too expensive to query densely over long video. PhysicsLENS is organized around this asymmetry: inexpensive physics-agnostic statistics \emph{find} candidate events, and expensive physics-aware reasoning \emph{adjudicates and explains} them, restricted to the objects and time windows the cheap layer has already isolated. Cost is therefore spent in proportion to accumulated suspicion rather than uniformly over the input, yielding a four-stage pathway---screen, localize, specialize, report---in which each stage inherits and narrows the hypotheses of the previous one (Figure~\ref{fig:pipeline}).
+ 
+Formally, let $V=(I_1,\dots,I_T)$ be a generated clip. Existing evaluators (\S2.2) implement a map $V \mapsto s \in \mathbb{R}$, a scalar quality or plausibility score. We instead target a structured \emph{diagnosis}: a set of findings
+\begin{equation}
+\mathcal{F}(V) = \{\, f_i \,\}_{i=1}^{n}, \qquad f_i = (\tau_i,\; o_i,\; \ell_i,\; c_i,\; e_i),
+\label{eq:finding}
+\end{equation}
+where $\tau_i \subseteq [1,T]$ is a time window, $o_i$ a tracked object or region, $\ell_i \in \mathcal{L}$ the violated constraint family, $c_i \in [0,1]$ a confidence, and $e_i$ a natural-language explanation grounded in a recorded measurement. We instantiate $\mathcal{L}$ with seven families (Table~\ref{tab:specialists}), though the formulation is agnostic to the particular set. A scalar score is recoverable from $\mathcal{F}(V)$ by aggregation; the converse does not hold, and it is that difference which makes a diagnosis actionable for data screening and targeted finetuning.
+
+Every component of the system is a \emph{tool}: a map $g_j : (V, E) \mapsto (\Delta E_j, \kappa_j)$ that reads the current evidence store $E$, emits new typed evidence $\Delta E_j$, and reports its own cost $\kappa_j$ in wall-clock time, peak GPU memory, and number of VLM calls. The store is content-addressed by a hash of $V$, so every tool invoked on a clip reads and writes the same evidence bucket. A pipeline is a policy that selects an ordered subset of tools under a budget $B$, and the quantity the staged design is intended to reduce is the expected total cost
+\begin{equation}
+\mathbb{E}[\kappa_{\text{total}}] \;=\; \sum_{k} \Pr\!\left[\text{stage } k \text{ is reached}\right]\cdot \kappa_k ,
+\label{eq:cost}
+\end{equation}
+which falls far below $\sum_k \kappa_k$ whenever most clips exit early. Section~4.4 measures both sides of this trade-off.
+ 
+Escalation is governed by the evidence already in $E$. For a constraint family $\ell \in \mathcal{L}$ we form a single pre-specialist confidence
+\begin{equation}
+c_\ell \;=\; \max\!\left(c_\ell^{\text{num}},\; c_\ell^{\text{vlm}}\right),
+\label{eq:fusion}
+\end{equation}
+and consult the corresponding specialist iff $c_\ell \geq \theta$, in decreasing order of $c_\ell$ until the budget is exhausted. The $\max$ is asymmetric by design in both directions: a strong quantitative signal cannot be argued away by the VLM, while the VLM can raise families such as fluid or deformation for which no inexpensive numeric probe exists. Together, $\theta$ and $B$ trace the accuracy--cost frontier reported in \S4.4.
+ 
+One further constraint shapes every numeric check. Monocular generated video carries no metric calibration---focal length, scene scale, and frame timing are unknown and may drift within a clip---so absolute quantities such as $9.8\,\mathrm{m\,s^{-2}}$ are unavailable. The numeric layer is therefore restricted to scale-free statistics: goodness-of-fit residuals, dimensionless ratios such as the restitution coefficient $e=|v_{\text{out}}|/|v_{\text{in}}|$, and robust median/MAD $z$-scores.
+
+\subsection{Multi-Stage Pipeline}
+Every tool shares one contract: it receives a video (plus optional settings) and emits a stream of typed evidence events --- logs, metrics, per-frame anomaly signals with timestamps and types, plots and annotated video overlays, and a 0--100 severity. Structured results are additionally published to the shared evidence store under the video's content hash, where downstream stages retrieve them. Every run is also cost-instrumented (cost tier, wall-clock time, peak GPU memory), which the harness of \S3.2 uses for budget-aware orchestration and which our trade-off analysis (\S4) reports.
+
+\paragraph{Stage 1 --- Screening.} Five detectors run on every clip and convert it into timestamped suspicion signals. Four are numeric and complementary in what they are sensitive to: \emph{temporal smoothness} flags acceleration discontinuities in sparse keypoint tracks; \emph{optical-flow irregularities} flags flow-magnitude spikes and directional incoherence; \emph{embedding biomarkers} flags latent velocity and acceleration spikes in a self-supervised frame encoder, catching discontinuities in representation space that pixel statistics miss; and \emph{camera-motion analysis} separates a smooth intentional camera path from residual jitter, so that pans, orbits, and hand shake are not later misattributed to object physics. The fifth is a \emph{VLM screen}: a single multi-frame query over sampled keyframes with calibrated scoring anchors, whose suspicion score is read from Yes/No token probabilities rather than from generated text, making it continuous and deterministic. No detector is decisive alone: the stage emits the union of their typed signals and severities, which defines the search space for Stage~2.
+ 
+\paragraph{Stage 2 --- Localization and differential diagnosis.} Stage~2 converts frame-level suspicion into object-level evidence and a ranked differential. A VLM first names the salient subjects in the scene; each named concept is then segmented and tracked to yield per-frame masks, centroids, and boxes. Tracks are converted into smoothed kinematic profiles and screened with the scale-free tests above. Crucially, this stage \emph{reconciles} anomalies with physics before propagating them: an acceleration spike coinciding with a velocity reversal at a detected contact is an expected impact, not a violation, so only unexplained anomalies survive. Stage-1 signals are then clustered into candidate failure windows with spatially localized regions of interest, and the differential is formed by fusing heuristic priors over the accumulated evidence with a single VLM triage call at the flagged moments, per Eq.~\ref{eq:fusion}. The output is a ranked list of specialists to consult, each with a confidence and a time window.
+ 
+\paragraph{Stage 3 --- Specialist evaluation.} Each specialist encodes the constraints of one failure family and tests them against the Stage-2 evidence (Table~\ref{tab:specialists}). All seven share the same detect-then-explain pattern: the numeric layer proposes violations from the inherited tracks and masks, and a bounded budget of targeted VLM verifications---each an annotated crop of one already-localized event---confirms, rejects, or explains them. Confirmed findings inherit the verifier's confidence, rejected ones are heavily discounted, and where no VLM is available findings are reported as \emph{unverified} rather than silently dropped. Specialists additionally guard against their own failure modes: the gravity specialist, for instance, caps its confidence when the Stage-1 camera-motion decomposition indicates that global motion is contaminating the tracks.
+ 
+\begin{table}[t]
+\centering
+\caption{Stage-3 specialists. Each tests one constraint family against inherited tracks and masks, then verifies findings with a bounded VLM budget. Full constraint definitions appear in Appendix~\ref{app:specialists}.}
+\label{tab:specialists}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Specialist & Constraint tested & Primary numeric evidence \\
+\midrule
+Collision   & Non-interpenetration, bounded restitution & Contact episodes from mask intersections; $e = |v_{\text{out}}|/|v_{\text{in}}|$ \\
+Gravity     & Ballistic free flight, Galileo equivalence & Parabola fit residuals; apex asymmetry \\
+Momentum    & Conservation across contacts & Proxy $\hat{p} = \hat{m}v$, $\hat{m}$ from mask area \\
+Friction    & Plausible dissipation while coasting & Speed-decay fit on contact-free segments \\
+Deformation & Shape and identity persistence & Appearance change-points; mask-timeline gaps \\
+Fluid       & Incompressibility, ballistic droplets & Flow divergence; particle streaklines \\
+Causality   & Effect follows cause; no spontaneous change & Rule-wise violation probabilities; kinematic co-detectors \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Stage 4 --- Diagnosis.} The final stage aggregates the evidence store into the report of Eq.~\ref{eq:finding}: a chronological semantic timeline of confirmed findings, each carrying its responsible specialist, object, time span, confidence, and explanation; a per-tool severity breakdown; an overall physics-consistency score and severity band; a diagnosis confidence derived from cross-specialist agreement; and recommended follow-ups, such as specialists ranked highly by Stage~2 but left unrun under the budget. An optional LLM-written narrative is produced under a strict grounding contract: every claim must cite a timeline timestamp or a recorded metric, so the prose cannot introduce assertions the pipeline did not measure.
+ 
+\paragraph{Modularity and evidence propagation.} Tools communicate only by reading and writing the evidence store, never with each other, and no tool \emph{requires} upstream evidence: each specialist degrades to a self-contained fallback---inline segmentation, or a shared classical tracker---when the store is empty. Any subset of tools can therefore run in any order, and a new detector or specialist is added by registering one module against the common tool interface. A single canonical track cache further guarantees that all stages reason about the same tracked objects, so confidences from different specialists refer to the same $o_i$ and remain comparable. Dependencies that a specialist wants materialized are filled by an \emph{evidence planner} pre-step, described with the harness in \S3.2.

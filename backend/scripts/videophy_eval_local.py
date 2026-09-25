@@ -37,6 +37,13 @@ MODELS = {
     # third local family (neither Qwen nor InternVL) — architectural
     # diversity is what could make per-specialist judge choice real
     "smolvlm2-2.2b": "HuggingFaceTB/SmolVLM2-2.2B-Instruct",
+    # new families (Sep 23) — architectural diversity, not more of the same
+    "qwen3-vl-8b": "Qwen/Qwen3-VL-8B-Instruct",
+    "gemma3-12b": "google/gemma-3-12b-it",
+    "llava-ov-7b": "llava-hf/llava-onevision-qwen2-7b-ov-hf",
+    "idefics3-8b": "HuggingFaceM4/Idefics3-8B-Llama3",
+    "mistral-small-24b": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+
 }
 
 

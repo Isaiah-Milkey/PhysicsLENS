@@ -1,0 +1,21 @@
+\begin{table}[t]
+    \centering
+    \small
+    \setlength{\tabcolsep}{5pt}
+    \begin{tabular}{@{}lcccc|cccc@{}}
+        \toprule
+        & \multicolumn{4}{c|}{Violation detection (AUC)} & \multicolumn{4}{c}{Plausibility (AUC)} \\
+        MLLM backbone & VLM & S1 & S1+2 & S1+2+3 & VLM & S1 & S1+2 & S1+2+3 \\
+        \midrule
+        No VLM (signals only) & --- & 0.68 & 0.70 & --- & --- & 0.58 & 0.62 & --- \\
+        Qwen3-VL-32B & 0.74 & 0.75 & 0.76 & 0.75 & 0.74 & 0.69 & 0.71 & 0.72 \\
+        Qwen3-VL-8B & 0.74 & 0.74 & 0.75 & 0.76 & 0.69 & 0.66 & 0.67 & 0.68 \\
+        InternVL3-14B & 0.66 & 0.70 & 0.72 & 0.71 & 0.69 & 0.66 & 0.69 & 0.70 \\
+        InternVL3-8B & 0.67 & 0.71 & 0.72 & 0.68 & 0.64 & 0.63 & 0.65 & 0.62 \\
+        Gemma-3-12B & 0.65 & 0.70 & 0.71 & 0.73 & 0.59 & 0.60 & 0.62 & 0.62 \\
+        Qwen2.5-VL-7B & 0.70 & 0.73 & 0.75 & 0.73 & 0.62 & 0.62 & 0.64 & 0.63 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Cumulative stage ablation on the 439 annotated clips. \emph{VLM}: the backbone's debiased screening question alone. \emph{S1}: fused with Stage-1 screening signals (frame differences, optical flow, camera motion). \emph{S1+2}: additionally Stage-2 track kinematics (camera-compensated Lucas--Kanade tracks, track loss, per-object speed and acceleration). \emph{S1+2+3}: additionally the Stage-3 specialist judgment ($1-P(\text{no violation})$ from a single forced-choice query over the seven constraint families). Numeric signals are selected and oriented on training folds only; channels are combined by an unweighted rank mean. Violation detection separates clips with any human-recorded violation ($n{=}333$) from clips with none ($n{=}106$).}
+    \label{tab:stage-ablation}
+\end{table}

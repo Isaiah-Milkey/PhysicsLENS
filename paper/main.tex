@@ -1,0 +1,564 @@
+
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2027_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{pifont}
+\usepackage{float}
+\usepackage[table]{xcolor}
+\usepackage{comment}
+\usepackage{wrapfig}
+\usepackage{capt-of}
+
+% Enable colored links and set specific color mappings
+\hypersetup{
+    colorlinks=true,      % False: bordered boxes; True: colored text
+    citecolor=blue,       % Change citation link colors to blue
+    linkcolor=black,      % Keep internal section/equation links black
+    urlcolor=black        % Keep external URL links black
+}
+
+\title{PhysicsLENS: Diagnosing Physical Property Blindness in Video Generation Models}
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \iclrfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
+
+\author{Antiquus S.~Hippocampus, Natalia Cerebro \& Amelie P. Amygdale \thanks{ Use footnote for providing further information
+about author (webpage, alternative address)---\emph{not} for acknowledging
+funding agencies.  Funding acknowledgements go at the end of the paper.} \\
+Department of Computer Science\\
+Cranberry-Lemon University\\
+Pittsburgh, PA 15213, USA \\
+\texttt{\{hippo,brain,jen\}@cs.cranberry-lemon.edu} \\
+\And
+Ji Q. Ren \& Yevgeny LeNet \\
+Department of Computational Neuroscience \\
+University of the Witwatersrand \\
+Joburg, South Africa \\
+\texttt{\{robot,net\}@wits.ac.za} \\
+\AND
+Coauthor \\
+Affiliation \\
+Address \\
+\texttt{email}
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+\definecolor{Everyone}{RGB}{0, 150, 136}  % teal
+\definecolor{Rans}{RGB}{228, 26, 28}      % red
+\definecolor{Jiqing}{RGB}{152, 78, 163} % purple
+\definecolor{Xinyuan}{RGB}{77, 175, 74}   % green
+\definecolor{Aditya}{RGB}{255, 127, 0}    % orange
+\definecolor{Som}{RGB}{166, 86, 40}       % brown
+\definecolor{Isaiah}{RGB}{172, 145, 21}    % mustard yellow
+
+\newcommand{\Jiqing}[1]{\textcolor{Jiqing}{\textbf{@Jiqing:} #1}}
+\newcommand{\Everyone}[1]{\textcolor{Everyone}{\textbf{@Everyone:} #1}}
+\newcommand{\Rans}[1]{\textcolor{Rans}{\textbf{@Rans:} #1}}
+\newcommand{\Xinyuan}[1]{\textcolor{Xinyuan}{\textbf{@Xinyuan:} #1}}
+\newcommand{\Aditya}[1]{\textcolor{Aditya}{\textbf{@Aditya:} #1}}
+\newcommand{\Som}[1]{\textcolor{Som}{\textbf{Som:} #1}}
+\newcommand{\Isaiah}[1]{\textcolor{Isaiah}{\textbf{@Isaiah:} #1}}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+% Reliable video world models could provide scalable environments for robot learning, planning, and evaluation, but their usefulness depends on predicting physically consistent video. Visually consistent video alone is not sufficient. The generated videos can appear convincing while depicting physically impossible interactions. Moreover, not all properties governing an interaction are observable from appearance. For example, a large box in the video may be empty and light or filled and heavy, leading to different responses to the same applied force. A reliable world model must therefore use observable evidence when informative and incorporate specified physical properties when visual evidence is insufficient. <Then connect with current benchmark...>
+
+% Existing benchmarks typically return plausibility scores, offering little insight into whether a model genuinely reasons about the physical properties governing a scene or merely reproduces motion correlated with visual appearance.
+
+Reliable video world models could provide scalable predictive environments for robot learning, planning, and evaluation. However, robot videos can violate physical principles and complete tasks through physically implausible behavior, limiting their reliability for robot learning and planning. 
+Current video-generation benchmarks exclude physics that are inherently hidden by visuals (eg: weight, viscosity, friction). Due to this, video models are evaluated on the fidelity of physics- not the underlying accuracy of physics. 
+We introduce PhysicsLENS, a dataset and benchmark for evaluating plausibility of physical properties grounded in robotics. PhysicsLENS uses matched scenario pairs that hold the same conditioning frame and action, while varying underlying physics in the scene description. Scenarios are curated from public robot video sources and annotated across seven physical domains: collision, gravity, momentum, friction, deformation, fluid, and causality. We evaluate across four video generation models, producing over 400 human-annotated labels. 
+Results show a consistent accuracy gap between observable and unobservable conditions, indicating that models rely on visual appearance rather than grounded text-specified properties.
+
+% , and that VLM-based diagnosis further struggles with compound violations spanning multiple constraints in a single clip.
+
+\end{abstract}
+
+\section{Introduction}
+% With the rapid progress of egocentric robotics, the need for video training data has risen exponentially. Current video generation models face a wide gap in accuracy, and widely vary in quality depending on the model and content premise. Video generation models finetuned to a specific task are not enough to address the data deficit found across real-life scenarios- which often involve complicated physics, multiple object interactions, and unseen physics reactions. Prior physics benchmarks have established that video generation models struggle with physical consistency broadly, but most report this as a single aggregate score, leaving open where physical understanding specifically breaks down: whether a model fails at physics in general, or only when the governing property cannot be read directly from the frame. To address this, we introduce PhysicsLENS, a benchmark and dataset that varies observability as its own axis, together with a diagnostic pipeline we test as an automated approximation of human judgment.  
+Video world models could provide scalable predictive environments for robot learning, planning, and evaluation. By generating diverse interactions without repeated real-world data collection, they may expose robots to rare events, unfamiliar objects, and changing physical conditions. However, scaling the quantity of generated data is useful only if the resulting videos provide physically reliable supervision. A video may look realistic and show a robot completing its task while violating friction, momentum, object permanence, or other physical constraints. Such failures limit the value of generated videos as representations of how actions affect the physical world.
+
+Existing video-generation benchmarks only partially measure this reliability. Most emphasize visual quality, temporal consistency, or the plausibility of motion visible in a generated video. These criteria can identify obvious artifacts, but they do not determine whether a model correctly grounds the physical properties specified in its conditioning input. Properties such as weight, friction, viscosity, and deformability may not be observable from a single image. Consequently, visually identical scenes can require different outcomes: a robot should interact differently with a heavy object than with a light one, or with a slippery surface than with a rough one. A model can therefore generate a plausible video while producing behavior that is physically incorrect for the stated condition.
+
+We introduce \textbf{PhysicsLENS}, a dataset and benchmark for evaluating physical plausibility and physical-property grounding in robot video generation. PhysicsLENS uses matched scenarios that hold the conditioning frame, task, and visual scene constant while varying a text-specified physical property. This design distinguishes whether a generated video merely appears physically plausible from whether it responds correctly to the specified condition. The benchmark covers seven physical domains relevant to robotic interaction: collision, gravity, momentum, friction, deformation, fluid dynamics, and causality. Scenarios are curated from public robot-video sources to capture diverse embodiments and interactions without requiring large-scale collection of new demonstrations.
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=\linewidth]{fig/Diagram.png}
+  \caption{The workflow of PhysicsLENS.}
+  \label{fig:systemdiagram}
+\end{figure*}
+
+
+% Accurate evaluation also presents a cost--quality trade-off. Human assessment can detect subtle physical violations but is expensive to apply at scale, whereas a single automated plausibility score is inexpensive but provides limited diagnostic information. PhysicsLENS addresses this trade-off through a multi-stage agentic evaluation procedure that decomposes assessment into task completion, physical plausibility, and consistency with the specified physical condition. This structure supports scalable screening while providing interpretable diagnoses of how and why a generated video fails.
+
+Our contributions are:
+\begin{enumerate}
+\item We introduce PhysicsLENS, a robotics-focused benchmark covering seven physical domains and distinguishing physical plausibility from physical-property grounding.
+\item We construct matched scenarios that preserve visual context while varying text-specified physical conditions, including properties that cannot be inferred from appearance alone.
+\item We present a multi-stage agentic evaluation procedure and benchmark four video-generation models with more than 400 human judgments, revealing a consistent gap between observable and unobservable physical conditions.
+\end{enumerate}
+% Contributions of this work:
+% \begin{enumerate}
+%     \item \textbf{An observability axis for physical property grounding.} We introduce the first benchmark to evaluate whether video generation models can correctly apply a physical property specified only in text when that property is not visually apparent in the conditioning frame. We introduce matched scenario pairs that hold the conditioning frame and action constant while varying only whether the governing physical property is visually apparent or specified exclusively through text, testing whether models perform physical reasoning over stated properties or generate motion from appearance alone. We find how strongly a model followed a stated hidden property does not correlate with how plausible annotators rated the clip, showing that plausibility scores alone cannot reveal whether a model is grounding what it was told. This axis is distinct from Physion++ \citep{tung2023physionevaluatingphysicalscene}, which infers latent properties from observed interaction rather than explicit specification, and T2V-CompBench \citep{sun2025t2vcompbenchcomprehensivebenchmarkcompositional}, which evaluates only visually observable properties.
+
+%     \item \textbf{A physics-annotated robotics benchmark revealing domain coverage gaps.} We curate a benchmark of AI-generated robot manipulation scenarios generated from public robotics video sources and annotate each scenario with its failed physical domain. This annotation process surfaces a systematic imbalance in existing robotics data: scenarios involving solid-object contact and manipulation are abundant, while scenarios involving fluid interaction are comparatively scarce, and phenomena outside these categories are largely absent. Rather than treating physical plausibility as a single aggregate score, our per-domain annotation enables evaluation and diagnosis to be reported separately for each physical domain.
+
+%     \item \textbf{Testing automated diagnosis against human judgment.} Alongside human annotation, we implement a four-stage pipeline --- screening, localization, specialist evaluation, and reporting --- that produces a diagnosis rather than a scalar plausibility score, and test whether it can approximate human judgment without access to ground-truth expected outcomes. We report where automated diagnosis agrees with human annotators and where it does not, rather than presenting the pipeline as a validated substitute for human scoring.
+
+%     % \item We demonstrate how insights from this large-scale benchmarking can be used to guide model improvement, enabling targeted enhancements in performance based on identified failure modes and capability gaps.
+% \end{enumerate}
+
+\section{Related Work}
+% \subsection{Video Generation and World Models}
+% Recent text- and image-conditioned video models produce increasingly compelling clips, with representative open-weight systems including VideoCrafter2, CogVideoX, Wan \citep{wan2025wanopenadvancedlargescale}, HunyuanVideo \citep{wu2025hunyuanvideo15technicalreport}, and LTX-Video, alongside proprietary systems such as Sora, Veo, Kling, Seedance, and Runway. Newer generations have improved visual fidelity, temporal coherence, prompt adherence, and controllability, while increasingly supporting multiple conditioning modalities, longer sequences, and synchronized audio. In parallel with these advances in content generation, a growing line of research is adapting video-generative architectures for world modeling, where models predict how an observed environment may evolve over time, potentially conditioned on agent actions. Cosmos \citep{agarwal2025cosmos}, for example, is explicitly designed as a world foundation model platform for robotics and autonomous driving, while autoregressive systems such as MAGI-1 \citep{ai2025magi1autoregressivevideogeneration} support causal, streaming video generation as an early step toward general-purpose simulators of the physical world.
+
+% Despite these advances, generated videos still contain objects that float, accelerate inconsistently, or interact implausibly \citep{le2025gravity}. Visual realism is also a poor predictor of physical correctness \citep{motamed2026physicsiq}. Controlled experiments further suggest that strong in-distribution video prediction does not necessarily imply the acquisition of general physical laws: \citet{kang2025howfar} found that video models often rely on case-based similarities and fail to extrapolate reliably to out-of-distribution physical configurations. Detecting such failures before generated video is used for downstream training remains difficult and often depends on costly human review.
+
+\newcommand{\lensyes}{\ding{51}}
+\newcommand{\lensno}{\ding{55}}
+\newcommand{\lensunknown}{?}
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{0.96}
+\caption{
+Comparison of physics benchmarks and video critics.
+Ref.-free requires no paired real-world recording;
+Obs.\ axis tests prompt-specified properties not inferable
+from the initial frame.
+\lensyes: supported; \lensno: unsupported.
+}
+\label{tab:related}
+
+\begin{tabular}{@{}l*{6}{c}@{}}
+    \toprule
+    Method
+    & Physics
+    & Robotics
+    & Human
+    & Ref.-free
+    & Localized
+    & Obs.\ axis \\
+    \midrule
+
+    \multicolumn{7}{@{}l}{\emph{Physics benchmarks and evaluators}} \\[-2pt]
+    VideoPhy-2~\citep{bansal2026videophy}
+    & \lensyes & \lensno & \lensyes & \lensyes & \lensno & \lensno \\
+    PhyGenBench~\citep{meng2024phygenbench}
+    & \lensyes & \lensno & \lensno & \lensyes & \lensno & \lensno \\
+    Morpheus~\citep{zhang2025morpheus}
+    & \lensyes & \lensno & \lensno & \lensno & \lensno & \lensno \\
+    Physics-IQ~\citep{motamed2026physicsiq}
+    & \lensyes & \lensno & \lensno & \lensno & \lensno & \lensno \\
+    NewtonRewards~\citep{le2025gravity}
+    & \lensyes & \lensno & \lensno & \lensyes & \lensno & \lensno \\
+    GeoPhys~\citep{internò2026geophysgeometryphysicalplausibility}
+    & \lensyes & \lensno & \lensno & \lensyes & \lensyes & \lensno \\
+
+    \midrule
+    \multicolumn{7}{@{}l}{\emph{Robotics evaluators}} \\[-2pt]
+    RoboGaze~\citep{nguyen2026robogazeevaluatingrobotworld}
+    & \lensyes & \lensyes & \lensyes & \lensyes & \lensyes & \lensno \\
+    RBench~\citep{RBench_deng2026rethinkingvideogenerationmodel}
+    & \lensyes & \lensyes & \lensyes & \lensyes & \lensno & \lensno \\
+    RoboWM-Bench~\citep{jiang2026robowmbenchbenchmarkevaluatingworld}
+    & \lensyes & \lensyes & \lensno & \lensno & \lensyes & \lensno \\
+
+    \midrule
+    \multicolumn{7}{@{}l}{\emph{Latent properties and attribute binding}} \\[-2pt]
+    Physion++~\citep{tung2023physionevaluatingphysicalscene}
+    & \lensyes & \lensno & \lensyes & \lensno & \lensno & \lensno \\
+    T2V-CompBench~\citep{sun2025t2vcompbenchcomprehensivebenchmarkcompositional}
+    & \lensno & \lensno & \lensno & \lensyes & \lensyes & \lensno \\
+
+    \midrule
+    \multicolumn{7}{@{}l}{\emph{VLM reasoning and diagnostics}} \\[-2pt]
+    Cosmos-Reason1~\citep{nvidia2025cosmosreason}
+    & \lensyes & \lensyes & \lensno & \lensyes & \lensyes & \lensno \\
+    QuantiPhy~\citep{puyin2026quantiphy}
+    & \lensyes & \lensno & \lensyes & \lensyes & \lensno & \lensno \\
+    MASS~\citep{wu2026mass}
+    & \lensyes & \lensno & \lensyes & \lensyes & \lensyes & \lensno \\
+
+    \midrule
+    \rowcolor{orange!15}
+    \textbf{PhysicsLENS}
+    & \lensyes & \lensyes & \lensyes
+    & \lensyes & \lensyes & \lensyes \\
+    \bottomrule
+\end{tabular}
+
+\end{table*}
+
+
+\paragraph{Physics evaluation of generated video.}
+Visual quality does not guarantee physical correctness: generated videos can contain implausible interactions despite appearing realistic \citep{le2025gravity,motamed2026physicsiq}, and strong in-distribution prediction need not imply generalization to unfamiliar physical configurations \citep{kang2025howfar}. Distributional metrics such as FVD \citep{unterthiner2018towards} and broader evaluation suites such as VBench \citep{huang2024vbench} measure distributional similarity and perceptual properties rather than directly testing compliance with physical laws. Recent benchmarks address physics more explicitly. VideoPhy separates semantic adherence from physical commonsense and introduces VideoCon-Physics as an automatic evaluator \citep{bansal2025videophy}; VideoPhy-2 extends this framework to more complex, action-centric scenarios with finer-grained physical-rule annotations \citep{bansal2026videophy}. PhyGenBench evaluates prompts covering 27 physical laws through a staged VLM--LLM pipeline \citep{meng2024phygenbench}, while PhyWorldBench and WorldModelBench provide additional benchmarks for evaluating video-based world models \citep{gu2026phyworldbenchcomprehensiveevaluationphysical, li2025worldmodelbenchjudgingvideogeneration}. Morpheus compares generations against controlled physical experiments and conservation laws \citep{zhang2025morpheus}, Physics-IQ evaluates predicted continuations against recorded real-world outcomes \citep{motamed2026physicsiq}, and NewtonRewards extracts measurable motion quantities to define verifiable rewards for constant-acceleration primitives \citep{le2025gravity}. Together, these efforts document physical inconsistencies across generation settings and model families. However, benchmarking generators under predefined conditions does not necessarily establish whether a model follows a particular prompt-specified physical property. Aggregate scores also need not identify when a violation occurs, which object is responsible, or which constraint is violated.
+
+\paragraph{Robotics world-model evaluators.}
+A related line of work evaluates physical plausibility in robot-manipulation videos. RoboGaze \citep{nguyen2026robogazeevaluatingrobotworld} combines task-scene grounding, dimension-specific specialists, and critic-based verification to produce temporally localized glitch reports under a robotics-specific taxonomy. RBench \citep{RBench_deng2026rethinkingvideogenerationmodel} and RoboWM-Bench \citep{jiang2026robowmbenchbenchmarkevaluatingworld} likewise evaluate manipulation-centric world models, with the latter converting generated behavior into action sequences validated in simulation. These approaches situate physical plausibility within broader evaluations that also consider task adherence, subject consistency, or embodiment fidelity. They provide useful precedents for structured evaluation, but their manipulation-centric protocols do not explicitly isolate whether a governing physical property is apparent in the conditioning image or supplied only through language.
+
+\paragraph{Hidden properties and attribute binding.}
+Two further lines of work inform this observability distinction. Physion++ \citep{tung2023physionevaluatingphysicalscene} evaluates prediction in scenarios requiring the inference of latent mechanical properties---including mass, friction, elasticity, and deformability---from observed interactions. Its findings indicate that predictive accuracy alone does not establish human-like inference of these properties. Our setting differs in both task and available information: rather than inferring an unstated property from an observation period, the generator must translate an explicitly stated property into subsequent dynamics. T2V-CompBench \citep{sun2025t2vcompbenchcomprehensivebenchmarkcompositional} evaluates the binding of prompt-specified attributes to objects and identifies dynamic attribute binding as a persistent challenge. Its focus on visually verifiable attributes, such as color, shape, and motion direction, differs from testing mechanical properties that have no distinguishing signature in the initial frame but become evident through their effects on motion. PhysicsLENS makes this distinction an explicit evaluation axis through matched scenarios that control scene and action while contrasting visually apparent and text-only property information. Its scoring separates physical plausibility from adherence to the stated property. We find that these measures dissociate: adherence to hidden properties shows little relationship to how plausible the resulting clips appear. Plausibility alone therefore cannot establish whether a generator grounds the physical properties specified in its input.
+
+\paragraph{VLM judges and structured evaluators.}
+Multimodal models offer a promising basis for automated physical assessment. Cosmos-Reason1, for example, is post-trained for physical commonsense and embodied reasoning across spatial, temporal, and dynamic relationships \citep{nvidia2025cosmosreason}. Nevertheless, producing a score or answering a question differs from diagnosing a violation, which requires temporal localization, object attribution, and identification of the relevant constraint. PQSG and Physion-Eval are additional related efforts in physical assessment \citep{pothiraj2026physicsquestionscenegraph, zhang2026physionevalevaluatingphysicalrealism}, alongside approaches that examine or strengthen the evidence supporting multimodal judgments. QuantiPhy shows that plausible verbal explanations can coexist with inaccurate estimates of velocity and acceleration \citep{puyin2026quantiphy}, while MASS augments VLM reasoning with depth-based spatial representations, object grounding, and motion tracking \citep{wu2026mass}. GeoPhys provides a particularly important caution: in its physics-violation detection setting, VLM judges including GPT-4o and Gemini perform near chance, as does the video-representation model V-JEPA 2, whereas a training-free score computed from frozen image-encoder feature trajectories achieves stronger detection performance without a VLM judge \citep{internò2026geophysgeometryphysicalplausibility}. These results, together with documented limitations in fine-grained motion analysis and temporal grounding \citep{hong2025motionbench,wang2025grounded}, motivate an evidence-grounded, staged diagnostic design rather than reliance on a single holistic judgment. They do not, however, establish that staging alone resolves evaluator unreliability. We therefore test this directly by comparing our automated diagnostic pipeline against structured human annotations on the same clips.
+
+% 2.3 — the machinery our pipeline builds on; hand off to Section 3.
+% Argue: VLMs/MLLMs enable temporal reasoning and model-as-critic judging, but haven't been specialized for fine-grained physics diagnosis.
+% \subsection{Vision-Language Models for Video Understanding and Critique}
+\begin{comment}
+Recent multimodal models show promising physical-reasoning capabilities. Cosmos-Reason1, for example, is post-trained for physical commonsense and embodied reasoning across spatial, temporal, and dynamic relationships \citep{nvidia2025cosmosreason}. 
+Such models are commonly used as scorers or question-answering systems, whereas diagnosis also requires temporal localization, object attribution, and identification of the violated constraint.
+Recent work has attempted to improve this grounding. 
+QuantiPhy shows that VLMs can produce plausible verbal explanations while remaining inaccurate when estimating numerical properties such as velocity and acceleration \cite{puyin2026quantiphy}. 
+MASS supplements VLM reasoning with depth-based spatial representations, object grounding, and motion tracking, further demonstrating the importance of explicit spatiotemporal evidence for physical analysis \cite{wu2026mass}.
+The unreliability of VLM-based judgment on this task is stark: on physics-violation detection, GPT-4o, Gemini, and V-JEPA 2 all perform near chance, while GeoPhys, a training-free score computed directly from frozen image-encoder feature trajectories with no VLM component at all, achieves state-of-the-art detection \citep{internò2026geophysgeometryphysicalplausibility}.
+Because current models remain unreliable at fine-grained motion analysis and temporal grounding \citep{hong2025motionbench,wang2025grounded}, it is unclear whether a staged VLM pipeline can reliably approximate human judgment of physical plausibility at all; we test this directly, comparing an automated diagnostic pipeline against structured human annotation on the same clips.
+\end{comment}
+
+\section{PhysicsLENS Benchmark}
+\subsection{Observable vs Unobservable Physical Properties}
+\label{sec:observability}
+A generated video is conditioned on two sources of information: the visual content of the initial frame and the text prompt describing the scene and the action to follow. For most physical properties relevant to a manipulation scenario---an object's mass, a surface's friction, a fluid's viscosity---these two sources are typically redundant in real-world footage: a large object usually looks heavy, a wet surface usually looks slippery. This redundancy means that a model could, in principle, generate physically plausible motion by relying on visual appearance alone, without any genuine grounding of the physical property in question.
+
+We introduce an experimental axis that breaks this redundancy. For each scenario we distinguish between two conditions:
+
+\begin{description}
+    \item[Observable] The physical property governing the outcome has a visual correlate in the conditioning frame. A robot arm is positioned to squeeze a round, beige toy on a table; the toy appears soft, made of a flexible material such as foam, with a smooth surface likely to compress easily under pressure.
+    \item[Unobservable] In the matched unobservable condition, the conditioning image remains unchanged. The scene description instead specifies that the toy is extremely resistant to deformation and retains its shape under pressure. This condition tests whether the generated interaction follows the stated property, which cannot be reliably inferred from the image alone.
+\end{description}
+
+This distinction isolates a question that no prior physics evaluation protocol asks directly: does a video generation model perform genuine physical reasoning over the properties described to it, or does it generate motion primarily as a function of visual appearance, treating the text prompt as auxiliary rather than governing information? A model that merely pattern-matches appearance to motion should perform well on observable scenarios, where the visual cue and the correct outcome are aligned, but should fail on unobservable scenarios, where no such cue exists and the outcome can only be inferred by correctly grounding the stated property.
+
+\paragraph{Matched pair construction.} To isolate observability as the sole experimental variable, we construct unobservable scenarios as paired variants of existing observable scenarios rather than as independent frames. Each pair shares an identical conditioning frame and an identical action description; the only difference between the two prompts is the scene description, which in the observable condition describes a visually apparent property and in the unobservable condition instead states a hidden property in its place. Holding the frame and action constant across the pair ensures that any difference in generated physics is attributable to observability alone, rather than to confounds such as scene complexity, action difficulty, or frame quality.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{fig/fig_conditioning_image_prompts.png}
+    \caption{Construction of a matched prompt pair.
+    Both conditions use the same conditioning frame and
+    action instruction. Highlighted text identifies the
+    change in the scene description, including the physical
+    property specified in the unobservable condition.
+    The intervention changes the textual physical
+    specification, not the visual content of the frame.}
+    \label{fig:matched-prompt-construction}
+\end{figure}
+
+\paragraph{The hidden-property mechanism.} Each unobservable scenario is annotated with two additional fields beyond those used for observable scenarios: a \texttt{hidden\_property}, naming the category of physical property not obvious from the frame, and a \texttt{hidden\_property\_value}, the specific plain-language value stated in the prompt (e.g., ``extremely resistant to deformation''). We use four hidden-property categories, one per task group: viscosity for pouring scenarios, surface condition for wiping scenarios, elasticity for deformable-object scenarios, and mass for pushing scenarios. The hidden property is stated in the scene description, which conditions the video generator, while the corresponding \texttt{expected\_outcome} is withheld from the generator entirely and used only for downstream human annotations, consistent with our broader design principle that the pipeline must operate without access to ground truth (\S\ref{sec:pipeline}).
+
+\paragraph{Failure mode under test.} For each unobservable scenario we additionally record a \texttt{failure\_signature}: a description of the specific, observable way a model would fail if it disregarded the text-stated property and instead defaulted to a generic or appearance-driven physical response. For example, given a prompt stating that a visually ordinary box is filled with dense material, the corresponding failure signature is that the box moves with the same speed and resistance as an unmarked, unweighted object---indicating the model ignored the stated mass and generated motion based on the object's unremarkable appearance alone. We refer to this failure mode as \emph{appearance-property conflation}: a systematic reliance on visual appearance as a proxy for physical properties, even when those properties are explicitly and unambiguously specified in text. Section~\ref{sec:results-grounding} reports the extent to which this failure mode is present, and consistent, across the video generation models we evaluate.
+
+\subsection{Physics Taxonomy and Domain Coverage}
+\begin{wraptable}{r}{0.52\linewidth}
+\vspace{-12pt}
+\centering
+\caption{Physics domain taxonomy used to inform scenario design and annotation.}
+\label{tab:taxonomy}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}p{1.8cm}>{\raggedright\arraybackslash}p{4.95cm}@{}}
+\toprule
+Domain & Representative scenario types \\
+\midrule
+Collision    & Grasping, placing, stacking, contact-dependent lifting \\
+Friction     & Pushing, wiping, sliding along a surface \\
+Momentum     & Object release, swinging, mass-dependent resistance \\
+Fluid        & Pouring, transferring, absorbing liquid \\
+Deformation  & Folding, squeezing, compressing, crumpling \\
+Gravity      & Dropping, tipping, unsupported release \\
+Causality    & Cross-cutting: effect must follow cause with no spontaneous state change \\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{wraptable}
+Table~\ref{tab:taxonomy} lists seven physical domains --- collision,
+friction, momentum, fluid, deformation, gravity, and causality ---
+constructed from the physical dynamics that commonly arise in
+robotic manipulation tasks generally, rather than derived from the
+specific scenarios in this benchmark.
+
+Causality is a cross-cutting exception: rather than a scenario type
+of its own, it is evaluated across every scenario as a check that no
+object appears, disappears, or changes state without a corresponding
+physical cause. Scenarios in this benchmark were curated from public
+robotics video sources without selecting for coverage of specific
+domains; we do not report a per-scenario domain assignment or
+per-domain scenario counts. This taxonomy informs scenario design
+and the annotation rubric (\S\ref{sec:human-annotation}) rather than
+functioning as a per-scenario label, and it precedes and is
+independent of which scenarios were ultimately selected.
+
+\subsection{Dataset Design}
+PhysicsLENS contains 110 prompts: 80 observable scenarios and 30 unobservable scenarios constructed as matched variants of a subset of the observable set. In observable scenarios, the relevant physical condition is visually apparent; in unobservable scenarios, it is specified only in text. By holding the visual context and action constant, these pairs test whether a model follows the specified physics rather than defaulting to visual priors.
+Starting frames were collected from public robotics videos, including Unitree G1 manipulation footage, and selected to depict clear robot--object interactions involving solids or liquids. General physics benchmarks~\citep{tung2023physionevaluatingphysicalscene,motamed2026physicsiq,meng2024phygenbench} do not involve embodied agents, while robotics-specific evaluators~\citep{nguyen2026robogaze,RBench_deng2026rethinkingvideogenerationmodel} typically inherit scenarios from existing demonstrations rather than constructing controlled variations of physical properties. To our knowledge, existing benchmarks do not explicitly compare visually observable properties with properties specified only through text.
+Each conditioning image depicts the scene immediately before the target action. Images were standardized to $1280\times720$, and every prompt specifies a static camera to prevent camera motion from being mistaken for object motion. Scene and action descriptions were generated under a fixed schema and manually reviewed. We generate one video per prompt with each of four models---Wan 2.2, Cosmos, HunyuanVideo 1.5, and MAGI 4.5B Distill---yielding 440 videos. Appendix~\ref{app:dataset-details} provides the complete preprocessing and prompting procedure.
+
+\subsection{Human Annotation Protocol}
+\label{sec:human-annotation}
+Each generated video is evaluated along three complementary dimensions: physical plausibility $P\in\{1,2,3,4\}$, binary action completion $A\in\{0,1\}$, and, for unobservable scenarios, hidden-property adherence $H\in\{1,2,3,4\}$. Annotators also provide a free-text diagnosis and select applicable physical-violation categories. We report the dimensions separately because a video may complete the requested action through implausible behavior or appear plausible while ignoring a text-specified property.
+
+We report rating distributions, descriptive means, and action-completion proportions. For thresholded summaries, $P\geq3$ denotes mostly plausible or realistic behavior, while $H\geq3$ denotes that the specified property is mostly or fully followed. Each video received one annotation, so the data do not support an estimate of inter-annotator reliability; matched pairs were also not necessarily rated by the same annotator. The full rubrics, violation-label definitions, allocation procedure, and aggregation details appear in Appendix~\ref{app:annotation-details}.
+
+\section{Multi-Stage Agentic Evaluation}
+\subsection{Automated Diagnostic Pipeline}
+\label{sec:pipeline}
+
+Alongside human annotation, PhysicsLENS organizes automated
+physical diagnosis into four stages: screening, localization,
+specialist evaluation, and reporting. The pipeline is intended
+to produce structured explanations of candidate violations
+rather than only a scalar plausibility judgment.
+Its components are evaluated against the human annotations
+in Section~\ref{sec:results-tool}; automated outputs are not
+used to compute the human results reported in this paper.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{fig/pipeline.pdf}
+    \caption{Evidence flow through the PhysicsLENS diagnostic pipeline, as
+    implemented. Stage-1 detectors produce timestamped suspicion signals, which the
+    orchestrator passes to the Stage-2 event localizer; the Stage-1 VLM suspicion
+    score is passed only to the report. Stage~2 tracks VLM-named objects, extracts
+    kinematics and contacts, localizes candidate events, and ranks constraint
+    families by the maximum of a heuristic prior and a VLM triage score; the three
+    highest-ranked families are routed to their specialists (grey: not routed, not
+    run). Each specialist proposes violations numerically and verifies a bounded
+    number of them with the VLM, labelling each finding confirmed, rejected, or
+    unverified; the report excludes rejected findings. Stages~2 and 3 write to a
+    shared evidence store keyed by the video's content hash, from which Stages~3
+    and 4 read; Stage~1 is stateless. Red diamonds mark the gates present in the
+    implementation. The diagram describes the architecture; its accuracy is
+    evaluated in Section~\ref{sec:results-tool}.}
+    \label{fig:pipeline-evidence-flow}
+\end{figure*}
+
+\paragraph{Screening.}
+The screening stage examines the generated video and its
+conditioning information to identify candidate physical
+inconsistencies and relevant constraint families.
+A screening flag is a candidate for further examination,
+not a verified violation.
+
+\paragraph{Localization.}
+The localization stage associates candidate issues with
+the relevant temporal interval and interacting objects.
+Localization is intended to connect a diagnosis to
+visible evidence, rather than leaving it as a
+video-level assertion.
+
+\paragraph{Specialist evaluation.}
+Domain specialists assess candidate events against the
+physical constraints summarized in
+Table~\ref{tab:specialists}. Property-specific assessment
+must use the stated physical condition, rather than
+assuming that a visually familiar object has its
+usual material properties. Specialist judgments must
+also distinguish an observed inconsistency from
+insufficient visual evidence.
+
+\paragraph{Reporting.}
+The reporting stage organizes the diagnostic findings
+into a structured account of the implicated constraints,
+relevant events, and supporting observations.
+The stage descriptions specify the intended functional
+roles; they do not establish diagnostic accuracy.
+
+% IMPLEMENTATION DETAILS REQUIRED BEFORE SUBMISSION:
+% Verify the paragraphs above against the actual implementation.
+% Add the exact backend/checkpoint used at each stage;
+% video decoding, temporal sampling, and image resolution;
+% prompt templates and decoding settings;
+% screening and specialist-routing rules;
+% localization representation and temporal resolution;
+% information passed between stages;
+% specialist output schemas;
+% aggregation and conflict-resolution rules;
+% retry/failure handling and software version.
+% Do not describe these choices as implemented until verified.
+
+\Isaiah{Look at sec/method.tex to get deeper more specific info. Plan to put that in Supplementary}
+
+\subsection{Domain-Specific Diagnostic Checks}
+\label{sec:specialist-checks}
+
+Table~\ref{tab:specialists} specifies the physical questions
+associated with each specialist. These checks describe
+the intended scope of diagnosis, not validated detector
+capabilities. A single event may implicate multiple
+constraint families.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{Intended diagnostic scope of the seven
+    PhysicsLENS specialists. Checks require visible evidence
+    or an explicit property specification; they do not assume
+    access to hidden forces, complete material parameters,
+    or a reference outcome. Contact and Collision remain
+    separate labels in the human annotation export.}
+    \label{tab:specialists}
+    \begin{tabular}{@{}p{0.16\linewidth}p{0.77\linewidth}@{}}
+        \toprule
+        Specialist & Diagnostic questions \\
+        \midrule
+        Collision &
+        Do interactions respect object boundaries?
+        Is apparent penetration inconsistent with the
+        objects' rigidity, and is motion attributed to
+        contact supported by visible interaction? \\
+
+        Friction &
+        Is sticking, slipping, or sliding consistent with
+        the visible contact and any stated surface
+        condition? Are changes in resistance supported
+        by the interaction? \\
+
+        Momentum &
+        Are abrupt changes in translational or rotational
+        motion supported by an interaction? Where mass
+        is specified, does the video provide enough
+        evidence to assess its consequences? \\
+
+        Fluid &
+        Is flow consistent with the visible container
+        geometry and interaction? Are stated properties
+        such as viscosity reflected in the observed
+        flow, when the action exposes them? \\
+
+        Deformation &
+        Do changes in shape follow the interaction and
+        any stated material properties? Are apparent
+        shape changes physical deformation or
+        unsupported morphing? \\
+
+        Gravity &
+        Is unsupported motion consistent with gravity,
+        accounting for visible support and contact?
+        Is apparent floating distinguishable from
+        unresolved support or perspective? \\
+
+        Causality &
+        Do object appearances, disappearances, and
+        state changes have visible or otherwise
+        supported causes? Could an apparent
+        discontinuity instead result from occlusion? \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\Isaiah{Complete once evals come through}
+\subsection{Comparison with Human Judgments}
+\label{sec:pipeline-human-comparison}
+
+The human ratings provide a reference for agreement, not an
+error-free physical ground truth; Section~\ref{sec:results-tool}
+compares the pipeline's outputs with them. Physical plausibility
+and hidden-property adherence are compared as ordinal ratings: we
+report AUC for separating ratings 3--4 from 1--2, and linearly
+weighted Cohen's $\kappa$ after mapping continuous scores onto the
+1--4 scale by quantile matching. Hidden-property adherence is
+compared only on unobservable scenarios. Action completion is
+compared with AUC and Cohen's $\kappa$.
+
+For violations, we report per-family AUC for \emph{detection}
+(videos with the family versus videos with no recorded violation)
+and \emph{attribution} (videos with the family versus videos with
+a different violation). The annotators record Contact separately
+from Collision; because the pipeline has a single collision
+specialist, we merge Contact into Collision and state this wherever
+family-level results are reported.
+
+Confidence intervals are bootstrap intervals over videos. Every
+choice fitted to the data---signal selection and orientation, and
+the mapping from scores to ratings---uses five-fold
+cross-validation grouped by scenario, so that records of the same
+scenario stay together across models and conditions. One component
+was not developed on disjoint data: the debiased judge prompt of
+Section~\ref{sec:results-tool} was written after inspecting these
+videos, and we therefore validate it on VideoPhy-2, a dataset it
+was not designed on.
+
+
+\subsection{Reference-Outcome-Free Diagnosis}
+\label{sec:ground-truth-free}
+
+The pipeline's design excludes access to
+\texttt{expected\_outcome}, reference outcome videos, and
+human evaluation labels during inference. Its permitted
+evidence consists of the generated video and conditioning
+information, including the initial image, requested action,
+and any text-specified physical property.
+
+The stated property is part of the model input and is
+therefore available to the evaluator. This differs from
+providing a reference description of how the generated
+action should unfold. Human labels may be used afterward
+to measure agreement, but must not be supplied to the
+diagnostic stages.
+
+This restriction supports evaluation when a reference
+continuation is unavailable. It does not remove physical
+ambiguity: forces, material parameters, occluded contacts,
+and other relevant quantities may remain unknown.
+A diagnosis must therefore be supported by the available
+evidence and should allow an insufficient-evidence outcome
+rather than treating every ambiguous interaction as a
+physical violation.
+
+\input{sec/experiment}
+
+\section{Conclusion}
+
+This work introduces PhysicsLENS, a benchmark that separates physical plausibility from physical-property grounding in generated robot video, using matched scenarios that hold the conditioning frame and action constant while swapping a governing physical property from visually apparent to text-specified. Across four video generation models and over 400 human judgments, we find a slight trend indicating that generation models perform worse with producing physics stated in the prompt; more research is necessary to increase statistical confidence. \Isaiah{[PLACEHOLDER: automated pipeline findings once Tables are complete --- state whether the diagnostic pipeline's agreement with human judgment supports or complicates the case for automated screening as a substitute for human evaluation.]} 
+
+Together, these results suggest that current video generation models do not treat physical-property grounding and general physical consistency as a single capability, and that benchmarks relying on plausibility alone cannot distinguish a model that reasons about stated physical properties from one that generates motion from visual appearance alone. As video world models are increasingly proposed as scalable training environments for robotics, this distinction --- not merely whether a generated interaction looks right, but whether the model engaged with the physical condition it was given --- is central to whether such environments can be trusted as physically reliable.
+
+\section{Limitations and Future Work}
+
+Although PhysicsLENS provides a novel contribution to physics-benchmarks for video generation, we acknowledge current limitations. These include having a single-annotator pass for video annotations, and the limitation of generated videos per model. Future work includes collecting overlapping annotations to establish inter-annotator reliability, expanding the matched scenario set to increase statistical power, and extending the rubric to separately encode contradiction versus non-demonstration of a stated property.
+
+\section{AI Use Statement}
+In this work, we used generative AI tools for: drafting portions of the final text, generating code for the diagnostic tool and annotation pipeline. We have not used generative AI tools for: generating experimental results or designing core methodology.
+We have reviewed all AI-assisted work. We take responsibility for the final content of this work, including text, claims, or artifacts produced with the aid of generative AI.
+
+\section{Ethics Statement}
+This work aligns with the ICLR Code of Ethics as it does not involve human subjects or sensitive information. All datasets used are publicly available and licensed for research use. We ensured that all results and methods are explained accurately, transparently, and reproducibly. Our work aligns with responsible and beneficial use of video-generation improvement for robotics.
+
+\section{Reproducibility Statement}
+\Isaiah{Not part of the 9 page limit}
+
+\bibliography{iclr2026_conference}
+\bibliographystyle{iclr2027_conference}
+
+\clearpage
+\appendix
+\input{appendix}
+
+\end{document}

@@ -42,3 +42,10 @@ eval_reports/
 
 # Raw dataset drops — large, and re-derivable from the staged copy
 *.zip
+
+# Paper build outputs and local backups
+paper/_build.*
+paper/*.bak*
+paper/*.log
+paper/main(old).tex
+paper/iclr2026_conference.pdf

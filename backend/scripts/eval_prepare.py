@@ -225,6 +225,9 @@ def build_mapping(rows, explicit):
     return mapping, sorted(keys), fuzzy
 
 
+ALLOW_CONSTANT = False
+
+
 def to_1_5(values):
     """Map any numeric rating onto 1-5, preserving order.
 
@@ -238,7 +241,10 @@ def to_1_5(values):
         return {}
     lo, hi = float(v.min()), float(v.max())
     if hi - lo < 1e-9:
-        sys.exit("ERROR: all ratings identical — nothing to rank")
+        if ALLOW_CONSTANT:        # reference sets (e.g. real demos, all "4")
+            return None
+        sys.exit("ERROR: all ratings identical — nothing to rank "
+                 "(pass --allow-constant-rating for a reference-only set)")
     # already an integer 1-5 scale: leave alone
     if lo >= 1 and hi <= 5 and np.allclose(v, np.round(v)):
         return None
@@ -431,7 +437,12 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--inspect", action="store_true",
                     help="report what was detected and exit WITHOUT extracting frames")
+    ap.add_argument("--allow-constant-rating", action="store_true",
+                    help="stage a set whose ratings are all equal, e.g. real "
+                         "demonstrations used only as clean references")
     a = ap.parse_args()
+    global ALLOW_CONSTANT
+    ALLOW_CONSTANT = a.allow_constant_rating
 
     rows = read_labels(Path(a.labels))
     explicit = dict(kv.split("=", 1) for kv in a.map.split(",") if "=" in kv)

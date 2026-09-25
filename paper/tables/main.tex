@@ -1,0 +1,28 @@
+\begin{table*}[t]
+    \centering
+    \small
+    \setlength{\tabcolsep}{2.6pt}
+    \begin{tabular}{@{}lccc|cccc@{}}
+        \toprule
+        & \multicolumn{3}{c|}{Physical plausibility} & Task & Violation & Constr. & Hidden \\
+        System & Obs. & Unobs. & All & compl. & detection & family & property \\
+        \midrule
+        Generator identity & 0.63 & 0.72 & 0.65 & --- & --- & --- & --- \\
+        Signals only (no VLM) & 0.61 & 0.65 & 0.62 & 0.70 & \textbf{0.70} & 0.51 & \textbf{0.69} \\
+        \midrule
+        \multicolumn{8}{@{}l}{\emph{Mean $\pm$ sd over 10 VLM backbones}} \\
+        VLM only & 0.53{\scriptsize$\pm$0.06} & 0.53{\scriptsize$\pm$0.06} & 0.53{\scriptsize$\pm$0.05} & 0.71{\scriptsize$\pm$0.04} & 0.58{\scriptsize$\pm$0.08} & \textbf{0.59{\scriptsize$\pm$0.02}} & 0.57{\scriptsize$\pm$0.03} \\
+        VLM + signals & 0.60{\scriptsize$\pm$0.04} & 0.63{\scriptsize$\pm$0.03} & 0.61{\scriptsize$\pm$0.03} & \textbf{0.77{\scriptsize$\pm$0.01}} & 0.68{\scriptsize$\pm$0.04} & 0.57{\scriptsize$\pm$0.02} & 0.69{\scriptsize$\pm$0.02} \\
+        Debiased VLM & 0.64{\scriptsize$\pm$0.07} & 0.63{\scriptsize$\pm$0.04} & 0.63{\scriptsize$\pm$0.06} & --- & --- & --- & --- \\
+        Debiased VLM + signals & \textbf{0.65{\scriptsize$\pm$0.04}} & \textbf{0.67{\scriptsize$\pm$0.03}} & \textbf{0.65{\scriptsize$\pm$0.04}} & --- & --- & --- & --- \\
+        \midrule
+        \multicolumn{8}{@{}l}{\emph{Qwen3-VL-32B}} \\
+        VLM only & 0.55 & 0.55 & 0.55 & 0.75 & 0.65 & 0.60 & 0.57 \\
+        VLM + signals & 0.62 & 0.65 & 0.63 & 0.78 & 0.71 & 0.58 & 0.70 \\
+        Debiased VLM & 0.75 & 0.70 & 0.74 & --- & --- & --- & --- \\
+        Debiased VLM + signals & 0.71 & 0.70 & 0.71 & --- & --- & --- & --- \\
+        \bottomrule
+    \end{tabular}
+    \caption{Automated diagnosis against human judgment (AUC; 439 videos, 320 observable and 119 unobservable). \emph{Plausibility}: human rating 3--4 vs.\ 1--2. \emph{Task completion}: annotated yes vs.\ no. \emph{Violation detection}: any recorded violation ($n{=}333$) vs.\ none ($n{=}106$). \emph{Constraint family}: mean attribution AUC over the seven families among violating videos. \emph{Hidden property}: adherence 3--4 vs.\ 1--2 on unobservable videos, with the property stated to the judge. \emph{Signals}: Stage-1/2 signals, selected on training folds (5-fold, grouped by scenario); VLM and signals are combined by an unweighted rank mean. \emph{Debiased}: the prompt asks the judge to count only physics errors and changes only the plausibility question. Bold: best of the no-VLM and backbone-mean rows. Generator identity is a cross-validated per-generator mean rating.}
+    \label{tab:main-results}
+\end{table*}
