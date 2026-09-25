@@ -15,7 +15,7 @@ This section presents results on the PhysicsLENS benchmark and evaluates its dia
 
 \subsection{RQ1: Does High Plausibility Imply Property Grounding?}
 \label{sec:results-grounding}
-A video can look physically realistic and still ignore the physics it was asked to show. Of the 119 unobservable videos, 47 are rated plausible ($P \geq 3$), yet 34 of these (72\%) barely follow the stated property ($H \leq 2$). Every model does this (Table~\ref{tab:hidden-results}, Figure~\ref{fig:joint-ratings}). MAGI accounts for many of these cases but not all of them: without MAGI, half of the plausible videos (13 of 26) still ignore the property.
+A video can look physically realistic and still ignore the physics it was asked to show. Annotators rate each video's physical plausibility $P$ and, for unobservable videos, its adherence $H$ to the stated property, both on a 1--4 scale (Section~\ref{sec:human-annotation}): $P \geq 3$ means the video is mostly or fully physically realistic, and $H \leq 2$ means the stated property is mostly or completely ignored. Of the 119 unobservable videos, 47 are rated plausible ($P \geq 3$), yet 34 of these (72\%) ignore the stated property ($H \leq 2$). All four generators produce such videos (Table~\ref{tab:hidden-results}, Figure~\ref{fig:joint-ratings}). MAGI contributes 21 of the 34, but the pattern does not depend on it: without MAGI, 13 of the remaining 26 plausible videos (50\%) still ignore the property.
 
 % Table 4 and Figure 4 side by side, top and bottom aligned: the plot's height
 % is set to (table + its caption) - (figure caption), so both columns end together.
