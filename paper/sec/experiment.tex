@@ -129,29 +129,27 @@ Can PhysicsLENS stand in for human annotators? We run its stages on all 439 anno
 
 \begin{table*}[t]
     \centering
-    \small
-    \setlength{\tabcolsep}{2.4pt}
-    \begin{tabular}{@{}lccc|cccc@{}}
+    \footnotesize
+    \setlength{\tabcolsep}{2.6pt}
+    \begin{tabular}{@{}lccccccc@{}}
         \toprule
-        & \multicolumn{3}{c|}{Physical plausibility} & Task & Violation & Constr. & Hidden \\
-        System & Obs. & Unobs. & All & compl. & detection & family & property \\
+        & \multicolumn{3}{c}{Physical plausibility} & Task & Violation & Physics & Hidden \\
+        \cmidrule(lr){2-4}
+        System & Obs. & Unobs. & All & completion & detection & family & property \\
         \midrule
-        \multicolumn{8}{@{}l}{\emph{Baselines}} \\
-        Generator identity & 0.63{\scriptsize$\pm$0.03} & \textbf{0.72{\scriptsize$\pm$0.05}} & 0.65{\scriptsize$\pm$0.03} & 0.72{\scriptsize$\pm$0.02} & \textbf{0.73{\scriptsize$\pm$0.03}} & 0.51{\scriptsize$\pm$0.02} & 0.68{\scriptsize$\pm$0.05} \\
-        Signals only (no VLM) & 0.61{\scriptsize$\pm$0.03} & 0.65{\scriptsize$\pm$0.05} & 0.62{\scriptsize$\pm$0.03} & 0.70{\scriptsize$\pm$0.03} & 0.70{\scriptsize$\pm$0.03} & 0.51{\scriptsize$\pm$0.02} & 0.69{\scriptsize$\pm$0.05} \\
+        Generator identity & 0.63{\scriptsize\textcolor{gray}{$\pm$0.03}} & \textbf{0.72{\scriptsize\textcolor{gray}{$\pm$0.05}}} & 0.65{\scriptsize\textcolor{gray}{$\pm$0.03}} & 0.72{\scriptsize\textcolor{gray}{$\pm$0.02}} & \textbf{0.73{\scriptsize\textcolor{gray}{$\pm$0.03}}} & 0.51{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.68{\scriptsize\textcolor{gray}{$\pm$0.05}} \\
+        Signals only & 0.61{\scriptsize\textcolor{gray}{$\pm$0.03}} & 0.65{\scriptsize\textcolor{gray}{$\pm$0.05}} & 0.62{\scriptsize\textcolor{gray}{$\pm$0.03}} & 0.70{\scriptsize\textcolor{gray}{$\pm$0.03}} & 0.70{\scriptsize\textcolor{gray}{$\pm$0.03}} & 0.51{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.69{\scriptsize\textcolor{gray}{$\pm$0.05}} \\
         \midrule
-        \multicolumn{8}{@{}l}{\emph{One VLM (mean $\pm$ sd over 10 backbones)}} \\
-        VLM only & 0.53{\scriptsize$\pm$0.06} & 0.53{\scriptsize$\pm$0.06} & 0.53{\scriptsize$\pm$0.05} & 0.71{\scriptsize$\pm$0.04} & 0.58{\scriptsize$\pm$0.08} & 0.59{\scriptsize$\pm$0.02} & 0.57{\scriptsize$\pm$0.03} \\
-        VLM + signals & 0.60{\scriptsize$\pm$0.02} & 0.66{\scriptsize$\pm$0.01} & 0.61{\scriptsize$\pm$0.01} & 0.76{\scriptsize$\pm$0.02} & 0.72{\scriptsize$\pm$0.01} & 0.58{\scriptsize$\pm$0.02} & 0.70{\scriptsize$\pm$0.02} \\
-        Debiased VLM & 0.64{\scriptsize$\pm$0.07} & 0.63{\scriptsize$\pm$0.04} & 0.63{\scriptsize$\pm$0.06} & 0.71{\scriptsize$\pm$0.04} & 0.58{\scriptsize$\pm$0.08} & 0.59{\scriptsize$\pm$0.02} & 0.57{\scriptsize$\pm$0.03} \\
-        Debiased VLM + signals & 0.65{\scriptsize$\pm$0.05} & 0.67{\scriptsize$\pm$0.03} & 0.65{\scriptsize$\pm$0.04} & 0.76{\scriptsize$\pm$0.02} & 0.72{\scriptsize$\pm$0.01} & 0.58{\scriptsize$\pm$0.02} & 0.70{\scriptsize$\pm$0.02} \\
+        VLM$^\dagger$ & 0.53{\scriptsize\textcolor{gray}{$\pm$0.06}} & 0.53{\scriptsize\textcolor{gray}{$\pm$0.06}} & 0.53{\scriptsize\textcolor{gray}{$\pm$0.05}} & 0.71{\scriptsize\textcolor{gray}{$\pm$0.04}} & 0.58{\scriptsize\textcolor{gray}{$\pm$0.08}} & 0.59{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.57{\scriptsize\textcolor{gray}{$\pm$0.03}} \\
+        VLM + signals$^\dagger$ & 0.60{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.66{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.61{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.76{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.72{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.58{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.70{\scriptsize\textcolor{gray}{$\pm$0.02}} \\
+        Debiased VLM$^\dagger$ & 0.64{\scriptsize\textcolor{gray}{$\pm$0.07}} & 0.63{\scriptsize\textcolor{gray}{$\pm$0.04}} & 0.63{\scriptsize\textcolor{gray}{$\pm$0.06}} & 0.71{\scriptsize\textcolor{gray}{$\pm$0.04}} & 0.58{\scriptsize\textcolor{gray}{$\pm$0.08}} & 0.59{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.57{\scriptsize\textcolor{gray}{$\pm$0.03}} \\
+        Debiased + signals$^\dagger$ & 0.65{\scriptsize\textcolor{gray}{$\pm$0.05}} & 0.67{\scriptsize\textcolor{gray}{$\pm$0.03}} & 0.65{\scriptsize\textcolor{gray}{$\pm$0.04}} & 0.76{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.72{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.58{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.70{\scriptsize\textcolor{gray}{$\pm$0.02}} \\
         \midrule
-        \multicolumn{8}{@{}l}{\emph{PhysicsLENS with all ten VLMs}} \\
-        Ensemble, debiased & \textbf{0.73{\scriptsize$\pm$0.03}} & 0.71{\scriptsize$\pm$0.05} & \textbf{0.72{\scriptsize$\pm$0.02}} & 0.77{\scriptsize$\pm$0.02} & 0.67{\scriptsize$\pm$0.03} & \textbf{0.63{\scriptsize$\pm$0.01}} & 0.59{\scriptsize$\pm$0.06} \\
-        Ensemble + signals (full) & \textbf{0.73{\scriptsize$\pm$0.03}} & 0.71{\scriptsize$\pm$0.05} & \textbf{0.72{\scriptsize$\pm$0.02}} & \textbf{0.81{\scriptsize$\pm$0.02}} & \textbf{0.73{\scriptsize$\pm$0.03}} & 0.62{\scriptsize$\pm$0.02} & \textbf{0.71{\scriptsize$\pm$0.05}} \\
+        PhysicsLENS ensemble & \textbf{0.73{\scriptsize\textcolor{gray}{$\pm$0.03}}} & 0.71{\scriptsize\textcolor{gray}{$\pm$0.05}} & \textbf{0.72{\scriptsize\textcolor{gray}{$\pm$0.02}}} & 0.77{\scriptsize\textcolor{gray}{$\pm$0.02}} & 0.67{\scriptsize\textcolor{gray}{$\pm$0.03}} & \textbf{0.63{\scriptsize\textcolor{gray}{$\pm$0.01}}} & 0.59{\scriptsize\textcolor{gray}{$\pm$0.06}} \\
+        \rowcolor{blue!6}PhysicsLENS (full) & \textbf{0.73{\scriptsize\textcolor{gray}{$\pm$0.03}}} & 0.71{\scriptsize\textcolor{gray}{$\pm$0.05}} & \textbf{0.72{\scriptsize\textcolor{gray}{$\pm$0.02}}} & \textbf{0.81{\scriptsize\textcolor{gray}{$\pm$0.02}}} & \textbf{0.73{\scriptsize\textcolor{gray}{$\pm$0.03}}} & 0.62{\scriptsize\textcolor{gray}{$\pm$0.02}} & \textbf{0.71{\scriptsize\textcolor{gray}{$\pm$0.05}}} \\
         \bottomrule
     \end{tabular}
-    \caption{PhysicsLENS against human judgment (AUC; 439 videos). \emph{Plausibility}: human rating 3--4 vs.\ 1--2. \emph{Task compl.}: completed vs.\ not. \emph{Violation detection}: any recorded violation vs.\ none. \emph{Constr.\ family}: naming which physics family was violated. \emph{Hidden property}: whether the stated property was followed (unobservable videos). \emph{Signals}: PhysicsLENS Stage-1/2 measurements, combined with the VLM answers using a weight fitted on training folds; the full system also includes temporal-embedding signals. \emph{Debiased}: the PhysicsLENS physics-error question, which replaces only the plausibility question. \emph{Ensemble}: every question asked of all ten VLMs and their answers averaged by rank, with no backbone selected. \emph{Generator identity} scores each video by its generator's average on the training folds. $\pm$: sd across the ten VLMs for the one-VLM rows, bootstrap sd over videos otherwise. Bold: best in each column.}
+    \caption{PhysicsLENS against human judgment (AUC; 0.5 is chance, 1 is perfect; 439 videos). \emph{Physical plausibility}: separating videos rated 3--4 from 1--2, on observable, unobservable and all videos. \emph{Task completion}: completed vs.\ not. \emph{Violation detection}: any recorded violation vs.\ none. \emph{Physics family}: naming which kind of physics was violated. \emph{Hidden property}: whether the stated property was followed (unobservable videos). \emph{Generator identity} scores each video by its generator's average rating. \emph{Signals}: PhysicsLENS Stage-1/2 measurements, combined with VLM answers by a weight fitted on training folds. \emph{Debiased}: the PhysicsLENS physics-error question. \emph{Ensemble}: every question asked of all ten VLMs, answers averaged by rank. \emph{Full}: ensemble + signals (including temporal-embedding signals). $^\dagger$Mean over ten VLMs, $\pm$ sd across them; otherwise $\pm$ is bootstrap sd over videos. Bold: best in each column.}
     \label{tab:main-results}
 \end{table*}
 
