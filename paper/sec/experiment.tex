@@ -160,27 +160,28 @@ Can PhysicsLENS stand in for human annotators? We run its stages on all 439 anno
 \begin{table}[t]
     \centering
     \small
-    \setlength{\tabcolsep}{3.5pt}
-    \begin{tabular}{@{}lcccccc|c@{}}
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabular}{@{}lccccccc@{}}
         \toprule
-        & \multicolumn{2}{c}{VLM, standard prompt} & \multicolumn{2}{c}{VLM, debiased} & \multicolumn{2}{c|}{Debiased + S1/2} & Hidden \\
-        \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
-        Backbone & Obs. & Unobs. & Obs. & Unobs. & Obs. & Unobs. & AUC \\
+        & \multicolumn{2}{c}{Standard} & \multicolumn{2}{c}{Physics-error} & \multicolumn{2}{c}{+ signals} & Hidden \\
+        \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(l){8-8}
+        VLM & Obs. & Unobs. & Obs. & Unobs. & Obs. & Unobs. & property \\
         \midrule
-        Signals only (S1/2) & --- & --- & --- & --- & 0.61 & 0.65 & 0.69 \\
-        Qwen3-VL-32B & 0.55 & 0.55 & 0.75 & 0.70 & 0.74 & 0.70 & 0.57 \\
+        Qwen3-VL-32B & 0.55 & 0.55 & \textbf{0.75} & \textbf{0.70} & \textbf{0.74} & 0.70 & 0.57 \\
         InternVL3-14B & 0.51 & 0.45 & 0.71 & 0.65 & 0.71 & 0.68 & 0.51 \\
-        Qwen3-VL-8B & 0.54 & 0.58 & 0.68 & 0.69 & 0.68 & 0.71 & 0.56 \\
-        Qwen2.5-VL-32B & 0.45 & 0.44 & 0.66 & 0.64 & 0.67 & 0.71 & 0.57 \\
-        InternVL3-8B & 0.63 & 0.62 & 0.66 & 0.59 & 0.65 & 0.61 & 0.59 \\
+        Qwen3-VL-8B & 0.54 & 0.58 & 0.68 & 0.69 & 0.68 & \textbf{0.71} & 0.56 \\
+        Qwen2.5-VL-32B & 0.45 & 0.44 & 0.66 & 0.64 & 0.67 & \textbf{0.71} & 0.57 \\
+        InternVL3-8B & \textbf{0.63} & \textbf{0.62} & 0.66 & 0.59 & 0.65 & 0.61 & 0.59 \\
         Llama-4-Scout-17B & 0.58 & 0.48 & 0.64 & 0.61 & 0.64 & 0.65 & 0.59 \\
         Qwen2.5-VL-7B & 0.45 & 0.54 & 0.61 & 0.64 & 0.63 & 0.67 & 0.55 \\
         Gemma-3-12B & 0.61 & 0.61 & 0.59 & 0.59 & 0.60 & 0.65 & 0.56 \\
         LLaVA-OV-7B & 0.47 & 0.54 & 0.54 & 0.62 & 0.59 & 0.66 & 0.61 \\
         Mistral-Small-3.1-24B & 0.53 & 0.54 & 0.53 & 0.58 & 0.58 & 0.66 & 0.56 \\
+        \midrule
+        Signals only & --- & --- & --- & --- & 0.61 & 0.65 & \textbf{0.69} \\
         \bottomrule
     \end{tabular}
-    \caption{Plausibility AUC for each VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos: with a standard question, with the PhysicsLENS physics-error (debiased) question, and with that question combined with Stage-1/2 signals (S1/2). \emph{Hidden}: AUC for judging whether the stated property was followed.}
+    \caption{Plausibility AUC per VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos, with a standard question, with the PhysicsLENS physics-error question, and with that question plus Stage-1/2 signals. \emph{Hidden property}: AUC for judging whether the stated property was followed. Bold: best per column.}
     \label{tab:backbones-obs-unobs}
 \end{table}
 
