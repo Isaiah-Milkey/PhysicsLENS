@@ -13,7 +13,7 @@
 
 This section presents results on the PhysicsLENS benchmark and evaluates its diagnostic pipeline through four research questions. RQ1--RQ3 are answered with human annotations, and RQ4 compares the pipeline against them. \textbf{RQ1:} Does high physical plausibility imply that a model followed a text-specified physical property (Sec.~\ref{sec:results-grounding})? \textbf{RQ2:} Does stating a property in text rather than showing it reduce physical plausibility (Sec.~\ref{sec:results-paired})? \textbf{RQ3:} What do individual failure cases reveal about the distinction between grounding and plausibility (Sec.~\ref{sec:results-cases})? \textbf{RQ4:} Can the PhysicsLENS pipeline approximate human judgments (Sec.~\ref{sec:results-tool})?
 
-\subsection{Plausibility Alone Does Not Establish Physical Property Grounding}
+\subsection{Realistic-Looking Videos Often Ignore the Stated Property}
 \label{sec:results-grounding}
 A video can look physically realistic and still ignore the physics it was asked to show. Of the 119 unobservable videos, 47 are rated plausible ($P \geq 3$), yet 34 of these (72\%) barely follow the stated property ($H \leq 2$). Every model does this (Table~\ref{tab:hidden-results}, Figure~\ref{fig:joint-ratings}). MAGI accounts for many of these cases but not all of them: without MAGI, half of the plausible videos (13 of 26) still ignore the property.
 
