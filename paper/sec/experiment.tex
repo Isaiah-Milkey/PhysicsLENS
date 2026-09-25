@@ -13,7 +13,7 @@
 
 This section presents results on the PhysicsLENS benchmark and evaluates its diagnostic pipeline through four research questions. RQ1--RQ3 are answered with human annotations, and RQ4 compares the pipeline against them. \textbf{RQ1:} Does high physical plausibility imply that a model followed a text-specified physical property (Sec.~\ref{sec:results-grounding})? \textbf{RQ2:} Does stating a property in text rather than showing it reduce physical plausibility (Sec.~\ref{sec:results-paired})? \textbf{RQ3:} What do individual failure cases reveal about the distinction between grounding and plausibility (Sec.~\ref{sec:results-cases})? \textbf{RQ4:} Can the PhysicsLENS pipeline approximate human judgments (Sec.~\ref{sec:results-tool})?
 
-\subsection{Realistic-Looking Videos Often Ignore the Stated Property}
+\subsection{RQ1: Does High Plausibility Imply Property Grounding?}
 \label{sec:results-grounding}
 A video can look physically realistic and still ignore the physics it was asked to show. Of the 119 unobservable videos, 47 are rated plausible ($P \geq 3$), yet 34 of these (72\%) barely follow the stated property ($H \leq 2$). Every model does this (Table~\ref{tab:hidden-results}, Figure~\ref{fig:joint-ratings}). MAGI accounts for many of these cases but not all of them: without MAGI, half of the plausible videos (13 of 26) still ignore the property.
 
@@ -60,7 +60,7 @@ A video can look physically realistic and still ignore the physics it was asked 
 
 The reverse also holds. Of the 28 videos that follow the stated property, 15 are rated implausible ($P \leq 2$): the model gets the property right but breaks other physics along the way. \textbf{Plausibility and grounding measure different things, and a benchmark has to measure both.}
 
-\subsection{Text-Specified Properties Consistently Lower Physical Plausibility}
+\subsection{RQ2: Does Stating a Property in Text Reduce Plausibility?}
 \label{sec:results-paired}
 
 Each unobservable video has an observable twin: the same scene, action and generator, differing only in whether the property is shown in the image or stated in the text. Comparing twins, plausibility drops for every one of the four models when the property moves into the text, by 0.13 to 0.38 points on the 1--4 scale (Table~\ref{tab:paired-results}). Across all pairs, plausibility falls in 40 and rises in only 26.
@@ -108,7 +108,7 @@ Each unobservable video has an observable twin: the same scene, action and gener
 
 Pooling the 29 scenarios that all four models generated gives the same picture: plausibility falls by 0.28 points on average (Figure~\ref{fig:paired-effects}; $p = 0.085$), and every model's estimate lies below zero. \textbf{Models produce less convincing physics when they have to read a property rather than see it.}
 
-\subsection{Failure Cases: How Plausibility and Grounding Come Apart}
+\subsection{RQ3: What Do Failure Cases Reveal About Grounding and Plausibility?}
 \label{sec:results-cases}
 
 \begin{figure}[t]
@@ -120,7 +120,7 @@ Pooling the 29 scenarios that all four models generated gives the same picture: 
 
 Individual videos show how plausibility and grounding come apart (Figure~\ref{fig:failure-cases}; quotes are from the annotators' notes). In scenario 019, the prompt describes the tea as ``molasses-like'', yet all four models pour it like water ($H{=}1$) in videos rated realistic, and Wan~2.2 (Figure~\ref{fig:failure-cases}a) even receives the top plausibility rating: the models follow what the teapot looks like, not what the text says. The reverse also happens. In scenario 022, HunyuanVideo~1.5 follows the stated silicone-coated table ($H{=}3$) but is rated least plausible because of ``the glass moving without being touched'' (Figure~\ref{fig:failure-cases}b), and in scenario 070, Wan~2.2 keeps an ``extremely heavy'' tape dispenser still only because ``the robot's hand passes through it'' ($P{=}1$). MAGI's high plausibility often comes from inaction: in scenario 011 (Figure~\ref{fig:failure-cases}c) the robot barely moves, so nothing breaks physics because nothing happens. PhysicsLENS catches the visible failures, ranking HunyuanVideo's moving glass among the four least plausible of 433 videos and naming it a fluid violation with probability 0.997, as the annotators did, whereas the ignored viscosity in scenario 019 leaves nothing visibly wrong for any plausibility judge to catch. \textbf{Grounding has to be tested directly, and the matched design of PhysicsLENS makes that possible.}
 
-\subsection{PhysicsLENS Diagnosis Tracks Human Judgments}
+\subsection{RQ4: Can PhysicsLENS Approximate Human Judgments?}
 \label{sec:results-tool}
 
 Can PhysicsLENS stand in for human annotators? We run its stages on all 439 annotated videos and compare the results with the human ratings, using ten open-weight VLMs from seven families (7B--32B parameters; Qwen3-VL, Qwen2.5-VL, InternVL3, Gemma-3, Llama-4-Scout, LLaVA-OneVision and Mistral-Small-3.1) and VideoPhy-2~\citep{bansal2026videophy} as an independent check. Each VLM answer is read as a probability; VLM answers and Stage-1/2 signals are combined with a weight fitted on the training folds, and any signal selection uses five-fold cross-validation that keeps every version of a scenario in the same fold, so nothing is tuned on the videos it is tested on. We report AUC: the probability that a better-rated video receives the higher score (0.5 is chance, 1 is perfect). Appendix~\ref{app:additional-results} gives the stage-by-stage results and agreement on the annotators' own scale.
