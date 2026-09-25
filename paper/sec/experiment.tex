@@ -130,36 +130,36 @@ Individual videos show how plausibility and grounding come apart (Figure~\ref{fi
 \subsection{PhysicsLENS Diagnosis Tracks Human Judgments}
 \label{sec:results-tool}
 
-Can PhysicsLENS stand in for human annotators? We run its stages on all 439 annotated videos and compare the results with the human ratings, using ten open-weight VLMs from seven families (7B--32B parameters; Qwen3-VL, Qwen2.5-VL, InternVL3, Gemma-3, Llama-4-Scout, LLaVA-OneVision and Mistral-Small-3.1) and VideoPhy-2~\citep{bansal2026videophy} as an independent check. Each VLM answer is read as a probability, stages are combined by averaging ranks, and any signal selection uses five-fold cross-validation that keeps every version of a scenario in the same fold, so nothing is tuned on the videos it is tested on. We report AUC: the probability that a better-rated video receives the higher score (0.5 is chance, 1 is perfect). Appendix~\ref{app:additional-results} gives the stage-by-stage results and agreement on the annotators' own scale.
+Can PhysicsLENS stand in for human annotators? We run its stages on all 439 annotated videos and compare the results with the human ratings, using ten open-weight VLMs from seven families (7B--32B parameters; Qwen3-VL, Qwen2.5-VL, InternVL3, Gemma-3, Llama-4-Scout, LLaVA-OneVision and Mistral-Small-3.1) and VideoPhy-2~\citep{bansal2026videophy} as an independent check. Each VLM answer is read as a probability, the VLM and the Stage-1/2 signals are combined with a weight fitted on the training folds, and any signal selection uses five-fold cross-validation that keeps every version of a scenario in the same fold, so nothing is tuned on the videos it is tested on. We report AUC: the probability that a better-rated video receives the higher score (0.5 is chance, 1 is perfect). Appendix~\ref{app:additional-results} gives the stage-by-stage results and agreement on the annotators' own scale.
 
-\textbf{PhysicsLENS improves every VLM judge.} Table~\ref{tab:main-results} compares a VLM judge alone, the PhysicsLENS Stage-1/2 signals alone, and the two combined, averaged over all ten VLMs. Adding PhysicsLENS evidence improves plausibility (0.53 to 0.61), violation detection (0.58 to 0.68), task completion (0.71 to 0.77) and property adherence (0.57 to 0.69); for violation detection the gain is significant for all ten VLMs. The signals alone, with no VLM, already reach 0.70 on violation detection, and the one selected most often measures objects vanishing mid-frame, a violation read directly off the tracker. With the PhysicsLENS screening question, plausibility reaches 0.74 with Qwen3-VL-32B, well above a shortcut that scores each video by its generator's average rating (0.65), and PhysicsLENS does this without knowing which model made the video.
+\textbf{PhysicsLENS improves every VLM judge.} Table~\ref{tab:main-results} compares a VLM judge alone, the PhysicsLENS Stage-1/2 signals alone, and the two combined, averaged over all ten VLMs. Adding PhysicsLENS evidence improves plausibility (0.53 to 0.61), violation detection (0.58 to 0.72), task completion (0.71 to 0.76) and property adherence (0.57 to 0.70), and it improves detection and adherence for every one of the ten VLMs. With the PhysicsLENS screening question as well, the full system gives the best overall plausibility in the table, 0.65 on average and 0.73 with Qwen3-VL-32B. The signals alone, with no VLM, already reach 0.70 on violation detection, and the one selected most often measures objects vanishing mid-frame, a violation read directly off the tracker. A shortcut that scores each video by its generator's average is a strong reference point, because the four generators differ widely in quality. PhysicsLENS beats it overall (0.73 vs.\ 0.65 on plausibility with Qwen3-VL-32B), on task completion and on property adherence, and matches it on violation detection, all without knowing which model made the video.
 
 \begin{table*}[t]
     \centering
     \small
-    \setlength{\tabcolsep}{2.6pt}
+    \setlength{\tabcolsep}{2.4pt}
     \begin{tabular}{@{}lccc|cccc@{}}
         \toprule
         & \multicolumn{3}{c|}{Physical plausibility} & Task & Violation & Constr. & Hidden \\
         System & Obs. & Unobs. & All & compl. & detection & family & property \\
         \midrule
-        Generator identity & 0.63 & 0.72 & 0.65 & --- & --- & --- & --- \\
-        Signals only (no VLM) & 0.61 & 0.65 & 0.62 & 0.70 & \textbf{0.70} & 0.51 & \textbf{0.69} \\
+        Generator identity & 0.63{\scriptsize$\pm$0.03} & \textbf{0.72{\scriptsize$\pm$0.05}} & \textbf{0.65{\scriptsize$\pm$0.03}} & 0.72{\scriptsize$\pm$0.02} & \textbf{0.73{\scriptsize$\pm$0.03}} & 0.51{\scriptsize$\pm$0.02} & 0.68{\scriptsize$\pm$0.05} \\
+        Signals only (no VLM) & 0.61{\scriptsize$\pm$0.03} & 0.65{\scriptsize$\pm$0.05} & 0.62{\scriptsize$\pm$0.03} & 0.70{\scriptsize$\pm$0.03} & 0.70{\scriptsize$\pm$0.03} & 0.51{\scriptsize$\pm$0.02} & 0.69{\scriptsize$\pm$0.05} \\
         \midrule
         \multicolumn{8}{@{}l}{\emph{Mean $\pm$ sd over 10 VLM backbones}} \\
         VLM only & 0.53{\scriptsize$\pm$0.06} & 0.53{\scriptsize$\pm$0.06} & 0.53{\scriptsize$\pm$0.05} & 0.71{\scriptsize$\pm$0.04} & 0.58{\scriptsize$\pm$0.08} & \textbf{0.59{\scriptsize$\pm$0.02}} & 0.57{\scriptsize$\pm$0.03} \\
-        VLM + signals & 0.60{\scriptsize$\pm$0.04} & 0.63{\scriptsize$\pm$0.03} & 0.61{\scriptsize$\pm$0.03} & \textbf{0.77{\scriptsize$\pm$0.01}} & 0.68{\scriptsize$\pm$0.04} & 0.57{\scriptsize$\pm$0.02} & 0.69{\scriptsize$\pm$0.02} \\
-        Debiased VLM & 0.64{\scriptsize$\pm$0.07} & 0.63{\scriptsize$\pm$0.04} & 0.63{\scriptsize$\pm$0.06} & --- & --- & --- & --- \\
-        Debiased VLM + signals & \textbf{0.65{\scriptsize$\pm$0.04}} & \textbf{0.67{\scriptsize$\pm$0.03}} & \textbf{0.65{\scriptsize$\pm$0.04}} & --- & --- & --- & --- \\
+        VLM + signals & 0.60{\scriptsize$\pm$0.02} & 0.66{\scriptsize$\pm$0.01} & 0.61{\scriptsize$\pm$0.01} & \textbf{0.76{\scriptsize$\pm$0.02}} & 0.72{\scriptsize$\pm$0.01} & 0.58{\scriptsize$\pm$0.02} & \textbf{0.70{\scriptsize$\pm$0.02}} \\
+        Debiased VLM & 0.64{\scriptsize$\pm$0.07} & 0.63{\scriptsize$\pm$0.04} & 0.63{\scriptsize$\pm$0.06} & 0.71{\scriptsize$\pm$0.04} & 0.58{\scriptsize$\pm$0.08} & \textbf{0.59{\scriptsize$\pm$0.02}} & 0.57{\scriptsize$\pm$0.03} \\
+        Debiased VLM + signals & \textbf{0.65{\scriptsize$\pm$0.05}} & 0.67{\scriptsize$\pm$0.03} & \textbf{0.65{\scriptsize$\pm$0.04}} & \textbf{0.76{\scriptsize$\pm$0.02}} & 0.72{\scriptsize$\pm$0.01} & 0.58{\scriptsize$\pm$0.02} & \textbf{0.70{\scriptsize$\pm$0.02}} \\
         \midrule
         \multicolumn{8}{@{}l}{\emph{Qwen3-VL-32B}} \\
-        VLM only & 0.55 & 0.55 & 0.55 & 0.75 & 0.65 & 0.60 & 0.57 \\
-        VLM + signals & 0.62 & 0.65 & 0.63 & 0.78 & 0.71 & 0.58 & 0.70 \\
-        Debiased VLM & 0.75 & 0.70 & 0.74 & --- & --- & --- & --- \\
-        Debiased VLM + signals & 0.71 & 0.70 & 0.71 & --- & --- & --- & --- \\
+        VLM only & 0.55{\scriptsize$\pm$0.03} & 0.55{\scriptsize$\pm$0.05} & 0.55{\scriptsize$\pm$0.03} & 0.75{\scriptsize$\pm$0.02} & 0.65{\scriptsize$\pm$0.03} & 0.60{\scriptsize$\pm$0.02} & 0.57{\scriptsize$\pm$0.06} \\
+        VLM + signals & 0.60{\scriptsize$\pm$0.03} & 0.66{\scriptsize$\pm$0.05} & 0.62{\scriptsize$\pm$0.03} & 0.78{\scriptsize$\pm$0.02} & 0.72{\scriptsize$\pm$0.03} & 0.59{\scriptsize$\pm$0.02} & 0.70{\scriptsize$\pm$0.06} \\
+        Debiased VLM & 0.75{\scriptsize$\pm$0.03} & 0.70{\scriptsize$\pm$0.05} & 0.74{\scriptsize$\pm$0.02} & 0.75{\scriptsize$\pm$0.02} & 0.65{\scriptsize$\pm$0.03} & 0.60{\scriptsize$\pm$0.02} & 0.57{\scriptsize$\pm$0.06} \\
+        Debiased VLM + signals & 0.74{\scriptsize$\pm$0.03} & 0.70{\scriptsize$\pm$0.05} & 0.73{\scriptsize$\pm$0.02} & 0.78{\scriptsize$\pm$0.02} & 0.72{\scriptsize$\pm$0.03} & 0.59{\scriptsize$\pm$0.02} & 0.70{\scriptsize$\pm$0.06} \\
         \bottomrule
     \end{tabular}
-    \caption{PhysicsLENS against human judgment (AUC; 439 videos). \emph{Plausibility}: human rating 3--4 vs.\ 1--2. \emph{Task compl.}: completed vs.\ not. \emph{Violation detection}: any recorded violation vs.\ none. \emph{Constr.\ family}: naming which physics family was violated. \emph{Hidden property}: whether the stated property was followed (unobservable videos). \emph{Signals}: PhysicsLENS Stage-1/2 measurements. \emph{Debiased}: the PhysicsLENS physics-error question. \emph{Generator identity} scores each video by its generator's average rating. Bold: best among the signals-only row and the ten-VLM averages.}
+    \caption{PhysicsLENS against human judgment (AUC; 439 videos). \emph{Plausibility}: human rating 3--4 vs.\ 1--2. \emph{Task compl.}: completed vs.\ not. \emph{Violation detection}: any recorded violation vs.\ none. \emph{Constr.\ family}: naming which physics family was violated. \emph{Hidden property}: whether the stated property was followed (unobservable videos). \emph{Signals}: PhysicsLENS Stage-1/2 measurements, combined with the VLM using a weight fitted on training folds. \emph{Debiased}: the PhysicsLENS physics-error question, which replaces only the plausibility question, so the other columns match the rows above it. \emph{Generator identity} scores each video by its generator's average on the training folds. $\pm$: sd across the ten VLMs for the averaged rows, bootstrap sd over videos otherwise. Bold: best in each column among the first six rows.}
     \label{tab:main-results}
 \end{table*}
 
@@ -178,23 +178,23 @@ Can PhysicsLENS stand in for human annotators? We run its stages on all 439 anno
         Backbone & Obs. & Unobs. & Obs. & Unobs. & Obs. & Unobs. & AUC \\
         \midrule
         Signals only (S1/2) & --- & --- & --- & --- & 0.61 & 0.65 & 0.69 \\
-        Qwen3-VL-32B & 0.55 & 0.55 & 0.75 & 0.70 & 0.71 & 0.70 & 0.57 \\
-        InternVL3-14B & 0.51 & 0.45 & 0.71 & 0.65 & 0.70 & 0.69 & 0.51 \\
-        Qwen3-VL-8B & 0.54 & 0.58 & 0.68 & 0.69 & 0.67 & 0.70 & 0.56 \\
-        Qwen2.5-VL-32B & 0.45 & 0.44 & 0.66 & 0.64 & 0.67 & 0.70 & 0.57 \\
-        InternVL3-8B & 0.63 & 0.62 & 0.66 & 0.59 & 0.66 & 0.63 & 0.59 \\
-        Llama-4-Scout-17B & 0.58 & 0.48 & 0.64 & 0.61 & 0.66 & 0.68 & 0.59 \\
-        Qwen2.5-VL-7B & 0.45 & 0.54 & 0.61 & 0.64 & 0.64 & 0.66 & 0.55 \\
-        Gemma-3-12B & 0.61 & 0.61 & 0.59 & 0.59 & 0.62 & 0.64 & 0.56 \\
-        LLaVA-OV-7B & 0.47 & 0.54 & 0.54 & 0.62 & 0.59 & 0.67 & 0.61 \\
-        Mistral-Small-3.1-24B & 0.53 & 0.54 & 0.53 & 0.58 & 0.58 & 0.62 & 0.56 \\
+        Qwen3-VL-32B & 0.55 & 0.55 & 0.75 & 0.70 & 0.74 & 0.70 & 0.57 \\
+        InternVL3-14B & 0.51 & 0.45 & 0.71 & 0.65 & 0.71 & 0.68 & 0.51 \\
+        Qwen3-VL-8B & 0.54 & 0.58 & 0.68 & 0.69 & 0.68 & 0.71 & 0.56 \\
+        Qwen2.5-VL-32B & 0.45 & 0.44 & 0.66 & 0.64 & 0.67 & 0.71 & 0.57 \\
+        InternVL3-8B & 0.63 & 0.62 & 0.66 & 0.59 & 0.65 & 0.61 & 0.59 \\
+        Llama-4-Scout-17B & 0.58 & 0.48 & 0.64 & 0.61 & 0.64 & 0.65 & 0.59 \\
+        Qwen2.5-VL-7B & 0.45 & 0.54 & 0.61 & 0.64 & 0.63 & 0.67 & 0.55 \\
+        Gemma-3-12B & 0.61 & 0.61 & 0.59 & 0.59 & 0.60 & 0.65 & 0.56 \\
+        LLaVA-OV-7B & 0.47 & 0.54 & 0.54 & 0.62 & 0.59 & 0.66 & 0.61 \\
+        Mistral-Small-3.1-24B & 0.53 & 0.54 & 0.53 & 0.58 & 0.58 & 0.66 & 0.56 \\
         \bottomrule
     \end{tabular}
     \caption{Plausibility AUC for each VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos: with a standard question, with the PhysicsLENS physics-error (debiased) question, and with that question combined with Stage-1/2 signals (S1/2). \emph{Hidden}: AUC for judging whether the stated property was followed.}
     \label{tab:backbones-obs-unobs}
 \end{table}
 
-\textbf{Observable versus unobservable videos.} PhysicsLENS judges plausibility almost as well when the property is stated in text as when it is visible (Qwen3-VL-32B: 0.70 vs.\ 0.75). Judging whether the stated property was actually followed is harder, and this is where the signals help most, raising AUC from 0.51--0.61 for VLMs alone to 0.69 on average.
+\textbf{Observable versus unobservable videos.} PhysicsLENS judges plausibility almost as well when the property is stated in text as when it is visible (Qwen3-VL-32B: 0.70 vs.\ 0.75). Judging whether the stated property was actually followed is harder, and this is where the signals help most, raising AUC from 0.51--0.61 for VLMs alone to 0.70 on average and 0.74 at best.
 
 \textbf{Which kind of physics failed.} PhysicsLENS reliably detects each of the seven kinds of violation, separating affected videos from clean ones with AUC 0.66--0.84, and the signals improve this for six of the seven (Table~\ref{tab:category-accuracy}). Naming the exact family among several violations is harder, except for fluids (0.82): most violating videos (69\%) break several kinds of physics at once, and VLMs read frames largely one at a time, which suits single-frame failures such as a splash better than failures over time such as gravity or friction. Failures over time are exactly what the tracking-based measurements of the Stage-3 specialists are built for.
 
