@@ -13,7 +13,7 @@ https://10.218.107.89:8000
 
 > [!IMPORTANT]
 > - On first visit your browser shows **"Your connection is not private"** because the TLS certificate is **self-signed**. Click **Advanced → Proceed to 10.218.107.89** — the traffic is still encrypted; the warning only means the cert isn't issued by a public authority. One click per machine.
-> - You must be on the **ASU network / VPN** to reach this internal IP.
+> - You must be on the internal network / VPN to reach this internal IP.
 > - This site **auto-updates from `main`** — it checks GitHub every 5 minutes, so any pushed commit goes live automatically within ~5 minutes. No manual redeploy needed.
 
 ---
@@ -83,7 +83,7 @@ physicslens/
 │   │   ├── evidence_planner.py      # Stage-3 pre-step: agent/rules plan → auto-fetch missing Stage-2 evidence
 │   │   ├── embeddings.py            # DINOv2 / CLIP / SigLIP — L2-normalised, batched, cached
 │   │   ├── sam3.py                  # SAM3 video segmentation (gated facebook/sam3; GPU)
-│   │   ├── createai.py              # ASU CreateAI client (Gemini vision; subject naming, judging)
+│   │   ├── llm_api.py                # OpenAI-compatible client (vision; subject naming, judging)
 │   │   ├── locate_anything.py       # NVIDIA LocateAnything-3B open-set detection (GPU, optional)
 │   │   └── vlm.py                   # OpenRouter multi-frame suspicion scoring
 │   ├── scripts/

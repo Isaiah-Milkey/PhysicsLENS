@@ -9,7 +9,7 @@ Two evidence sources, combined:
 1. HEURISTIC PRIORS (free) — quantitative signals already on the evidence bus:
    trajectory contacts/spikes/reversals, event-localizer marker types, and the
    tracked subject labels. Each maps to specialist priors.
-2. VLM TRIAGE (one CreateAI call) — keyframes around the strongest events are
+2. VLM TRIAGE (one API call) — keyframes around the strongest events are
    tiled into a composite; the VLM is shown the specialist catalog plus the
    quantitative evidence summary and returns a ranked JSON list of hypotheses
    with time windows and rationale.
@@ -17,7 +17,7 @@ Two evidence sources, combined:
 Final confidence = max(heuristic prior, VLM confidence) per specialist, so a
 strong quantitative signal can't be talked away, and the VLM can surface
 categories the heuristics have no probe for (fluid, deformation). Degrades to
-heuristics-only when CreateAI is unavailable.
+heuristics-only when no API model is available.
 """
 import asyncio
 import base64
@@ -138,7 +138,7 @@ def _heuristic_priors(ev_traj: Optional[dict], ev_loc: Optional[dict],
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg            = json.loads(settings) if settings else {}
-    model          = str(cfg.get("model") or "createai:geminiflash2_5")
+    model          = str(cfg.get("model") or "openai:gpt-4o-mini")
     api_key        = str(cfg.get("api_key", "")).strip()
     max_hypotheses = max(1, int(cfg.get("max_hypotheses", 4)))
     max_keyframes  = max(2, min(6, int(cfg.get("max_keyframes", 4))))

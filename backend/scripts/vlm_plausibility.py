@@ -17,7 +17,7 @@ and whitespace mass does not leak in):
            the same question with the hint removed. The gap between the two is
            how much of any score comes from the text rather than the pixels.
 
-Backends: --api (CreateAI gateway) or local HF models, same estimator either way.
+Backends: --api (OpenAI-compatible gateway) or local HF models, same estimator either way.
 
 Usage:
   python backend/scripts/vlm_plausibility.py --data data/consol --model qwen3-vl-32b-instruct --api --frames 8

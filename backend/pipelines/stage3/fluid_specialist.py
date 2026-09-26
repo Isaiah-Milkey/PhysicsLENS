@@ -283,7 +283,7 @@ def _fit_parabola(t: np.ndarray, y: np.ndarray) -> tuple[float, float]:
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg              = json.loads(settings) if settings else {}
-    model            = str(cfg.get("model") or "createai:geminiflash2_5")
+    model            = str(cfg.get("model") or "openai:gpt-4o-mini")
     api_key          = str(cfg.get("api_key", "")).strip()
     viscosity_mode   = str(cfg.get("viscosity_mode", "low"))
     visc_scale       = 0.6 if viscosity_mode == "high" else 1.0

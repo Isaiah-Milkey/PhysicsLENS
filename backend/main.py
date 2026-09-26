@@ -56,7 +56,7 @@ from tools.vlm_router import model_options as _vlm_options, DEFAULT_MODEL_KEY as
 
 # ── Shared VLM setting builders ──────────────────────────────────────────────
 # Every VLM-using pipeline offers ONE provider-tagged model dropdown (the value
-# encodes CreateAI vs OpenRouter) and ONE API-key field whose meaning follows
+# encodes OpenAI vs OpenRouter) and ONE API-key field whose meaning follows
 # the selected model's provider (blank → the provider's .env credential).
 _LOCAL_VLM_OPTIONS = [
     {"value": "qwen2.5-vl-7b", "label": "Qwen2.5-VL 7B — local, no key, AUC 0.92 (recommended)"},
@@ -69,7 +69,7 @@ _LOCAL_VLM_OPTIONS = [
 
 def _vlm_key_setting():
     return {"id": "api_key", "type": "password", "default": "",
-            "label": "API key — OpenRouter key or CreateAI token matching the "
+            "label": "API key — OpenRouter key or OpenAI API key matching the "
                      "selected model (blank = use .env)"}
 
 
@@ -79,11 +79,11 @@ def _vlm_model_setting(label="Vision model", *, include_local=False, default=_VL
             "default": default, "options": opts}
 
 
-def _createai_key_setting():
-    """CreateAI-only key field (no provider choice — used where only CreateAI
+def _openai_key_setting():
+    """OpenAI-only key field (no provider choice — used where only OpenAI
     is wired, e.g. the Diagnostic Report's text-only LLM summary)."""
     return {"id": "api_key", "type": "password", "default": "",
-            "label": "CreateAI token (blank = use .env CREATEAI_TOKEN)"}
+            "label": "OpenAI API key (blank = use .env OPENAI_API_KEY)"}
 
 
 def _naming_model_setting():
@@ -353,7 +353,7 @@ PIPELINES = {
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            _vlm_model_setting("Vision model", default="createai:geminipro3_1"),
+            _vlm_model_setting("Vision model", default="openai:gpt-4o"),
             _vlm_key_setting(),
             {"id": "auto_deps", "label": "Evidence pre-step", "type": "select",
              "default": "agent",
@@ -549,14 +549,13 @@ PIPELINES = {
                   {"value": "true", "label": "True"},
                   {"value": "false", "label": "False"},
              ]},
-             {"id": "summary_model", "label": "LLM summary model (CreateAI text)", "type": "select",
-              "default": "geminiflash2_5",
+             {"id": "summary_model", "label": "LLM summary model (OpenAI text)", "type": "select",
+              "default": "gpt-4o-mini",
               "options": [
-                  {"value": "geminiflash2_5",      "label": "Gemini Flash 2.5 (fast)"},
-                  {"value": "geminiflash2_5-lite", "label": "Gemini Flash 2.5 Lite (fastest)"},
-                  {"value": "geminipro3_1",        "label": "Gemini Pro 3.1 (best quality)"},
+                  {"value": "gpt-4o-mini", "label": "GPT-4o mini (fast)"},
+                  {"value": "gpt-4o",      "label": "GPT-4o (best quality)"},
              ]},
-             _createai_key_setting(),
+             _openai_key_setting(),
         ],
         "run": run_s4_report,
     },

@@ -3,7 +3,7 @@ Score LOCAL VLMs on the staged VideoPhy-2 subset — same frozen frames, same
 prompts, same metrics as videophy_eval.py, so API and local numbers are
 directly comparable.
 
-Exists because (a) the ASU gateway rate-limits hard, and (b) the best-measured
+Exists because (a) the API gateway rate-limits hard, and (b) the best-measured
 judges so far are local (InternVL3-8B, Qwen2.5-VL-7B). Also settles the
 "bigger is worse" question at n=300 — the original claim rested on n=10, where
 the confidence intervals overlapped from 0.24 to 1.00 and supported nothing.

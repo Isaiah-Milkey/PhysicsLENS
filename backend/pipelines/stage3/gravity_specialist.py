@@ -485,7 +485,7 @@ def _video_height(path: str) -> float:
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg          = json.loads(settings) if settings else {}
-    model        = str(cfg.get("model") or "createai:geminipro3_1")
+    model        = str(cfg.get("model") or "openai:gpt-4o")
     api_key      = str(cfg.get("api_key", "")).strip()
     max_checks   = max(1, int(cfg.get("max_checks", 3)))
     px_per_meter = float(cfg.get("px_per_meter", 0) or 0)

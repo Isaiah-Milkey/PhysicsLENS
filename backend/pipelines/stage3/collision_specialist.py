@@ -156,7 +156,7 @@ def _pair_render(frame: np.ndarray, mask_a_s: np.ndarray, mask_b_s: np.ndarray,
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg             = json.loads(settings) if settings else {}
-    model           = str(cfg.get("model") or "createai:geminiflash2_5")
+    model           = str(cfg.get("model") or "openai:gpt-4o-mini")
     api_key         = str(cfg.get("api_key", "")).strip()
     overlap_thresh  = float(cfg.get("overlap_threshold", 0.02))
     deep_overlap    = float(cfg.get("deep_overlap", 0.35))

@@ -236,7 +236,7 @@ def _near_contact(fi: int, label: str, episodes: list[dict], slack: int) -> bool
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg           = json.loads(settings) if settings else {}
-    model         = str(cfg.get("model") or "createai:geminiflash2_5")
+    model         = str(cfg.get("model") or "openai:gpt-4o-mini")
     api_key       = str(cfg.get("api_key", "")).strip()
     momentum_tol  = max(0.05, float(cfg.get("momentum_tolerance", 0.5)))
     transfer_tol  = max(0.05, float(cfg.get("transfer_tolerance", 0.35)))

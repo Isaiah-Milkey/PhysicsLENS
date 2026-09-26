@@ -36,23 +36,26 @@ ORDER = [
 
 # Eval-mode overrides: skip rendered overlay videos (time + useless in saved
 # streams); gravity deps run explicitly in stage order, so no planner call.
-# All VLM calls route to CreateAI Gemini 3.1 Pro (user choice 2026-07-23:
-# "bigger VLMs via API wherever possible") — keeps the local 17 GB Qwen off
-# the GPU entirely. Exception: s3_causality NEEDS local Yes/No token logits,
-# so it runs as a separate pass (--only s3_causality) when VRAM allows.
-_PRO = "createai:geminipro3_1"
+# All VLM calls route to the strongest OpenAI model (user choice 2026-07-23:
+# "bigger VLMs via API wherever possible" — the run this config originally
+# produced used a Gemini model via a since-removed proxy; re-running today
+# uses OpenAI instead, so treat historical numbers as not directly
+# reproducible bit-for-bit) — keeps the local 17 GB Qwen off the GPU entirely.
+# Exception: s3_causality NEEDS local Yes/No token logits, so it runs as a
+# separate pass (--only s3_causality) when VRAM allows.
+_PRO = "openai:gpt-4o"
 OVERRIDES = {
     "s1_vlm":                  {"model": _PRO},
     "s2_object_tracker":       {"render_video": "false", "naming_model": _PRO},
     "s2_trajectory_extractor": {"render_video": "false"},
     "s2_hypothesis_generator": {"model": _PRO},
     "s3_collision":            {"model": _PRO},
-    "s3_gravity":              {"auto_deps": "off"},          # model already pro
+    "s3_gravity":              {"auto_deps": "off"},          # model already the strong tier
     "s3_momentum":             {"model": _PRO},
     "s3_friction":             {"model": _PRO},
     "s3_deformation":          {"model": _PRO},
     "s3_fluid":                {"model": _PRO},
-    "s4_report":               {"summary_model": "geminipro3_1"},
+    "s4_report":               {"summary_model": "gpt-4o"},
 }
 
 PIPELINE_TIMEOUT_S = 1800

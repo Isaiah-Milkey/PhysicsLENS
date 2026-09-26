@@ -2,11 +2,14 @@
 Unified VLM router — one model key selects both provider and model.
 -------------------------------------------------------------------
 Every VLM-using pipeline offers a single provider-tagged model dropdown and one
-"API key" field. The dropdown value encodes the provider (``createai:...`` or
+"API key" field. The dropdown value encodes the provider (``openai:...`` or
 ``openrouter:...``); this module routes the call to the right backend:
 
-  * CreateAI  → tools.createai  (ASU Gemini/GPT proxy; token from setting or
-                                 CREATEAI_TOKEN in .env, base URL from .env)
+  * OpenAI     → tools.llm_api  (standard OpenAI-compatible chat API; key from
+                                 setting or OPENAI_API_KEY in .env, base URL
+                                 from OPENAI_BASE_URL — omit to hit
+                                 api.openai.com, or point it at any other
+                                 OpenAI-compatible endpoint)
   * OpenRouter → tools.vlm      (openrouter.ai; key from setting or
                                  OPENROUTER_API_KEY)
 
@@ -23,15 +26,11 @@ import numpy as np
 # ── Registry: dropdown value → provider + provider-native model id ────────────
 # Keep labels in "<Model> — <Provider>" form so the single dropdown reads clearly.
 _MODELS: dict[str, dict] = {
-    # CreateAI (ASU proxy) — token in .env by default, no per-request base URL.
-    "createai:geminiflash2_5":      {"provider": "createai", "model": "geminiflash2_5",
-                                     "label": "Gemini 2.5 Flash — CreateAI"},
-    "createai:geminiflash2_5-lite": {"provider": "createai", "model": "geminiflash2_5-lite",
-                                     "label": "Gemini 2.5 Flash Lite — CreateAI"},
-    "createai:geminipro3_1":        {"provider": "createai", "model": "geminipro3_1",
-                                     "label": "Gemini 3.1 Pro — CreateAI"},
-    "createai:gpt4o":               {"provider": "createai", "model": "gpt4o",
-                                     "label": "GPT-4o — CreateAI"},
+    # OpenAI — key/base URL from .env by default, no per-request override needed.
+    "openai:gpt-4o-mini":           {"provider": "openai", "model": "gpt-4o-mini",
+                                     "label": "GPT-4o mini — OpenAI"},
+    "openai:gpt-4o":                {"provider": "openai", "model": "gpt-4o",
+                                     "label": "GPT-4o — OpenAI"},
     # OpenRouter — "model" is the friendly key tools.vlm maps to a full id.
     "openrouter:gemini-2.5-flash":  {"provider": "openrouter", "model": "gemini-2.5-flash",
                                      "label": "Gemini 2.5 Flash — OpenRouter"},
@@ -43,7 +42,7 @@ _MODELS: dict[str, dict] = {
                                      "label": "Claude Sonnet 4.5 — OpenRouter"},
 }
 
-DEFAULT_MODEL_KEY = "createai:geminiflash2_5"
+DEFAULT_MODEL_KEY = "openai:gpt-4o-mini"
 
 
 def model_options() -> list[dict]:
@@ -52,24 +51,24 @@ def model_options() -> list[dict]:
 
 
 def resolve(model_key: str) -> tuple[str, str]:
-    """(provider, provider_model) for a dropdown value. Tolerant of legacy bare
-    CreateAI model names (e.g. "geminiflash2_5") and explicit "provider:model"."""
+    """(provider, provider_model) for a dropdown value. Tolerant of a bare
+    OpenAI model name (e.g. "gpt-4o") and explicit "provider:model"."""
     if model_key in _MODELS:
         e = _MODELS[model_key]
         return e["provider"], e["model"]
     if model_key.startswith("openrouter:"):
         return "openrouter", model_key.split(":", 1)[1]
-    if model_key.startswith("createai:"):
-        return "createai", model_key.split(":", 1)[1]
+    if model_key.startswith("openai:"):
+        return "openai", model_key.split(":", 1)[1]
     # Legacy bare key: a known OpenRouter friendly id routes to OpenRouter;
-    # anything else is treated as a CreateAI model name.
+    # anything else is treated as an OpenAI model name.
     try:
         from tools.vlm import OPENROUTER_MODELS
         if model_key in OPENROUTER_MODELS:
             return "openrouter", model_key
     except Exception:                                    # noqa: BLE001
         pass
-    return "createai", (model_key or "geminiflash2_5")
+    return "openai", (model_key or DEFAULT_MODEL_KEY.split(":", 1)[1])
 
 
 def key_status(model_key: str, api_key: str = "") -> tuple[bool, str]:
@@ -78,10 +77,10 @@ def key_status(model_key: str, api_key: str = "") -> tuple[bool, str]:
     if provider == "openrouter":
         ok = bool(api_key or os.environ.get("OPENROUTER_API_KEY"))
         return ok, "OpenRouter key (settings field or OPENROUTER_API_KEY)"
-    from tools.createai import credentials
-    tok, _base = credentials()   # base URL defaults in createai, so a token is enough
+    from tools.llm_api import credentials
+    tok, _base = credentials()   # base URL defaults in llm_api, so a key is enough
     return bool(api_key or tok), \
-        "CreateAI token (settings field or .env CREATEAI_TOKEN)"
+        "OpenAI API key (settings field or .env OPENAI_API_KEY)"
 
 
 async def ask_vision(prompt: str, image_bgr: np.ndarray, model_key: str,
@@ -96,7 +95,7 @@ async def ask_vision(prompt: str, image_bgr: np.ndarray, model_key: str,
                                "pipeline's API key field or set OPENROUTER_API_KEY.")
         return await chat_vision(prompt, image_bgr, model_key=model,
                                  api_key=key, timeout=timeout)
-    from tools.createai import query_vision, response_text
+    from tools.llm_api import query_vision, response_text
     data = await query_vision(prompt, image_bgr, model=model,
                               token=(api_key or None), timeout_s=timeout)
     return response_text(data)

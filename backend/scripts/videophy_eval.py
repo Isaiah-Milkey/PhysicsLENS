@@ -82,9 +82,13 @@ def client():
     from dotenv import load_dotenv
     from openai import OpenAI
     load_dotenv(ROOT / ".env")
-    b, k = os.environ.get("ASU_OPENAI_BASE_URL"), os.environ.get("ASU_OPENAI_API_KEY")
-    if not (b and k):
-        sys.exit("ERROR: ASU_OPENAI_BASE_URL / ASU_OPENAI_API_KEY missing from .env")
+    # OPENAI_BASE_URL is optional — omit it to hit api.openai.com directly, or
+    # point it at any other OpenAI-compatible endpoint (self-hosted gateway,
+    # vLLM/LiteLLM serving the open-weight backbones, etc.).
+    k = os.environ.get("OPENAI_API_KEY")
+    b = os.environ.get("OPENAI_BASE_URL") or None
+    if not k:
+        sys.exit("ERROR: OPENAI_API_KEY missing from .env")
     return OpenAI(base_url=b, api_key=k, timeout=180, max_retries=3)
 
 

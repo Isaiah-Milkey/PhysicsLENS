@@ -755,8 +755,8 @@ body.mode-ds-detail #dsDetailPlayer{ display: flex !important; flex-direction: c
           <span style="margin-left:auto;font-size:11px;color:var(--muted)">▾</span>
         </summary>
         <div style="margin-top:10px">
-          <label class="setting-label">CreateAI token</label>
-          <input class="setting-input" id="batchCreateaiKey" type="password" autocomplete="off" placeholder="blank = use server .env" />
+          <label class="setting-label">OpenAI API key</label>
+          <input class="setting-input" id="batchOpenaiKey" type="password" autocomplete="off" placeholder="blank = use server .env" />
           <label class="setting-label" style="margin-top:8px">OpenRouter key</label>
           <input class="setting-input" id="batchOpenrouterKey" type="password" autocomplete="off" placeholder="blank = use server .env" />
           <div class="ds-hf-status" id="batchKeyStatus" style="margin-top:8px"></div>
@@ -2149,7 +2149,7 @@ let batchState = null;   // resumable batch cursor; non-null while running or pa
 // Batch API keys — held in memory for THIS browser session only. Never written
 // to localStorage/disk, and redacted out of anything we store on run entries or
 // export (see redactSettings). Blank → the server's .env credential is used.
-let batchKeys = { createai: "", openrouter: "" };
+let batchKeys = { openai: "", openrouter: "" };
 
 // Per-tool setting overrides for batch runs, keyed by pipeline id — e.g. run the
 // Deformation Specialist on Gemini 3.1 Pro while everything else uses the default.
@@ -2221,10 +2221,10 @@ function redactSettings(obj) {
 function providerOfModel(modelVal) {
   if (typeof modelVal === "string") {
     if (modelVal.startsWith("openrouter:")) return "openrouter";
-    if (modelVal.startsWith("createai:"))   return "createai";
+    if (modelVal.startsWith("openai:"))     return "openai";
     return null;                       // a local model (e.g. qwen2.5-vl-7b) → no key
   }
-  return undefined;                    // no model field at all (e.g. s4_report → CreateAI-only)
+  return undefined;                    // no model field at all (e.g. s4_report → OpenAI-only)
 }
 
 // Inject the session batch key into a pipeline's settings when it takes an
@@ -2233,7 +2233,7 @@ function applyBatchKeys(p, settingsObj) {
   if (!(p.settings || []).some(s => s.id === "api_key") || settingsObj.api_key) return;
   const prov = providerOfModel(settingsObj.model ?? settingsObj.naming_model);
   const key = prov === "openrouter" ? batchKeys.openrouter
-            : (prov === "createai" || prov === undefined) ? batchKeys.createai
+            : (prov === "openai" || prov === undefined) ? batchKeys.openai
             : "";                      // prov === null → local model, no key
   if (key) settingsObj.api_key = key;
 }
@@ -2242,7 +2242,7 @@ function updateBatchKeyStatus() {
   const el = document.getElementById("batchKeyStatus");
   if (!el) return;
   const set = [];
-  if (batchKeys.createai)   set.push("CreateAI");
+  if (batchKeys.openai)     set.push("OpenAI");
   if (batchKeys.openrouter) set.push("OpenRouter");
   el.textContent = set.length
     ? `Using entered ${set.join(" + ")} key${set.length > 1 ? "s" : ""} this session (not saved).`
@@ -3076,8 +3076,8 @@ document.getElementById("dsImportFile").addEventListener("change", (e) => {
   if (file) importDsFile(file);
 });
 // Batch API keys (session-only; kept in the batchKeys object, never persisted).
-document.getElementById("batchCreateaiKey").addEventListener("input", e => {
-  batchKeys.createai = e.target.value.trim(); updateBatchKeyStatus();
+document.getElementById("batchOpenaiKey").addEventListener("input", e => {
+  batchKeys.openai = e.target.value.trim(); updateBatchKeyStatus();
 });
 document.getElementById("batchOpenrouterKey").addEventListener("input", e => {
   batchKeys.openrouter = e.target.value.trim(); updateBatchKeyStatus();

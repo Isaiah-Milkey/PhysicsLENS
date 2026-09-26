@@ -61,7 +61,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     api_key    = str(cfg.get("api_key", "")).strip()
 
     is_local  = model_key in LOCAL_VLMS
-    provider  = "local" if is_local else _resolve(model_key)[0]   # createai | openrouter
+    provider  = "local" if is_local else _resolve(model_key)[0]   # openai | openrouter
     have_api  = is_local or _key_status(model_key, api_key)[0]
     demo_mode = (not is_local) and (not have_api)
 
@@ -143,7 +143,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             result = {"suspicion_score": None, "overall_assessment": str(exc),
                       "confidence": 0.0, "violations": []}
     else:
-        # CreateAI /query takes ONE image, so tile the keyframes into a labeled
+        # The OpenAI chat API takes ONE image per call here, so tile the keyframes into a labeled
         # strip and send the same multi-frame suspicion prompt.
         from tools.vlm_router import ask_vision_json
         tiles = []

@@ -162,7 +162,7 @@ async def _judge_pair(pair_img: np.ndarray, model_key: str, api_key: str = "") -
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg          = json.loads(settings) if settings else {}
-    model        = str(cfg.get("model") or "createai:geminiflash2_5")
+    model        = str(cfg.get("model") or "openai:gpt-4o-mini")
     api_key      = str(cfg.get("api_key", "")).strip()
     max_subjects = max(1, int(cfg.get("max_subjects", 3)))
     max_checks   = max(1, int(cfg.get("max_checks", 4)))

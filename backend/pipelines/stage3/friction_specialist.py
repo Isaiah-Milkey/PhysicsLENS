@@ -389,7 +389,7 @@ def _heuristic_expected(seg: dict) -> str:
 
 async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, None]:
     cfg            = json.loads(settings) if settings else {}
-    model          = str(cfg.get("model") or "createai:geminiflash2_5")
+    model          = str(cfg.get("model") or "openai:gpt-4o-mini")
     api_key        = str(cfg.get("api_key", "")).strip()
     friction_tol   = max(0.02, float(cfg.get("friction_tolerance", 0.06)))   # |slope|/speed, flat coast
     accel_tol      = max(0.02, float(cfg.get("acceleration_tolerance", 0.20)))  # slope/speed, speedup

@@ -586,7 +586,7 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
     video_name = cfg.get("video_name", "uploaded video")
     use_llm_summary = str(cfg.get("use_llm_summary", "false")).lower() == "true"
     api_key = str(cfg.get("api_key", "")).strip()
-    summary_model = str(cfg.get("summary_model") or "geminiflash2_5").strip()
+    summary_model = str(cfg.get("summary_model") or "gpt-4o-mini").strip()
 
     yield {
         "type": "log",
@@ -678,11 +678,11 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
         yield {
             "type": "log",
             "level": "info",
-            "text": f"Requesting LLM summary from CreateAI ({summary_model}).",
+            "text": f"Requesting LLM summary from OpenAI ({summary_model}).",
         }
 
         try:
-            from tools.createai import query_text, response_text
+            from tools.llm_api import query_text, response_text
             data = await query_text(_build_llm_prompt(report),
                                     model=summary_model,
                                     token=api_key or None)
@@ -691,11 +691,11 @@ async def run(video_path: str, settings: str = None) -> AsyncGenerator[dict, Non
             yield {
                 "type": "log",
                 "level": "info",
-                "text": f"CreateAI responded ({summary_model}). Summary length: {len(llm_summary)} characters.",
+                "text": f"OpenAI responded ({summary_model}). Summary length: {len(llm_summary)} characters.",
             }
 
             report["llm_summary"] = {
-                "provider": "CreateAI",
+                "provider": "OpenAI",
                 "model": summary_model,
                 "summary": llm_summary,
             }

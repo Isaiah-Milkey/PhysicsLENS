@@ -47,10 +47,10 @@ python backend/scripts/run_pipeline.py <pipeline_id> <video_path> --set key=val
 
 ### Credentials (`.env` at the repo root, gitignored)
 
-`launch.sh` and `tools/createai.py` (via python-dotenv) both load `<repo>/.env`:
+`launch.sh` and `tools/llm_api.py` (via python-dotenv) both load `<repo>/.env`:
 
-- `CREATEAI_TOKEN` — ASU CreateAI proxy (Gemini/GPT); the default VLM provider for most pipelines.
-- `CREATEAI_BASE_URL` — optional; `tools/createai.py` falls back to `https://api-main.aiml.asu.edu`.
+- `OPENAI_API_KEY` — the default VLM provider for most pipelines.
+- `OPENAI_BASE_URL` — optional; omit to hit `api.openai.com` directly, or point it at any other OpenAI-compatible endpoint.
 - `OPENROUTER_API_KEY` — only for the OpenRouter-tagged models.
 - Local VLMs (`qwen2.5-vl-7b`, `internvl3-*`, `smolvlm2-2.2b`) need **no** key — just a GPU.
 
@@ -69,7 +69,7 @@ python backend/scripts/test_vlm_scoring.py      # pure unit tests: JSON parsing 
 python backend/scripts/test_vlm_pipeline.py     # integration test: full VLM suspicion pipeline (IO stubbed)
 python backend/scripts/test_object_tracker.py   # smoke test: stage-2 object tracker against test_videos/ clips
 python backend/scripts/sam3_smoke.py            # de-risk SAM3 alone: segment+track one concept in one video
-python backend/scripts/createai_vision.py IMG   # manual probe of the CreateAI vision endpoint
+python backend/scripts/openai_vision.py IMG     # manual probe of the OpenAI vision endpoint
 python backend/scripts/vlm_failure_mode_eval.py # multi-frame vs single-frame AUC eval
 python backend/scripts/vlm_multimodel_eval.py   # AI-vs-real AUC across local VLM families (source of the AUCs in the UI)
 python backend/scripts/vlm_rapidata_eval.py     # agreement with Rapidata human Likert ratings on ~200 Sora clips
@@ -117,7 +117,7 @@ settings, run}`. This is the one place that wires a pipeline module into the app
   builds its settings form from this list, and the values round-trip back as the `settings` JSON string.
 - Use the shared settings builders at the top of `main.py` rather than hand-writing model/key selects:
   `_vlm_model_setting(label, include_local=…, default=…)`, `_vlm_key_setting()`,
-  `_createai_key_setting()` (CreateAI-only, e.g. the report's text LLM), `_naming_model_setting()`.
+  `_openai_key_setting()` (OpenAI-only, e.g. the report's text LLM), `_naming_model_setting()`.
   This keeps every VLM pipeline on the same one-dropdown-plus-one-key convention.
 - `GET /pipelines` exposes this registry (minus the `run` callables) for the frontend to build the stage
   tabs and test lists.
@@ -140,12 +140,12 @@ single-video mode; one video is just a batch of one.
 ### VLM access — three backends behind one router
 
 - **`tools/vlm_router.py`** — the entry point pipelines should use. A dropdown value encodes provider +
-  model (`createai:geminiflash2_5`, `openrouter:gpt-4o`, …); `resolve()` maps it, `key_status()` reports
+  model (`openai:gpt-4o-mini`, `openrouter:gpt-4o`, …); `resolve()` maps it, `key_status()` reports
   whether credentials exist so a pipeline can degrade cleanly, and `ask_vision()` /`ask_vision_json()` /
-  `name_subjects()` are provider-agnostic. `DEFAULT_MODEL_KEY = "createai:geminiflash2_5"`.
-- **`tools/createai.py`** — ASU CreateAI proxy client: `query_vision`, `query_text` (text-only, used by the
-  Stage 4 LLM summary), `response_text`. Always sends an explicit `model` + `model_provider`; omitting the
-  provider silently routes to a degraded default and some tokens 403 on the bare payload.
+  `name_subjects()` are provider-agnostic. `DEFAULT_MODEL_KEY = "openai:gpt-4o-mini"`.
+- **`tools/llm_api.py`** — standard OpenAI-compatible client: `query_vision`, `query_text` (text-only, used
+  by the Stage 4 LLM summary), `response_text`. Reads `OPENAI_API_KEY`/`OPENAI_BASE_URL` (the latter
+  optional — omit to hit `api.openai.com`, or point it at any other OpenAI-compatible endpoint).
 - **`tools/vlm.py`** — OpenRouter multi-frame suspicion scoring (`OPENROUTER_MODELS`,
   `build_suspicion_payload`, `parse_vlm_json` — the last is the shared robust JSON extractor used by all
   three backends).
@@ -210,7 +210,7 @@ It understands these shapes:
 Each violation/verdict is normalized by `_norm_finding()`, which looks for `t`, `t_end`, `label` or
 `object_name`, `confidence`, `explanation` or `desc`, and a flagged/verdict field. A new specialist that
 publishes a different shape — or doesn't publish to the bus at all — silently contributes nothing to the
-report, even if its own UI panel looks fine. `use_llm_summary` then feeds this timeline to a CreateAI text
+report, even if its own UI panel looks fine. `use_llm_summary` then feeds this timeline to an OpenAI text
 model and emits an `llm_summary` event.
 
 ### Adding a new pipeline
