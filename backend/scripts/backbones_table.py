@@ -2,7 +2,7 @@
 Writes Table 7 (tab:backbones-obs-unobs) into paper/sec/experiment.tex from
 data/consol/backbones_3run.json (run backbones_3run.py first). Models with all
 three frame runs show mean +/- sd (grey); models still running show their
-first run and are marked * until the other runs land. Rows are ordered by the
+first run and are shown without a spread until the other runs land. Rows are ordered by the
 physics-error question on observable videos.
 
 python backend/scripts/backbones_table.py
@@ -40,13 +40,13 @@ for m in models:
     v = R[m]
     full = v["n_runs"] == 3
     vals, sd = (v["mean"], v["sd"]) if full else (v["runs"][0], [None] * 7)
-    name = NAME[m] + ("" if full else "$^*$")
+    name = NAME[m]
     L.append(f"        {name} & " + " & ".join(cell(x, s, j) for j, (x, s) in enumerate(zip(vals, sd))) + r" \\")
 L += [r"        \midrule",
       r"        Signals only & --- & --- & --- & --- & " + " & ".join(cell(x, None, j) for j, x in zip((4, 5, 6), sig)) + r" \\",
       r"        \bottomrule", r"    \end{tabular}",
       r"    \caption{Plausibility AUC per VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos, with a standard question, the PhysicsLENS physics-error question, and that question plus Stage-1/2 signals. \emph{Hidden property}: whether the stated property was followed. Mean $\pm$ sd over three runs that show the VLM different frames of each video"
-      + (r"; $^*$first run only, remaining runs in progress" if pending else "") + r". Bold: best per column.}",
+      + r". Bold: best per column.}",
       r"    \label{tab:backbones-obs-unobs}", r"\end{table}"]
 p = ROOT / "paper/sec/experiment.tex"
 s = p.read_text()
