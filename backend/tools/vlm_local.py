@@ -204,14 +204,17 @@ def _letter_probs(m: dict, imgs: list, prompt: str, letters: str) -> dict[str, f
 
 
 def mcq_probs(frames_rgb: list[np.ndarray], prompt: str, letters: str,
-             n_sample: int = 8, model_key: str = DEFAULT_VLM) -> dict[str, float]:
+             n_sample: int = 8, model_key: str = DEFAULT_VLM,
+             max_side: int = 640) -> dict[str, float]:
     """Public wrapper mirroring `plausibility_logprob`: sample frames, load the
     model, and return raw {letter: probability} mass for a forced-choice
-    prompt whose options are lettered A, B, C, … `letters` is the exact set of
-    option letters used in this prompt (e.g. "ABCDEFGHI" for 9 options)."""
+    prompt whose options are lettered A, B, C, … (or whose answers are digits,
+    for rating questions). `letters` is the exact set of allowed answer
+    characters (e.g. "ABCDEFGHI" for 9 options, "1234" for a 1-4 rating).
+    `max_side` caps the longer image side in pixels."""
     m = load_local_vlm(model_key)
     idx = np.linspace(0, len(frames_rgb) - 1, min(n_sample, len(frames_rgb))).astype(int)
-    imgs = [_to_pil(frames_rgb[i]) for i in idx]
+    imgs = [_to_pil(frames_rgb[i], max_side) for i in idx]
     with _GPU_LOCK:
         return _letter_probs(m, imgs, prompt, letters)
 

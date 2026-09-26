@@ -85,7 +85,7 @@ def _status_to_score(status: str) -> float:
 # of it. (This used to be seven separately-keyed specialists, each with its
 # own bus-entry shape; see git history for that version of this function.)
 SPECIALIST_DISPLAY = {
-    "s3_specialist": "Specialist Evaluation",
+    "s3_specialist": "VLM Verification",
 }
 
 
