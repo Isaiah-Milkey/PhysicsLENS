@@ -858,7 +858,7 @@ const API = window.location.origin;
 const STAGES = [
   { id: 'screening',    cls: 's1', num: 1, name: 'Screening',              subtitle: 'Triage & Vital Signs',    color: '#1a54c4', desc: 'Rapidly identify suspicious regions that may contain physics violations.',              pipelines: ['s1_temporal', 's1_optical_flow', 's1_camera_motion', 's1_embeddings', 's1_vlm'] },
   { id: 'differential', cls: 's2', num: 2, name: 'Differential Diagnosis', subtitle: 'Primary Care Evaluation', color: '#c05621', desc: 'Localise failures and generate ranked physics hypotheses before expensive specialist tests.', pipelines: ['s2_object_tracker', 's2_trajectory_extractor', 's2_event_localizer', 's2_hypothesis_generator'] },
-  { id: 'specialist',   cls: 's3', num: 3, name: 'Specialist Evaluation',  subtitle: 'Expert Adjudication',     color: '#7c3aed', desc: 'Confirm or reject each candidate failure using targeted, high-fidelity specialist tests.',  pipelines: ['s3_collision', 's3_gravity', 's3_momentum', 's3_friction', 's3_deformation', 's3_fluid', 's3_causality'] },
+  { id: 'specialist',   cls: 's3', num: 3, name: 'Specialist Evaluation',  subtitle: 'Expert Adjudication',     color: '#7c3aed', desc: 'One forced-choice VLM question over all seven physics families — replaces the former per-category specialists.',  pipelines: ['s3_specialist'] },
   { id: 'final',        cls: 's4', num: 4, name: 'Final Diagnosis',         subtitle: 'Treatment Plan',          color: '#1a7a3c', desc: 'Deliver a comprehensive and interpretable physics assessment with recommendations.',       pipelines: ['s4_report'] },
 ];
 const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.id, s]));
@@ -2152,15 +2152,14 @@ let batchKeys = { openai: "", openrouter: "" };
 // still captured per-run in entry.settings, and the whole config round-trips in
 // the batch export (redacted). "__"-prefixed keys are frontend-only orchestration
 // (hypothesis→specialist routing) and are stripped before hitting the backend.
-let batchSettings = {};   // { pipelineId: { settingId: value, __route?, __routeN? } }
+let batchSettings = {};   // { pipelineId: { settingId: value, __route? } }
 
-// Hypothesis-generator specialist id → Stage 3 pipeline id (see SPECIALISTS in
-// physics_hypothesis_generator.py; pipeline ids are just "s3_<specialist>").
-const SPECIALIST_PIPES = {
-  collision: "s3_collision", gravity: "s3_gravity", momentum: "s3_momentum",
-  friction: "s3_friction", deformation: "s3_deformation", fluid: "s3_fluid",
-  causality: "s3_causality",
-};
+// The Stage 3 pipeline id: one forced-choice question replaces what used to
+// be seven separate per-category specialists the Hypothesis Generator routed
+// between (see SPECIALISTS in physics_hypothesis_generator.py — still used
+// for its own ranking/triage, just no longer a routing target since there's
+// only one Stage 3 test to run).
+const STAGE3_PIPE = "s3_specialist";
 
 // Effective batch settings for a pipeline: defaults overlaid with session
 // overrides, minus the frontend-only "__" orchestration keys.
@@ -2171,26 +2170,16 @@ function batchSettingsFor(p) {
   return out;
 }
 
-// After the Hypothesis Generator runs for a video, decide which specialists its
-// routing config says to run next. "off" → none; "auto" → the top-N ranked
-// specialists from its result; a specific pipeline id → force that one.
+// After the Hypothesis Generator runs for a video, decide whether to auto-run
+// the Stage 3 specialist. "off" → don't; "auto" (default) → do, once — the
+// MCQ always checks every family in one call, so there is nothing left to
+// pick between the way the old per-category specialists needed.
 function routedSpecialistsFor(hypEntry) {
   const cfg = batchSettings["s2_hypothesis_generator"] || {};
-  const route = cfg.__route || "auto";          // default: auto-run the top specialists
+  const route = cfg.__route || "auto";
   if (route === "off") return [];
-  if (route !== "auto") {                        // forced specific specialist
-    const fp = allPipelines[route];
-    return fp && !fp.dummy ? [fp] : [];
-  }
-  const n = Math.max(1, parseInt(cfg.__routeN, 10) || 3);
-  const res = (hypEntry.results || []).find(r => Array.isArray(r.hypotheses));
-  const picks = [];
-  for (const h of (res ? res.hypotheses : [])) {
-    const p = allPipelines[SPECIALIST_PIPES[h.specialist]];
-    if (p && !p.dummy && !picks.some(x => x.id === p.id)) picks.push(p);
-    if (picks.length >= n) break;
-  }
-  return picks;
+  const p = allPipelines[STAGE3_PIPE];
+  return p && !p.dummy ? [p] : [];
 }
 
 // Batch config for export/round-trip (selection + per-tool overrides), with any
@@ -2340,31 +2329,19 @@ function buildBatchSettingsPanel(panel, p, cfgDefs) {
 
   if (p.id === "s2_hypothesis_generator") {
     const box = document.createElement("div"); box.className = "ds-route-box";
-    box.innerHTML = `<label class="setting-label">After ranking, auto-run specialist</label>`;
+    box.innerHTML = `<label class="setting-label">After ranking, auto-run Stage 3</label>`;
     const sel = document.createElement("select"); sel.className = "setting-select"; sel.dataset.route = "1";
-    const opts = [["off", "Off — just rank"], ["auto", "Auto — top-ranked specialist(s)"]];
-    Object.values(SPECIALIST_PIPES).forEach(pipeId => {
-      const sp = allPipelines[pipeId];
-      if (sp && !sp.dummy) opts.push([pipeId, `Force: ${sp.name}`]);
-    });
+    const opts = [["off", "Off — just rank"], ["auto", "Auto — run the Stage 3 specialist"]];
     opts.forEach(([v, l]) => {
       const o = document.createElement("option"); o.value = v; o.textContent = l;
       if ((saved.__route || "auto") === v) o.selected = true; sel.appendChild(o);
     });
     box.appendChild(sel);
-    const nRow = document.createElement("div"); nRow.className = "setting-row"; nRow.style.marginTop = "8px";
-    nRow.innerHTML = `<label class="setting-label">Auto: how many top specialists</label>`;
-    const nIn = document.createElement("input"); nIn.className = "setting-input"; nIn.type = "number";
-    nIn.min = "1"; nIn.max = "7"; nIn.step = "1"; nIn.dataset.routen = "1"; nIn.value = saved.__routeN ?? 3;
-    nRow.appendChild(nIn); box.appendChild(nRow);
     const note = document.createElement("div"); note.className = "ds-set-note";
-    note.textContent = "Routed specialists use their own settings below / defaults. Select them as tests too and they won't run twice.";
+    note.textContent = "The Stage 3 specialist uses its own settings below / defaults. Select it as a test too and it won't run twice.";
     box.appendChild(note);
     panel.appendChild(box);
-    const syncN = () => { nRow.style.display = sel.value === "auto" ? "" : "none"; };
-    syncN();
-    sel.addEventListener("change", () => { syncN(); persistBatchPanel(panel, p); });
-    nIn.addEventListener("input", () => persistBatchPanel(panel, p));
+    sel.addEventListener("change", () => persistBatchPanel(panel, p));
   }
 
   const fields = document.createElement("div");
@@ -2392,14 +2369,12 @@ function buildBatchSettingsPanel(panel, p, cfgDefs) {
   foot.appendChild(reset); panel.appendChild(foot);
 }
 
-// Persist a panel's current values (including routing pseudo-keys) into the
-// session batchSettings store.
+// Persist a panel's current values (including the routing pseudo-key) into
+// the session batchSettings store.
 function persistBatchPanel(panel, p) {
   const vals = readSettingsFields(panel);   // reads every data-sid field in the panel
   const routeSel = panel.querySelector("[data-route]");
-  const routeN = panel.querySelector("[data-routen]");
   if (routeSel) vals.__route = routeSel.value;
-  if (routeN) vals.__routeN = Math.max(1, parseInt(routeN.value, 10) || 1);
   batchSettings[p.id] = vals;
   updateBatchSettingsBadge();
 }

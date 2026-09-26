@@ -178,6 +178,44 @@ def plausibility_logprob(frames_rgb: list[np.ndarray], n_sample: int = 8,
         return _yesno_prob(m, imgs, _YESNO_PROMPT.format(n=len(imgs)))
 
 
+def _letter_probs(m: dict, imgs: list, prompt: str, letters: str) -> dict[str, float]:
+    """{letter: probability} for the model's next-token distribution, summed
+    over surface-form variants (bare, space-prefixed, upper/lower) the way
+    `_yesno_prob` does for Yes/No. Used for forced-choice (MCQ) scoring: the
+    prompt lists lettered options and the model answers with one letter.
+    Caller must hold _GPU_LOCK."""
+    torch, model, proc = m["torch"], m["model"], m["proc"]
+    inputs = _prep_inputs(m, imgs, prompt)
+    with torch.no_grad():
+        out = model.generate(**inputs, max_new_tokens=1, do_sample=False,
+                             output_scores=True, return_dict_in_generate=True)
+    probs = torch.softmax(out.scores[0][0].float(), dim=-1)
+    tok = getattr(proc, "tokenizer", proc)
+
+    def _mass(letter: str) -> float:
+        ids = set()
+        for v in (letter, " " + letter, letter.lower(), " " + letter.lower()):
+            enc = tok.encode(v, add_special_tokens=False)
+            if enc:
+                ids.add(enc[0])
+        return float(sum(probs[i].item() for i in ids))
+
+    return {L: _mass(L) for L in letters}
+
+
+def mcq_probs(frames_rgb: list[np.ndarray], prompt: str, letters: str,
+             n_sample: int = 8, model_key: str = DEFAULT_VLM) -> dict[str, float]:
+    """Public wrapper mirroring `plausibility_logprob`: sample frames, load the
+    model, and return raw {letter: probability} mass for a forced-choice
+    prompt whose options are lettered A, B, C, … `letters` is the exact set of
+    option letters used in this prompt (e.g. "ABCDEFGHI" for 9 options)."""
+    m = load_local_vlm(model_key)
+    idx = np.linspace(0, len(frames_rgb) - 1, min(n_sample, len(frames_rgb))).astype(int)
+    imgs = [_to_pil(frames_rgb[i]) for i in idx]
+    with _GPU_LOCK:
+        return _letter_probs(m, imgs, prompt, letters)
+
+
 def verify_rule(frames_rgb: list[np.ndarray], question: str,
                 model_key: str = DEFAULT_VLM, n_sample: int = 8,
                 want_evidence: bool = True) -> dict:

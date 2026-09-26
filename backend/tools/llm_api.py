@@ -80,6 +80,45 @@ async def query_vision(query: str, frame_bgr: np.ndarray, *,
     return {"response": resp.choices[0].message.content or ""}
 
 
+async def query_vision_token_probs(prompt: str, frames_bgr: list, *,
+                                   model: str = DEFAULT_MODEL,
+                                   top_logprobs: int = 20,
+                                   timeout_s: float = 60.0,
+                                   token: Optional[str] = None,
+                                   base_url: Optional[str] = None) -> Dict[str, float]:
+    """Multiple images + prompt → {token: probability} for the first
+    generated token, read from top_logprobs rather than a greedy decode.
+    Used for forced-choice (MCQ) scoring, where the answer is exactly one
+    option letter and its probability is directly informative.
+
+    `top_logprobs` must stay at 20: at lower values some OpenAI-compatible
+    gateways return a malformed distribution (probabilities not summing to
+    1, competing tokens assigned identical mass) — verified against the
+    gateway this was built for. Tokens are summed by their stripped,
+    uppercased surface form, since "A", " A" and "a" are the same answer and
+    a plain overwrite would let whichever form is emitted last erase the
+    real mass.
+    """
+    import math
+    client = _client(token, base_url)
+    content = [{"type": "image_url", "image_url": {"url": frame_to_data_url(f)}}
+              for f in frames_bgr]
+    content.append({"type": "text", "text": prompt})
+    resp = await client.chat.completions.create(
+        model=model, messages=[{"role": "user", "content": content}],
+        max_tokens=1, temperature=0, logprobs=True, top_logprobs=top_logprobs,
+        timeout=timeout_s)
+    lp = resp.choices[0].logprobs
+    if not lp or not lp.content:
+        return {}
+    out: Dict[str, float] = {}
+    for t in lp.content[0].top_logprobs:
+        key = t.token.strip().upper()
+        if key:
+            out[key] = out.get(key, 0.0) + math.exp(t.logprob)
+    return out
+
+
 async def query_text(query: str, *,
                      model: str = DEFAULT_MODEL,
                      system_prompt: Optional[str] = None,

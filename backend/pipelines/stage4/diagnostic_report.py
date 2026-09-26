@@ -76,67 +76,31 @@ def _status_to_score(status: str) -> float:
 
 
 # ── Semantic findings: VLM-explained violations from the evidence bus ────────
-# Every Stage 2/3 specialist that ran on this video writes its structured
-# findings (each with a timestamp, a confidence, and a plain-language VLM
-# explanation) to the evidence bus, keyed by video content hash. This is a
-# much richer, more reliable "what went wrong and when" source than parsing
-# the frontend's log lines — it's the exact data the specialists' own VLM
-# calls produced, not a summary of it.
+# Stage 3 is now one specialist — a single forced-choice VLM question over
+# all seven physics families (+ permanence, + none; see
+# pipelines/stage3/specialist_mcq.py) — that writes its structured finding to
+# the evidence bus, keyed by video content hash. This is a much richer, more
+# reliable "what went wrong" source than parsing the frontend's log lines —
+# it's the exact data the specialist's own VLM call produced, not a summary
+# of it. (This used to be seven separately-keyed specialists, each with its
+# own bus-entry shape; see git history for that version of this function.)
 SPECIALIST_DISPLAY = {
-    "s3_deformation": "Deformation",
-    "s3_collision":   "Collision & Contact",
-    "s3_momentum":    "Momentum",
-    "s3_friction":    "Friction",
-    "s3_fluid":       "Fluid",
-    "s3_gravity":     "Gravity",
-    "s3_causality":   "Causality",
+    "s3_specialist": "Specialist Evaluation",
 }
 
 
-def _norm_finding(v: dict, source: str) -> dict:
-    """Normalizes one specialist's violation/verdict dict into a common shape.
-
-    Two specialist conventions exist: deformation's verdicts carry a
-    "verdict" field directly (no separate confirm/reject step — the VLM
-    judgment IS the verdict), while collision/momentum/friction/fluid carry a
-    "type" + a "confirmed" bool from a dedicated VLM confirm/reject check.
-    `flagged` unifies both: a deformation verdict counts unless it's
-    "consistent"; the others count unless explicitly confirmed False (the
-    VLM said "plausible", i.e. not actually a defect).
-    """
-    is_verdict_style = "verdict" in v
-    kind = v.get("verdict") if is_verdict_style else v.get("type", "anomaly")
-    flagged = (kind not in (None, "consistent")) if is_verdict_style \
-        else (v.get("confirmed") is not False)
-
-    conf = v.get("vlm_confidence")
-    if conf is None:
-        conf = v.get("confidence")
-    if conf is None:
-        conf = v.get("score")
-
-    return {
-        "source": source,
-        "type": kind,
-        "label": v.get("label") or v.get("object_name"),
-        "t": v.get("t"),
-        "t_end": v.get("t_end", v.get("t")),
-        "confidence": round(float(conf), 3) if conf is not None else None,
-        "explanation": v.get("explanation") or v.get("desc") or "",
-        "flagged": bool(flagged),
-    }
-
-
 def _collect_semantic_findings(video_path: str) -> tuple[list[dict], list[dict], list[str]]:
-    """Reads every Stage 2/3 specialist's evidence-bus entry for this exact
-    video and returns (semantic_timeline, triage_hypotheses, specialists_seen).
+    """Reads the Stage 3 specialist's evidence-bus entry for this exact video
+    and returns (semantic_timeline, triage_hypotheses, specialists_seen).
 
-    semantic_timeline: chronological (time-localized findings first, then
-    whole-clip ones), each a normalized "what went wrong, when, per whom, and
-    why" entry with the specialist's own VLM explanation.
+    semantic_timeline: normalized "what went wrong and why" entries with the
+    specialist's own explanation. The MCQ judges the whole clip in one call
+    (no per-object localization), so every entry has t=None — there is
+    exactly one entry per video, present only when the top answer isn't
+    "none".
     triage_hypotheses: the Hypothesis Generator's pre-run suspicions (kept
-    separate — these are *where the system suspected trouble*, not confirmed
-    findings, and shouldn't be conflated with the timeline above).
+    separate — these are *where the system suspected trouble*, not a
+    confirmed finding, and shouldn't be conflated with the timeline above).
     """
     vid = video_id(video_path)
     timeline: list[dict] = []
@@ -148,53 +112,14 @@ def _collect_semantic_findings(video_path: str) -> tuple[list[dict], list[dict],
             continue
         specialists_seen.append(name)
 
-        if key == "s3_deformation":
-            for v in ev.get("verdicts", []) or []:
-                f = _norm_finding(v, name)
-                if f["flagged"]:
-                    timeline.append(f)
-            for g in ev.get("vanish_events", []) or []:
-                timeline.append({
-                    "source": name, "type": "vanish_gap", "label": g.get("label"),
-                    "t": g.get("t_start"), "t_end": g.get("t_end"),
-                    "confidence": g.get("score"),
-                    "explanation": (f"a {g.get('gap_s')}s presence gap in "
-                                    f"\"{g.get('label')}\"'s mask timeline — the "
-                                    "object was briefly undetectable"),
-                    "flagged": True,
-                })
-        elif key == "s3_fluid":
-            for v in ev.get("violations", []) or []:
-                f = _norm_finding(v, name)
-                if f["flagged"]:
-                    timeline.append(f)
-            h = ev.get("holistic")
-            if h and h.get("verdict") == "unrealistic":
-                timeline.append({
-                    "source": name, "type": "holistic_realism", "label": None,
-                    "t": None, "t_end": None, "confidence": h.get("confidence"),
-                    "explanation": h.get("explanation", ""), "flagged": True,
-                })
-        elif key == "s3_causality":
-            # Rule-based, not a violations list: each entry is a global
-            # yes/no check (e.g. "effect precedes cause") rather than a
-            # timestamped per-object finding, so t stays None (whole-clip).
-            for r in ev.get("rules", []) or []:
-                if not r.get("fired"):
-                    continue
-                evidence = r.get("evidence") or (
-                    f"{r['geom_support']} geometric event(s) the VLM can't see "
-                    "in stills" if r.get("geom_support") else "")
-                timeline.append({
-                    "source": name, "type": "causality_rule", "label": r.get("law"),
-                    "t": None, "t_end": None, "confidence": r.get("score"),
-                    "explanation": evidence, "flagged": True,
-                })
-        else:
-            for v in ev.get("violations", []) or []:
-                f = _norm_finding(v, name)
-                if f["flagged"]:
-                    timeline.append(f)
+        if ev.get("top_family") and ev["top_family"] != "none":
+            timeline.append({
+                "source": name, "type": ev["top_family"], "label": None,
+                "t": None, "t_end": None,
+                "confidence": ev.get("p_violation"),
+                "explanation": ev.get("explanation", ""),
+                "flagged": True,
+            })
 
     triage: list[dict] = []
     ev_hyp = EVIDENCE.get(vid, "s2_hypothesis_generator")

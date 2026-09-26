@@ -41,13 +41,13 @@ from pipelines.stage2.event_localizer             import run as run_s2_event_loc
 from pipelines.stage2.physics_hypothesis_generator import run as run_s2_hypothesis_generator
 
 # ── Stage 3 — Specialist Evaluation ──────────────────────────────────────────
-from pipelines.stage3.collision_specialist    import run as run_s3_collision
-from pipelines.stage3.gravity_specialist      import run as run_s3_gravity
-from pipelines.stage3.momentum_specialist     import run as run_s3_momentum
-from pipelines.stage3.friction_specialist     import run as run_s3_friction
-from pipelines.stage3.deformation_specialist  import run as run_s3_deformation   # (absorbed consistency)
-from pipelines.stage3.fluid_specialist        import run as run_s3_fluid
-from pipelines.stage3.causality_specialist    import run as run_s3_causality
+# A single forced-choice VLM question over all seven physics families (+
+# permanence, + none) replaced the seven separate per-category specialists —
+# see pipelines/stage3/specialist_mcq.py's docstring. This is the design
+# validated in the paper (backend/scripts/mcq_probe.py); the retired
+# specialists (collision/gravity/momentum/friction/deformation/fluid/
+# causality) are in git history, not this working tree.
+from pipelines.stage3.specialist_mcq          import run as run_s3_specialist
 
 # ── Stage 4 — Final Diagnosis & Treatment Plan ────────────────────────────────
 from pipelines.stage4.diagnostic_report          import run as run_s4_report
@@ -322,208 +322,28 @@ PIPELINES = {
     },
 
     # ── Stage 3: Specialist Evaluation ───────────────────────────────────────
-    "s3_collision": {
-        "id":    "s3_collision",
-        "name":  "Collision & Contact Specialist",
-        "desc":  "Mask-intersection contact episodes per subject pair: interpenetration (VLM-verified), restitution bounds (energy gain), and phantom bounces off nothing.",
-        "badge": "expensive",
+    # Single forced-choice question over all seven physics families (+
+    # permanence, + none) — see pipelines/stage3/specialist_mcq.py. This
+    # replaces the seven separate per-category specialists that used to be
+    # registered here (collision/gravity/momentum/friction/deformation/
+    # fluid/causality); it's the design the paper's automated-diagnosis
+    # results actually evaluated.
+    "s3_specialist": {
+        "id":    "s3_specialist",
+        "name":  "Specialist Evaluation",
+        "desc":  "One multiple-choice question: which of seven physics families (collision, deformation, causality, gravity, momentum, fluid, friction), object permanence, or none best explains the video's main physics problem. Forced choice makes the options compete, unlike scoring each family independently.",
+        "badge": "medium",
         "dummy": False,
         "requires_pair": False,
         "settings": [
-            _vlm_model_setting("Vision model"),
+            _vlm_model_setting("Model", include_local=True, default="qwen2.5-vl-7b"),
             _vlm_key_setting(),
-            {"id": "overlap_threshold", "label": "Contact threshold (dilated-mask adjacency)", "type": "number",
-             "default": 0.02, "min": 0.005, "max": 0.9},
-            {"id": "deep_overlap", "label": "Interpenetration threshold (raw mask overlap)", "type": "number",
-             "default": 0.35, "min": 0.05, "max": 1.0},
-            {"id": "restitution_max", "label": "Max plausible restitution", "type": "number",
-             "default": 1.1, "min": 0.5, "max": 3.0},
-            {"id": "max_checks", "label": "Max VLM confirmations", "type": "number",
-             "default": 3, "min": 1, "max": 10},
-            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
-             "default": 3, "min": 1, "max": 6},
+            {"id": "num_frames", "label": "Frames to sample", "type": "number",
+             "default": 8, "min": 4, "max": 16},
+            {"id": "task_description", "label": "Task description (optional — improves the prompt)",
+             "type": "text", "default": ""},
         ],
-        "run": run_s3_collision,
-    },
-    "s3_gravity": {
-        "id":    "s3_gravity",
-        "name":  "Gravity Specialist",
-        "desc":  "Parabola fits on free-flight segments: anti-gravity, non-parabolic/inconsistent falls, float/hover (VLM-verified), Galileo equivalence across objects, apex symmetry.",
-        "badge": "expensive",
-        "dummy": False,
-        "requires_pair": False,
-        "settings": [
-            _vlm_model_setting("Vision model", default="openai:gpt-4o"),
-            _vlm_key_setting(),
-            {"id": "auto_deps", "label": "Evidence pre-step", "type": "select",
-             "default": "agent",
-             "options": [
-                 {"value": "agent", "label": "Agent decides (1 VLM call)"},
-                 {"value": "rules", "label": "Rules — fetch missing deps"},
-                 {"value": "off",   "label": "Off"}]},
-            {"id": "max_checks", "label": "Max VLM confirmations", "type": "number",
-             "default": 3, "min": 1, "max": 10},
-            {"id": "min_airborne_s", "label": "Min free-flight duration (s)", "type": "number",
-             "default": 0.4, "min": 0.1, "max": 3.0},
-            {"id": "equiv_tolerance", "label": "Max fall-accel ratio between objects (Galileo)", "type": "number",
-             "default": 1.5, "min": 1.05, "max": 5.0},
-            {"id": "px_per_meter", "label": "Scale px/m (0 = skip absolute-g estimate)", "type": "number",
-             "default": 0, "min": 0, "max": 100000},
-            {"id": "g_tolerance", "label": "g tolerance (fraction, absolute-g estimate only)", "type": "number",
-             "default": 0.20, "min": 0.01, "max": 1.0},
-        ],
-        "run": run_s3_gravity,
-    },
-    "s3_momentum": {
-        "id":    "s3_momentum",
-        "name":  "Momentum Specialist",
-        "desc":  "Per-subject motion signature (speed/accel/arc/curvature → 0–100 momentum score) with a mask-area × VLM mass proxy; flags momentum jumps with no visible cause and unbalanced transfer at contacts, each VLM-verified.",
-        "badge": "expensive",
-        "dummy": False,
-        "requires_pair": False,
-        "settings": [
-            _vlm_model_setting("Vision model"),
-            _vlm_key_setting(),
-            {"id": "momentum_tolerance", "label": "Unexplained momentum-jump threshold (fraction of typical)", "type": "number",
-             "default": 0.5, "min": 0.05, "max": 3.0},
-            {"id": "transfer_tolerance", "label": "Transfer residual tolerance (fraction)", "type": "number",
-             "default": 0.35, "min": 0.05, "max": 1.0},
-            {"id": "max_checks", "label": "Max VLM verifications", "type": "number",
-             "default": 3, "min": 1, "max": 10},
-            {"id": "use_mass_ranking", "label": "VLM relative-mass ranking", "type": "select",
-             "default": "true",
-             "options": [
-                 {"value": "true",  "label": "Enabled (one extra VLM call)"},
-                 {"value": "false", "label": "Disabled (area proxy only)"},
-             ]},
-        ],
-        "run": run_s3_momentum,
-    },
-    "s3_friction": {
-        "id":    "s3_friction",
-        "name":  "Friction Specialist",
-        "desc":  "Splits each subject's speed curve into coast segments (away from contact/border) and "
-                 "fits speed-vs-time decay; flags flat sliding with no deceleration, unexplained speed-ups, "
-                 "and instant stops — cross-checked with a Farneback optical-flow slope corroboration and "
-                 "VLM-verified.",
-        "badge": "expensive",
-        "dummy": False,
-        "requires_pair": False,
-        "settings": [
-            _vlm_model_setting("Vision model"),
-            _vlm_key_setting(),
-            {"id": "friction_tolerance", "label": "Flat-coast threshold (|slope|/speed, no-friction trigger)", "type": "number",
-             "default": 0.06, "min": 0.01, "max": 1.0},
-            {"id": "acceleration_tolerance", "label": "Self-acceleration threshold (slope/speed)", "type": "number",
-             "default": 0.20, "min": 0.02, "max": 1.0},
-            {"id": "stop_tolerance", "label": "Abrupt-stop threshold (fractional 1-step drop)", "type": "number",
-             "default": 0.55, "min": 0.10, "max": 0.95},
-            {"id": "max_checks", "label": "Max VLM verifications", "type": "number",
-             "default": 3, "min": 1, "max": 10},
-            {"id": "use_flow_check", "label": "Optical-flow slope corroboration", "type": "select",
-             "default": "true",
-             "options": [
-                 {"value": "true",  "label": "Enabled (cheap Farneback cross-check)"},
-                 {"value": "false", "label": "Disabled"},
-             ]},
-        ],
-        "run": run_s3_friction,
-    },
-    "s3_deformation": {
-        "id":    "s3_deformation",
-        "name":  "Deformation Specialist",
-        "desc":  "Per masked subject, DINOv2 drift detects shape/appearance change-points (fixed viewport); the VLM verifies and explains each morph/fragmentation, and mask presence gaps flag vanish/reappear. (Absorbed the Object Consistency Specialist.)",
-        "badge": "expensive",
-        "dummy": False,
-        "requires_pair": False,
-        "settings": [
-            _vlm_model_setting("Vision model"),
-            _vlm_key_setting(),
-            {"id": "max_subjects", "label": "Max subjects (inline fallback)", "type": "number",
-             "default": 3, "min": 1, "max": 6},
-            {"id": "max_checks", "label": "Max VLM checks per subject", "type": "number",
-             "default": 4, "min": 1, "max": 12},
-            {"id": "drift_threshold", "label": "Drift threshold (cosine dist)", "type": "number",
-             "default": 0.30, "min": 0.05, "max": 1.0},
-            {"id": "strip_tiles", "label": "Tiles in overview strip", "type": "number",
-             "default": 6, "min": 3, "max": 10},
-            {"id": "min_vanish_gap_s", "label": "Min vanish gap (s)", "type": "number",
-             "default": 0.3, "min": 0.05, "max": 3.0},
-        ],
-        "run": run_s3_deformation,
-    },
-    # s3_consistency merged into s3_deformation; s3_contact merged into s3_collision.
-    "s3_fluid": {
-        "id":    "s3_fluid",
-        "name":  "Fluid Specialist",
-        "desc":  "Seeds a grid of points in the fluid region and advects them through dense (Farneback) optical "
-                 "flow to build real arcs/streaklines; flags non-ballistic droplet arcs, divergence spikes "
-                 "(sources/sinks), splash timing that doesn't follow an impactor, and abrupt flow-field jumps — "
-                 "each VLM-verified, plus one holistic VLM realism pass over the whole clip.",
-        "badge": "expensive",
-        "dummy": False,
-        "requires_pair": False,
-        "settings": [
-            _vlm_model_setting("Vision model"),
-            _vlm_key_setting(),
-            {"id": "viscosity_mode", "label": "Viscosity regime", "type": "select",
-             "default": "low",
-             "options": [
-                 {"value": "low",  "label": "Low viscosity (water)"},
-                 {"value": "high", "label": "High viscosity (syrup, tighter tolerances)"},
-             ]},
-            {"id": "grid_spacing", "label": "Point-seeding grid spacing (px, downscaled)", "type": "number",
-             "default": 14, "min": 4, "max": 60},
-            {"id": "max_points", "label": "Max concurrent tracked points", "type": "number",
-             "default": 250, "min": 20, "max": 1000},
-            {"id": "arc_r2_min", "label": "Min ballistic-arc fit R² (below = violation)", "type": "number",
-             "default": 0.6, "min": 0.0, "max": 1.0},
-            {"id": "divergence_tolerance", "label": "Divergence tolerance (× region flow speed)", "type": "number",
-             "default": 1.5, "min": 0.2, "max": 10.0},
-            {"id": "discontinuity_tolerance", "label": "Bulk-flow discontinuity tolerance", "type": "number",
-             "default": 1.8, "min": 0.2, "max": 10.0},
-            {"id": "causality_window_s", "label": "Splash/impactor causality window (s)", "type": "number",
-             "default": 1.0, "min": 0.1, "max": 5.0},
-            {"id": "max_checks", "label": "Max VLM verifications", "type": "number",
-             "default": 3, "min": 1, "max": 10},
-            {"id": "use_holistic_vlm", "label": "Holistic realism pass", "type": "select",
-             "default": "true",
-             "options": [
-                 {"value": "true",  "label": "Enabled (one whole-clip VLM call)"},
-                 {"value": "false", "label": "Disabled"},
-             ]},
-        ],
-        "run": run_s3_fluid,
-    },
-    "s3_causality": {
-        "id":    "s3_causality",
-        "name":  "Causality Specialist",
-        "desc":  "A VLM rule-checking agent: runs an explicit checklist of causality rules (effect-before-cause, time-reversal, dropped/duplicated frames, cause-without-effect, spontaneous motion). Each rule is a prompt the model CHECKS via Yes/No token probability and VERIFIES with one line of visual evidence. Scale-invariant — no pixel magnitudes. Stage 2 kinematics corroborate where available.",
-        "badge": "expensive",
-        "dummy": False,
-        "requires_pair": False,
-        "settings": [
-            {"id": "model", "label": "VLM model (local, no API key)", "type": "select",
-             "default": "qwen2.5-vl-7b",
-             "options": [
-                 {"value": "qwen2.5-vl-7b",  "label": "Qwen2.5-VL 7B — best judge, AUC 0.92, ~17 GB"},
-                 {"value": "internvl3-8b",   "label": "InternVL3 8B — AUC 0.70, ~18 GB"},
-                 {"value": "internvl3-14b",  "label": "InternVL3 14B — ~30 GB"},
-                 {"value": "qwen2.5-vl-32b", "label": "Qwen2.5-VL 32B — ~64 GB, slow"},
-                 {"value": "smolvlm2-2.2b",  "label": "SmolVLM2 2.2B — fast, weak, ~5 GB"},
-             ]},
-            {"id": "num_frames", "label": "Keyframes to sample", "type": "number",
-             "default": 8, "min": 4, "max": 20},
-            {"id": "fire_threshold", "label": "Rule-fire threshold — P(violated) to flag a rule", "type": "number",
-             "default": 0.5, "min": 0.1, "max": 0.95},
-            {"id": "want_evidence", "label": "Ask the model for evidence on fired rules", "type": "select",
-             "default": "true",
-             "options": [
-                 {"value": "true",  "label": "Enabled (one sentence per fired rule)"},
-                 {"value": "false", "label": "Disabled (faster)"},
-             ]},
-        ],
-        "run": run_s3_causality,
+        "run": run_s3_specialist,
     },
 
     # ── Stage 4: Final Diagnosis & Treatment Plan ─────────────────────────────

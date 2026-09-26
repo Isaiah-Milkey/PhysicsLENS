@@ -48,3 +48,6 @@ eval_reports/
 # and paper/fig/ locally when pointed at a local paper/ checkout — keep all
 # of it out of version control here.
 paper/
+
+# local working notes, not part of the release
+CAMERA_READY_PLAN.md
