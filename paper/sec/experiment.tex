@@ -178,10 +178,10 @@ Can PhysicsLENS stand in for human annotators? We run its stages on all 439 anno
         LLaVA-OV-7B & 0.47{\scriptsize\textcolor{gray}{$\pm$0.00}} & 0.55{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.55{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.62{\scriptsize\textcolor{gray}{$\pm$0.00}} & 0.59{\scriptsize\textcolor{gray}{$\pm$0.00}} & 0.66{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.62{\scriptsize\textcolor{gray}{$\pm$0.00}} \\
         Mistral-Small-3.1-24B & 0.53 & 0.54 & 0.53 & 0.58 & 0.58 & 0.66 & 0.56 \\
         \midrule
-        Signals only & --- & --- & --- & --- & 0.61 & 0.65 & \textbf{0.69} \\
+        Signals only & --- & --- & --- & --- & 0.60{\scriptsize\textcolor{gray}{$\pm$0.01}} & 0.65{\scriptsize\textcolor{gray}{$\pm$0.00}} & \textbf{0.66{\scriptsize\textcolor{gray}{$\pm$0.06}}} \\
         \bottomrule
     \end{tabular}
-    \caption{Plausibility AUC per VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos, with a standard question, the PhysicsLENS physics-error question, and that question plus Stage-1/2 signals. \emph{Hidden property}: whether the stated property was followed. Mean $\pm$ sd over three runs that show the VLM different frames of each video. Bold: best per column.}
+    \caption{Plausibility AUC per VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos, with a standard question, the PhysicsLENS physics-error question, and that question plus Stage-1/2 signals. \emph{Hidden property}: whether the stated property was followed. Mean $\pm$ sd over three runs that show the VLM different frames of each video (for signals only, three cross-validation splits). Bold: best per column.}
     \label{tab:backbones-obs-unobs}
 \end{table}
 

@@ -82,9 +82,18 @@ for m in P.LIVE:
     R = np.array(runs)
     out[m] = {"n_runs": len(runs), "mean": R.mean(0).tolist(), "sd": R.std(0, ddof=1).tolist() if len(runs) > 1 else None,
               "runs": R.tolist()}
-sig = [auc(YP[OBS], P.T_plaus[OBS]), auc(YP[UN], P.T_plaus[UN]),
-       auc(HB[HM], np.nan_to_num(P.T_hid)[HM])]
-out["Signals only"] = {"n_runs": 1, "mean": sig, "sd": None}
+# Signals only has no VLM and the signals are deterministic, so its three runs
+# are three cross-validation fold splits (signal selection happens on training folds).
+from system_eval import tool_oof  # noqa: E402
+S = []
+for seed in (0, 1, 2):
+    tp = tool_oof(P.X, P.Y, P.G, seed=seed)
+    th = np.full(N, np.nan)
+    th[UN] = tool_oof(P.X[UN], P.HF[UN], P.G[UN], seed=seed)
+    S.append([auc(YP[OBS], tp[OBS]), auc(YP[UN], tp[UN]), auc(HB[HM], th[HM])])
+S = np.array(S)
+out["Signals only"] = {"n_runs": 3, "mean": S.mean(0).tolist(), "sd": S.std(0, ddof=1).tolist(),
+                       "runs": S.tolist(), "note": "three fold splits (seeds 0-2)"}
 json.dump(out, open(P.D / "backbones_3run.json", "w"), indent=1)
 print("\nmissing:", missing or "none")
 for m, v in out.items():

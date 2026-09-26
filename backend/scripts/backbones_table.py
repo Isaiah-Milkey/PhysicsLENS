@@ -22,6 +22,7 @@ NAME = {"qwen3-vl-32b-instruct": "Qwen3-VL-32B", "qwen3-vl-8b": "Qwen3-VL-8B",
 models = sorted([m for m in R if m in NAME], key=lambda m: -R[m]["mean"][2])
 best = np.max([R[m]["mean"] for m in models], axis=0)
 sig = R["Signals only"]["mean"]
+sig_sd = R["Signals only"].get("sd") or [None] * 3
 best = np.maximum(best, [-1, -1, -1, -1, sig[0], sig[1], sig[2]])
 pending = [m for m in models if R[m]["n_runs"] < 3]
 
@@ -43,9 +44,9 @@ for m in models:
     name = NAME[m]
     L.append(f"        {name} & " + " & ".join(cell(x, s, j) for j, (x, s) in enumerate(zip(vals, sd))) + r" \\")
 L += [r"        \midrule",
-      r"        Signals only & --- & --- & --- & --- & " + " & ".join(cell(x, None, j) for j, x in zip((4, 5, 6), sig)) + r" \\",
+      r"        Signals only & --- & --- & --- & --- & " + " & ".join(cell(x, sd, j) for j, x, sd in zip((4, 5, 6), sig, sig_sd)) + r" \\",
       r"        \bottomrule", r"    \end{tabular}",
-      r"    \caption{Plausibility AUC per VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos, with a standard question, the PhysicsLENS physics-error question, and that question plus Stage-1/2 signals. \emph{Hidden property}: whether the stated property was followed. Mean $\pm$ sd over three runs that show the VLM different frames of each video"
+      r"    \caption{Plausibility AUC per VLM on observable ($n{=}320$) and unobservable ($n{=}119$) videos, with a standard question, the PhysicsLENS physics-error question, and that question plus Stage-1/2 signals. \emph{Hidden property}: whether the stated property was followed. Mean $\pm$ sd over three runs that show the VLM different frames of each video (for signals only, three cross-validation splits)"
       + r". Bold: best per column.}",
       r"    \label{tab:backbones-obs-unobs}", r"\end{table}"]
 p = ROOT / "paper/sec/experiment.tex"
