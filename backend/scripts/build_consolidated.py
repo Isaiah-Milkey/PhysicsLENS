@@ -1,5 +1,8 @@
 """
-Ingest consolidated_annotations.csv (4 generators x observable/unobservable).
+Ingest data/annotations/consolidated_annotations.csv (4 generators x
+observable/unobservable) — not included in this repo; place your own copy at
+that path (gitignored, under data/) before running this script. See the
+column names read in main() below for the expected schema.
 
 Resolves each annotation row to its video by (model, observability) -> directory,
 not by filename alone: Wan and Cosmos reuse the source demo's filename, and the
@@ -49,7 +52,7 @@ def resolve(r):
 
 
 def main():
-    a = pd.read_csv(ROOT / "consolidated_annotations.csv")
+    a = pd.read_csv(ROOT / "data/annotations/consolidated_annotations.csv")
     po = pd.read_csv(ROOT / "data/prompts/testset_prompts.csv").set_index("id")
     pu = pd.read_csv(ROOT / "data/prompts/testset_prompts_unobservable.csv").set_index("id")
 
