@@ -1,7 +1,18 @@
-# PhysicsLENS — Physics Diagnostic Pipeline
+# PhysicsLENS
 
-Web interface for evaluating physics accuracy in AI-generated video.  
-Structured as a four-stage medical diagnostic workflow.
+PhysicsLENS is a benchmark and diagnostic pipeline for evaluating physical
+plausibility and physical-property grounding in AI-generated robot video. Its
+matched scenarios hold the conditioning frame and action fixed while moving a
+governing physical property from visible in the frame to stated only in text,
+so that physical plausibility and adherence to the stated property can be
+measured as two separate questions rather than one conflated score.
+
+Alongside the human-annotated benchmark, this repository implements an
+automated diagnostic pipeline — screening, localization, specialist
+evaluation, and reporting — that produces structured, interpretable findings
+about *why* a video fails, rather than only a single plausibility number. This
+repository contains that pipeline's web interface, its backend, and the
+evaluation scripts used to reproduce the paper's results.
 
 ## Architecture
 

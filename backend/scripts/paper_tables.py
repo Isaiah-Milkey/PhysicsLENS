@@ -36,7 +36,7 @@ from specialist_accuracy import auc, cats_of  # noqa: E402
 
 D = ROOT / "data" / "consol"
 PAPER = ROOT / "paper"
-(PAPER / "tables").mkdir(exist_ok=True)
+(PAPER / "tables").mkdir(parents=True, exist_ok=True)
 
 GEN_NAME = {"wan": "Wan 2.2", "cosmos": "Cosmos-nano 1", "hunyuan": "HunyuanVideo 1.5",
             "magi": "MAGI 4.5B distill"}

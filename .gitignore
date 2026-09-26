@@ -43,9 +43,8 @@ eval_reports/
 # Raw dataset drops — large, and re-derivable from the staged copy
 *.zip
 
-# Paper build outputs and local backups
-paper/_build.*
-paper/*.bak*
-paper/*.log
-paper/main(old).tex
-paper/iclr2026_conference.pdf
+# Paper source lives outside this repo; backend/scripts/paper_tables.py,
+# main_table_full.py and build_results_tex.py still regenerate paper/tables/
+# and paper/fig/ locally when pointed at a local paper/ checkout — keep all
+# of it out of version control here.
+paper/
