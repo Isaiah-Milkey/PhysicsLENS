@@ -197,3 +197,68 @@ json.dump({"single": {k: [list(map(float, a)) for a in v] for k, v in rows.items
            "per_model": {f"{m}|{n}": list(map(float, per_model[(m, n)])) for m, n in per_model}},
           open(P.D / "main_table_full.json", "w"), indent=1)
 print("->", P.D / "main_table_full.json")
+
+
+# ── LaTeX: tab:main-results, every column filled ─────────────────────────────
+# This is now the sole writer of paper/tables/main.tex. paper_tables.py's own
+# main_table() (unweighted rank-mean fusion, plausibility-only debiased rows)
+# is superseded and removed; the "Bold: best in each column among the first
+# six rows" rule below matches that rule as stated in the paper caption.
+def cell(x, s=None, bold=False):
+    if not np.isfinite(x):
+        return "---"
+    out = f"{x:.2f}"
+    if s is not None:
+        out += rf"{{\scriptsize$\pm${s:.2f}}}"
+    return r"\textbf{" + out + "}" if bold else out
+
+
+six = [rows["Generator identity"], rows["Signals only (no VLM)"]] + \
+      [mean_rows[name] for name, _, _ in SYSTEMS]
+colmax = np.nanmax(np.vstack([pt for pt, _ in six]), axis=0)
+
+
+def row_cells(pt, sd):
+    return " & ".join(cell(pt[j], sd[j], bool(abs(pt[j] - colmax[j]) < 1e-9))
+                       for j in range(len(pt)))
+
+
+L = [r"\begin{table*}[t]", r"    \centering", r"    \small",
+     r"    \setlength{\tabcolsep}{2.4pt}",
+     r"    \begin{tabular}{@{}lccc|cccc@{}}", r"        \toprule",
+     r"        & \multicolumn{3}{c|}{Physical plausibility} & Task & Violation"
+     r" & Constr. & Hidden \\",
+     r"        System & Obs. & Unobs. & All & compl. & detection & family & property \\",
+     r"        \midrule"]
+for name in ("Generator identity", "Signals only (no VLM)"):
+    pt, sd = rows[name]
+    L.append(f"        {name} & " + row_cells(pt, sd) + r" \\")
+L += [r"        \midrule",
+      rf"        \multicolumn{{8}}{{@{{}}l}}{{\emph{{Mean $\pm$ sd over {len(live)} VLM backbones}}}} \\"]
+for name, _, _ in SYSTEMS:
+    pt, sd = mean_rows[name]
+    L.append(f"        {name} & " + row_cells(pt, sd) + r" \\")
+BEST_DISPLAY = "Qwen3-VL-32B"  # best_m == "qwen3-vl-32b-instruct"
+L += [r"        \midrule", rf"        \multicolumn{{8}}{{@{{}}l}}{{\emph{{{BEST_DISPLAY}}}}} \\"]
+for name, _, _ in SYSTEMS:
+    pt, sd = best_rows[name]
+    # per-backbone block never bolds (bold is only among the first six rows)
+    L.append(f"        {name} & "
+              + " & ".join(cell(x) for x in pt) + r" \\")
+L += [r"        \bottomrule", r"    \end{tabular}",
+      r"    \caption{PhysicsLENS against human judgment (AUC; 439 videos). "
+      r"\emph{Plausibility}: human rating 3--4 vs.\ 1--2. \emph{Task compl.}: "
+      r"completed vs.\ not. \emph{Violation detection}: any recorded violation "
+      r"vs.\ none. \emph{Constr.\ family}: naming which physics family was "
+      r"violated. \emph{Hidden property}: whether the stated property was "
+      r"followed (unobservable videos). \emph{Signals}: PhysicsLENS Stage-1/2 "
+      r"measurements, combined with the VLM using a weight fitted on training "
+      r"folds. \emph{Debiased}: the PhysicsLENS physics-error question, which "
+      r"replaces only the plausibility question, so the other columns match "
+      r"the rows above it. \emph{Generator identity} scores each video by its "
+      r"generator's average on the training folds. $\pm$: sd across the ten "
+      r"VLMs for the averaged rows, bootstrap sd over videos otherwise. Bold: "
+      r"best in each column among the first six rows.}",
+      r"    \label{tab:main-results}", r"\end{table*}"]
+(P.PAPER / "tables/main.tex").write_text("\n".join(L) + "\n")
+print("->", P.PAPER / "tables/main.tex")
