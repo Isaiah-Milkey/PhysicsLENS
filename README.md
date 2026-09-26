@@ -63,8 +63,9 @@ physicslens/
 │   │   │   │                                       flags causeless momentum jumps & bad transfer)
 │   │   │   ├── friction_specialist.py           🔵 implemented
 │   │   │   ├── contact_specialist.py            (merged into collision_specialist; kept for reference)
-│   │   │   ├── fluid_specialist.py              🔶 stub
-│   │   │   └── causality_specialist.py          🔶 stub
+│   │   │   ├── fluid_specialist.py              🔵 implemented (violation battery + holistic VLM judgment)
+│   │   │   └── causality_specialist.py          🔵 implemented (VLM rule-checker over 5 causality rules,
+│   │   │                                           self-computed motion signals confirm what stills can't see)
 │   │   └── stage4/                  # Final diagnosis outputs
 │   │       ├── diagnostic_report.py             🔵 implemented (only Stage 4 pipeline —
 │   │       │                                       physics_consistency_scorer.py, severity_assessor.py,
