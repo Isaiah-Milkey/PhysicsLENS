@@ -11,7 +11,7 @@ four-stage medical diagnostic pipeline (triage → localize → specialize → d
 |-------|------|------|
 | 1 — Screening | Cheap signals flag suspicious regions (temporal smoothness, optical flow, embeddings, VLM, camera motion) | Cheap |
 | 2 — Differential Diagnosis | Localize failures, extract trajectories, rank hypotheses | Medium |
-| 3 — Specialist Evaluation | Confirm/reject specific physics-failure types (collision, gravity, momentum, friction, deformation, fluid, causality) | Expensive |
+| 3 — VLM Verification | One VLM, three questions on 8 frames: failure type (one forced choice over 8 failure descriptions + none), task completed, hidden property followed | Medium |
 | 4 — Final Diagnosis | Aggregate score, severity, semantic timeline, LLM-written report | Output |
 
 FastAPI backend (`backend/`) + a single self-contained static HTML frontend (`frontend/index.html`, no
@@ -164,12 +164,9 @@ This is what makes multi-stage evidence propagation work despite each pipeline's
 - **`tools/evidence.py`** — `EvidenceStore` (LRU, thread-safe, in-process singleton `EVIDENCE`), keyed by
   `file_hash(video_path)` (content hash of size + head/tail bytes, memoized). Stage 2 writes structured
   results; Stage 3/4 read them back by the same video-content key. Entries are keyed by pipeline id
-  (`s2_object_tracker`, `s3_gravity`, …). Evidence is cleared on server restart (intentionally ephemeral).
-- **`tools/evidence_planner.py`** — Stage-3 pre-step. A specialist with an `auto_deps` setting can ask the
-  planner to look at what's already on the bus and auto-run the missing Stage-2 producers inline
-  (`mode="agent"`: one VLM call picks them; `mode="rules"`: deterministic dependency order — also the
-  fallback when the agent has no credentials or misbehaves). Only the producers' `log` events are
-  re-yielded, prefixed `[auto <id>]`. Currently wired into the gravity specialist.
+  (`s2_object_tracker`, `s3_specialist`, …). Evidence is cleared on server restart (intentionally ephemeral).
+- **`tools/evidence_planner.py`** — auto-fetches missing Stage-2 evidence inline (agent or rules mode).
+  Currently unused: its only caller was the gravity specialist, retired when Stage 3 became a single VLM step.
 - **`tools/tracking.py`** — `get_tracks(video_path)` is the canonical, cached Shi-Tomasi + LK object
   tracker. It exists so every downstream stage sees the *same* tracks (same params → same cache entry, via
   `file_hash`); before this was centralized, each stage re-ran tracking independently and could disagree
@@ -177,7 +174,7 @@ This is what makes multi-stage evidence propagation work despite each pipeline's
 - **`tools/sam3.py`** — SAM 3 promptable-concept video segmentation/tracking (gated `facebook/sam3`, GPU
   only). Process-wide singletons behind a load lock + a GPU lock, since FastAPI may call concurrently.
 - **`tools/locate_anything.py`** — NVIDIA LocateAnything-3B open-set detection, single-image, matched onto
-  existing tracks by IOU (NVIDIA non-commercial research license).
+  existing tracks by IOU (NVIDIA non-commercial research license). Currently unused.
 - **`tools/video.py`** — `load_frames` decodes any container (mp4/webm/mov/avi/mkv/...) via OpenCV/ffmpeg,
   and animated GIFs via Pillow separately (OpenCV's `VideoCapture` is unreliable on GIFs). All pipelines
   should decode through this rather than calling `cv2.VideoCapture` directly.
@@ -197,21 +194,17 @@ batch driver sequences stages and hands some data across as settings keys:
 So a pipeline reading these keys only receives them when driven through the UI, not from a bare
 `/run` call — `scripts/run_pipeline.py` needs them passed explicitly.
 
-### Stage 4's semantic timeline (what a new specialist must publish)
+### Stage 4's semantic timeline (what Stage 3 must publish)
 
-`_collect_semantic_findings()` in `pipelines/stage4/diagnostic_report.py` walks `SPECIALIST_DISPLAY` and
-reads each specialist's bus entry to build the chronological "what went wrong, when, and why" timeline.
-It understands these shapes:
-- most specialists: `{"violations": [...]}`
-- deformation: `{"verdicts": [...], "vanish_events": [...]}`
-- fluid: `{"violations": [...], "holistic": {...}}`
-- causality: `{"rules": [...]}` (whole-clip, `t` stays None)
-
-Each violation/verdict is normalized by `_norm_finding()`, which looks for `t`, `t_end`, `label` or
-`object_name`, `confidence`, `explanation` or `desc`, and a flagged/verdict field. A new specialist that
-publishes a different shape — or doesn't publish to the bus at all — silently contributes nothing to the
-report, even if its own UI panel looks fine. `use_llm_summary` then feeds this timeline to an OpenAI text
-model and emits an `llm_summary` event.
+`_collect_semantic_findings()` in `pipelines/stage4/diagnostic_report.py` walks `SPECIALIST_DISPLAY`
+(one entry, `s3_specialist`) and reads its bus entry:
+`{"family_probs": {...}, "top_family": str, "p_violation": float, "task_completed_p": float|None,
+"hidden_property_score": float|None, "explanation": str}`. When `top_family` is not `"none"` it becomes one
+whole-clip timeline entry (`t` stays None: the single VLM call does not localize in time or to an object).
+A Stage 3 change that publishes a different shape — or doesn't publish to the bus — silently contributes
+nothing to the report. `use_llm_summary` then feeds the report to an OpenAI text model and emits an
+`llm_summary` event. (Time-localized, per-object findings came from the retired per-category specialists;
+the paper's evaluation does not score reports because the human labels carry no time stamps.)
 
 ### Adding a new pipeline
 
@@ -221,11 +214,10 @@ model and emits an `llm_summary` event.
 3. Add the pipeline id to the relevant stage's `pipelines: [...]` list in `frontend/index.html`'s `STAGES`
    array — the frontend otherwise has no way to know which stage tab a pipeline belongs in (the pipeline
    list itself is auto-loaded from `GET /pipelines`).
-4. For a **Stage 3 specialist**, three more registries have to agree or it gets skipped by the automation:
-   `SPECIALISTS` in `pipelines/stage2/physics_hypothesis_generator.py` (so triage can rank it),
-   `SPECIALIST_PIPES` in `frontend/index.html` (so hypothesis→specialist routing can queue it), and
-   `SPECIALIST_DISPLAY` in `pipelines/stage4/diagnostic_report.py` (so its findings reach the report).
-   Pipeline ids are `s3_<specialist>`.
+4. Stage 3 is a single pipeline (`s3_specialist`, `pipelines/stage3/specialist_mcq.py`). To add another
+   Stage 3 test, publish its bus entry under its own key, add that key to `SPECIALIST_DISPLAY` in
+   `pipelines/stage4/diagnostic_report.py`, and handle its shape in `_collect_semantic_findings()`.
+   The frontend's `STAGE3_PIPE` (auto-run after the Hypothesis Generator) points at `s3_specialist`.
 
 ### Frontend
 
@@ -237,10 +229,10 @@ Beyond rendering events, it carries most of the batch orchestration:
 - **Resumable batch driver** — `batchState` is a cursor over (video → tool queue); Pause/Abort both cancel
   the in-flight request via `AbortController`, but Pause keeps the cursor so Resume re-runs the cancelled
   tool and continues. Tools run in stage order so producers precede consumers (Hypothesis Generator before
-  the specialists it routes to; `s4_report` last).
+  the Stage 3 test it can auto-run; `s4_report` last).
 - **Per-tool batch settings** — `batchSettings[pipelineId]` overrides defaults per tool (the ⚙ gear on each
-  checklist row). `"__"`-prefixed keys are frontend-only orchestration (`__route`, `__routeN` control
-  hypothesis→specialist routing) and are stripped before hitting the backend.
+  checklist row). `"__"`-prefixed keys are frontend-only orchestration (`__route` toggles auto-running
+  Stage 3 after the Hypothesis Generator) and are stripped before hitting the backend.
 - **Session-only API keys** — `batchKeys` lives in memory for the tab only; never localStorage, never
   exported. `redactSettings()` blanks anything key/token/secret-shaped before it is stored on a run entry
   or written to an export file. `applyBatchKeys()` picks the provider from the selected model.
@@ -253,11 +245,9 @@ Beyond rendering events, it carries most of the batch orchestration:
 
 If running the server on a remote GPU box, the frontend calls `http://localhost:8000`, so forward the port
 over SSH (`ssh -L 8000:localhost:8000 <user>@<server>`) rather than changing the frontend's base URL.
-The README also documents an internal auto-deployed instance that tracks `main`.
 
 ### Reference-only code
 
 - `backend/archive_files/` — old flat (pre-4-stage) pipeline implementations. Not imported or registered
   anywhere; don't build on these, look at the equivalent `pipelines/stageN/` module instead.
-- `backend/pipelines/stage3/contact_specialist.py` — merged into `collision_specialist.py`, unregistered.
 - `backend/pipelines/stage4/diagnostic_report_old.py` — previous report version, unregistered.

@@ -8,22 +8,22 @@ so that physical plausibility and adherence to the stated property can be
 measured as two separate questions rather than one conflated score.
 
 Alongside the human-annotated benchmark, this repository implements an
-automated diagnostic pipeline — screening, localization, specialist
-evaluation, and reporting — that produces structured, interpretable findings
+automated diagnostic pipeline — screening, localization, VLM
+verification, and reporting — that produces structured, interpretable findings
 about *why* a video fails, rather than only a single plausibility number. This
 repository contains that pipeline's web interface, its backend, and the
 evaluation scripts used to reproduce the paper's results.
 
 ## Architecture
 
-PhysicsLENS follows a **triage → localize → specialize → diagnose** pipeline,
+PhysicsLENS follows a **triage → localize → verify → report** pipeline,
 analogous to a clinical pathway:
 
 | Stage | Medical analogy | Role | Cost |
 |-------|----------------|------|------|
 | 1 — Screening | Triage / vital signs | Rapidly flag suspicious regions | Cheap |
 | 2 — Differential Diagnosis | Primary care evaluation | Localize failures, rank hypotheses | Medium |
-| 3 — Specialist Evaluation | Expert adjudication | Confirm/reject specific failures | Expensive |
+| 3 — VLM Verification | Targeted tests | One VLM answers three questions: failure type (forced choice), task completed, hidden property followed | Medium |
 | 4 — Final Diagnosis | Treatment plan | Score, severity, PBT, report | Output |
 
 ---
@@ -45,27 +45,16 @@ physicslens/
 │   │   │   ├── embedding_biomarkers.py          ✅ verified
 │   │   │   └── vlm_suspicion.py                 ✅ verified
 │   │   ├── stage2/                  # Failure localisation & hypothesis testing
-│   │   │   ├── object_tracker.py                🔵 implemented (SAM3 subject masks + Gemini naming; LK fallback)
+│   │   │   ├── object_tracker.py                🔵 implemented (SAM3 subject masks + VLM naming; LK fallback)
 │   │   │   ├── event_localizer.py               🔵 implemented
 │   │   │   ├── trajectory_extractor.py          🔵 implemented (reuses tracker masks; static-track filter)
-│   │   │   └── physics_hypothesis_generator.py  🔵 implemented (VLM triage → ranks Stage 3 specialists;
+│   │   │   └── physics_hypothesis_generator.py  🔵 implemented (VLM triage → ranks failure families, informational;
 │   │   │                                           absorbed the former hypothesis_ranker.py — removed)
-│   │   ├── stage3/                  # Specialist evaluation (one file per failure type)
-│   │   │   ├── deformation_specialist.py        🔵 implemented (DINOv2 drift detects shape/appearance
-│   │   │   │                                       change + vanish; VLM explains — absorbed the former
-│   │   │   │                                       consistency_specialist, removed)
-│   │   │   ├── collision_specialist.py          🔵 implemented (contact episodes, restitution, phantom
-│   │   │   │                                       bounces; absorbed contact_specialist — unregistered)
-│   │   │   ├── gravity_specialist.py            🔵 implemented (parabola fits on free-flight
-│   │   │   │                                       segments; anti-gravity/float/Galileo/apex
-│   │   │   │                                       checks, VLM-confirmed; optional absolute-g)
-│   │   │   ├── momentum_specialist.py           🔵 implemented (motion signature + VLM mass proxy;
-│   │   │   │                                       flags causeless momentum jumps & bad transfer)
-│   │   │   ├── friction_specialist.py           🔵 implemented
-│   │   │   ├── contact_specialist.py            (merged into collision_specialist; kept for reference)
-│   │   │   ├── fluid_specialist.py              🔵 implemented (violation battery + holistic VLM judgment)
-│   │   │   └── causality_specialist.py          🔵 implemented (VLM rule-checker over 5 causality rules,
-│   │   │                                           self-computed motion signals confirm what stills can't see)
+│   │   ├── stage3/                  # VLM verification
+│   │   │   └── specialist_mcq.py                🔵 implemented (pipeline id s3_specialist: violation type as one
+│   │   │                                           forced choice over 8 failure descriptions + none, task completion,
+│   │   │                                           hidden-property adherence; replaces the former seven per-category
+│   │   │                                           specialists — see git history)
 │   │   └── stage4/                  # Final diagnosis outputs
 │   │       ├── diagnostic_report.py             🔵 implemented (only Stage 4 pipeline —
 │   │       │                                       physics_consistency_scorer.py, severity_assessor.py,
@@ -77,11 +66,11 @@ physicslens/
 │   │   ├── flow.py
 │   │   ├── tracking.py              # Cached Shi-Tomasi+LK tracks (one canonical set per video)
 │   │   ├── evidence.py             # Cross-stage evidence bus (Stage 2→3→4 data passing)
-│   │   ├── evidence_planner.py      # Stage-3 pre-step: agent/rules plan → auto-fetch missing Stage-2 evidence
+│   │   ├── evidence_planner.py      # (currently unused — only the retired gravity specialist called it)
 │   │   ├── embeddings.py            # DINOv2 / CLIP / SigLIP — L2-normalised, batched, cached
 │   │   ├── sam3.py                  # SAM3 video segmentation (gated facebook/sam3; GPU)
 │   │   ├── llm_api.py                # OpenAI-compatible client (vision; subject naming, judging)
-│   │   ├── locate_anything.py       # NVIDIA LocateAnything-3B open-set detection (GPU, optional)
+│   │   ├── locate_anything.py       # NVIDIA LocateAnything-3B open-set detection (GPU, optional; currently unused)
 │   │   └── vlm.py                   # OpenRouter multi-frame suspicion scoring
 │   ├── scripts/
 │   │   ├── check_models.py          # Sanity-check ML model availability
@@ -168,6 +157,35 @@ python scripts/check_models.py
 ```
 
 ---
+
+## Reproducing the paper's evaluation
+
+The automated-diagnosis results (439 generated videos, ten open-weight VLMs) are computed **offline** by scripts
+in `backend/scripts/`, not by clicking through the web tool. They are a fixed configuration: every signal and
+every VLM question is computed for every video, with no routing, and evidence is combined by rank averaging with
+weights fitted on training folds (5-fold, all versions of a scenario in one fold).
+
+**Data is not included.** The videos, conditioning frames, prompt tables and human annotations are not part of
+this repository; place your own copies under the gitignored `data/` directory (see `build_consolidated.py`
+for the expected annotation columns and paths). Pre-computed per-model VLM outputs and Stage-1/2 signals are in
+`results/consol/`; copy that folder to `data/consol/` (where the table scripts read from) to regenerate the
+tables without the videos.
+
+Order (each script's docstring has its flags):
+
+| Step | Script | Produces |
+|---|---|---|
+| 1 | `build_consolidated.py`, `eval_prepare.py` | staged labels + 8 frozen frames per clip |
+| 2 | `stage_signals.py`, `temporal_embed.py` | 28 motion/track signals + 10 DINOv2 embedding-dynamics signals |
+| 3 | `vlm_plausibility.py`, `mcq_probe.py`, `pairwise_judge.py`, `make_frame_seeds.py` | per-VLM answers (plausibility, physics-error, completion, hidden property, failure type), pairwise comparisons, shifted-frame runs |
+| 4 | `system_eval.py`, `paper_tables.py`, `main_table_full.py`, `leader_final.py`, `backbones_*.py`, `consol_analyses.py` | AUC tables, ten-VLM ensemble, per-backbone spread, analyses |
+
+**The evaluation and the interactive tool differ.** The scripts above re-implement Stages 1–3 in a lighter form
+(28 signals from grayscale Farneback flow and Lucas–Kanade tracks; Stage 3 = three VLM questions read from
+first-token probabilities). The interactive tool runs the fuller pipelines in `backend/pipelines/` (SAM 3
+tracking, VLM object naming, event localization, Stage-2 family ranking, Stage-4 report). The tool's Stage 3
+(`s3_specialist`) asks the same three questions as the evaluation. The report's time-localized, per-object
+findings are not evaluated, because the human labels carry no time stamps.
 
 ## Adding a pipeline
 
