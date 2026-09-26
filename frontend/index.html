@@ -1124,8 +1124,6 @@ async function runPipeline() {
     pipelineName: selectedPipeline.name,
     timestamp:    new Date().toTimeString().slice(0, 8),
     status:       'running',
-    //Jiqing
-    // logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [],
     logs: [], metrics: [], severities: [], images: [], videos: [], plots: [], markerVideos: [], results: [], llmSummaries: [],
     excluded: false,
     comment:  "",
@@ -1243,7 +1241,6 @@ async function runPipeline() {
         totalSig ? `Forwarding ${totalSig} Stage 1 signal(s) from ${settingsObj.stage1_signals.length} screening test(s).`
                  : "No Stage 1 signals stored yet — run a Stage 1 screening test first.", entry);
     }
-    // Jiqing
     if (selectedPipeline.id === "s4_report") {
       settingsObj.previous_results = reportData
         .filter(r => !r.excluded && r.pipelineId !== "s4_report")
@@ -1327,7 +1324,6 @@ function handleEvent(ev, entry) {
     document.getElementById("resultsPane").classList.add("show");
     appendPlotly(ev.data, ev.caption, "imageBlocks");
     entry.plots.push({data:ev.data, caption:ev.caption});
-  // Jiqing
   } else if (ev.type === "result") {
     document.getElementById("resultsPane").classList.add("show");
     appendJsonResult(ev.title || "Unified Diagnostic JSON", ev.report || ev);
@@ -1412,7 +1408,6 @@ function appendPlotly(jsonStr, caption, containerId) {
   Plotly.newPlot(plotDiv, spec.data, Object.assign({}, spec.layout, {autosize:true}), {responsive:true, displayModeBar:true, displaylogo:false, modeBarButtonsToRemove:['toImage','sendDataToCloud']});
 }
 
-//Jiqing
 function renderJsonResultInto(container, title, obj) {
   const wrap = document.createElement("div");
   wrap.className = "image-block";

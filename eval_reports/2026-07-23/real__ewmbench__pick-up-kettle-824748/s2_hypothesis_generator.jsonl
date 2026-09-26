@@ -1,9 +1,0 @@
-{"type": "log", "level": "info", "text": "Loading video\u2026"}
-{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: table, robotic arm #1, robotic arm #2, wall tiles #1, wall tiles #2, wall tiles #3"}
-{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
-{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 80% (t=0.0\u20130.1s): The robotic arm on the left appears to stretch and morph unnaturally between keyframes."}
-{"type": "image", "mime": "image/jpeg", "data": "<stripped 128800 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
-{"type": "plotly", "data": "<stripped 7109 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
-{"type": "metric", "label": "Deformation", "value": "80%", "sub": "vlm \u00b7 t=0.0\u20130.1s"}
-{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.8, "reason": "The robotic arm on the left appears to stretch and morph unnaturally between keyframes.", "t_window": [0.0, 0.1], "source": "vlm"}], "evidence_summary": ["- tracked subjects: table, robotic arm #1, robotic arm #2, wall tiles #1, wall tiles #2, wall tiles #3"], "keyframe_ts": [0.0, 0.03, 0.07, 0.1]}
-{"type": "done"}

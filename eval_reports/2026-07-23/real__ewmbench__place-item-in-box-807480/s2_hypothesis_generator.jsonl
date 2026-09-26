@@ -1,9 +1,0 @@
-{"type": "log", "level": "info", "text": "Loading video\u2026"}
-{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: Tide bottle on conveyor #1, Tide bottle on conveyor #2, cardboard box #1, cardboard box #2, robotic arm #1, robotic arm #2"}
-{"type": "log", "level": "info", "text": "VLM triage over 4 keyframe(s) via createai:geminipro3_1\u2026"}
-{"type": "log", "level": "warn", "text": "#1 Collision & Contact \u2014 95% (t=0.17\u20130.3s): The Tide bottle held by the left robotic arm appears to interpenetrate the gripper of the right robotic arm."}
-{"type": "image", "mime": "image/jpeg", "data": "<stripped 136116 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
-{"type": "plotly", "data": "<stripped 7118 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
-{"type": "metric", "label": "Collision & Contact", "value": "95%", "sub": "vlm \u00b7 t=0.17\u20130.3s"}
-{"type": "result", "status": "ok", "hypotheses": [{"specialist": "collision", "confidence": 0.95, "reason": "The Tide bottle held by the left robotic arm appears to interpenetrate the gripper of the right robotic arm.", "t_window": [0.17, 0.3], "source": "vlm"}], "evidence_summary": ["- tracked subjects: Tide bottle on conveyor #1, Tide bottle on conveyor #2, cardboard box #1, cardboard box #2, robotic arm #1, robotic arm #2"], "keyframe_ts": [0.17, 0.23, 0.27, 0.3]}
-{"type": "done"}

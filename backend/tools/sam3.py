@@ -141,7 +141,7 @@ def mask_iou(a: dict[int, np.ndarray], b: dict[int, np.ndarray]) -> float:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# Single-subject helpers (merged from the isaiah-work branch)
+# Single-subject helpers (merged from a feature branch)
 # ------------------------------------------------------------
 # Used by the Stage 3 Consistency / Collision specialists' inline-segmentation
 # fallback and by PNG mask (de)serialisation on the evidence bus. These share

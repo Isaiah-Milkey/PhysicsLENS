@@ -1,9 +1,0 @@
-{"type": "log", "level": "info", "text": "Loading video\u2026"}
-{"type": "log", "level": "info", "text": "Evidence summary: tracked subjects: blue plate, robotic arm #1, toaster, bread slice #1, robotic arm #2, bread slice #2"}
-{"type": "log", "level": "info", "text": "VLM triage over 1 keyframe(s) via createai:geminipro3_1\u2026"}
-{"type": "log", "level": "warn", "text": "#1 Deformation \u2014 95% (t=1.34\u20133.0s): The bread slice placed on the plate vanishes completely towards the end of the video."}
-{"type": "image", "mime": "image/jpeg", "data": "<stripped 30100 chars>", "caption": "Keyframes shown to the VLM for triage (sampled at flagged moments)."}
-{"type": "plotly", "data": "<stripped 7110 chars>", "caption": "Run the top specialists in Stage 3; confidence blends quantitative priors with VLM triage."}
-{"type": "metric", "label": "Deformation", "value": "95%", "sub": "vlm \u00b7 t=1.34\u20133.0s"}
-{"type": "result", "status": "ok", "hypotheses": [{"specialist": "deformation", "confidence": 0.95, "reason": "The bread slice placed on the plate vanishes completely towards the end of the video.", "t_window": [1.34, 3.0], "source": "vlm"}], "evidence_summary": ["- tracked subjects: blue plate, robotic arm #1, toaster, bread slice #1, robotic arm #2, bread slice #2"], "keyframe_ts": [0.37]}
-{"type": "done"}

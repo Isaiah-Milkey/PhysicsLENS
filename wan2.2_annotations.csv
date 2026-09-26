@@ -1,65 +1,65 @@
 video_file,testset_id,annotator,physical_plausibility_1_4,description_of_issue,physics_category,action_completed
-008_unitree_g1dex1_wipe_table_ep100.mp4,8,Jiqing,1,"The cloth moves without being touched by the robot's hand, the color of the cloth changes, the cloth deforms unnaturally.","Contact, Deformation, Momentum",yes
-009_unitree_g1dex1_wipe_table_ep199.mp4,9,Xinyuan,1,cloth suddenly showed up on the left hand; the original cloth deformed unaturally,"Causality, Collision, Friction",yes
-010_unitree_g1dex1_syringe_water_transfer_ep0.mp4,10,Som,4,,,yes
-011_unitree_g1dex1_syringe_water_transfer_ep516.mp4,11,Aditya,2,The syringe appeared out of thin air and the water also didn't move when syringe was placed in it.,"Fluid, Contact",no
-014_unitree_g1edu_u3_pour_drink_ep648.mp4,14,Jiqing,2,Another cup appears out of nowhere.,Deformation,yes
-015_unitree_g1edu_u3_pour_drink_ep1297.mp4,15,Xinyuan,1,water didn't come put from faucet. first clear water then orange juice.,"Causality, Collision, Contact, Fluid",no
-016_ai2_alphabot_2_pour_water_ep0.mp4,16,Som,1,bottle floats,"Causality, Gravity, Momentum",no
-017_ai2_alphabot_2_shake_bottle_ep0.mp4,17,Aditya,2,The robot was not picking it from the gripper and there was significant gap between the flask and the gripper.,Contact,no
-019_agibot_task410_water_pouring_ep0.mp4,19,Jiqing,3,The tea color becomes unnaturally much darker.,Fluid,yes
-021_aloha_mobile_wash_pan_ep0.mp4,21,Xinyuan,1,faucet shape changed; water flow changed for no reason,"Fluid, Deformation, Causality",no
-022_aloha_mobile_wipe_wine_ep0.mp4,22,Som,1,cloth duplicated,Causality,no
-025_humanoid_everyday_fold_towel_ep4838.mp4,25,Aditya,3,The deformation appears on the cloth before the contact.,"Deformation, Contact",no
-027_humanoid_everyday_squeeze_a_ball_ep5118.mp4,27,Jiqing,2,The ball deforms and moves unnaturally.,"Deformation, Momentum, Contact",yes
-028_humanoid_everyday_squeeze_a_toy_ep5158.mp4,28,Xinyuan,3,sponge moved unnaturally,"Gravity, Friction",no
-029_humanoid_everyday_compress_a_plastic_bag_ep4598.mp4,29,Som,4,,,yes
-030_unitree_g1dex1_fold_towel_ep0.mp4,30,Aditya,1,A new blue towel appears out of thin air and it picked the towel without tocuhing.,"Causality, Contact",yes
-032_gr00t_gr1_fold_cloth_long_ep0.mp4,32,Jiqing,1,"The cloth undergoes highly unrealistic changes in shape, color, and texture.","Contact, Deformation",yes
-033_gr00t_gr1_fold_cloth_long_ep257.mp4,33,Xinyuan,1,cloth became wide all of a sudden,Deformation,no
-034_gr00t_egodex_crumple_flatten_paper_ep56.mp4,34,Som,1,The ball of paper transforms into a complete paper without any folds and some cuts dissappear,Deformation,yes
-035_gr00t_egodex_braid_unbraid_ep63.mp4,35,Aditya,1,The ropes were never picked and another rope appeared out of thin air.,Causality,no
-039_unitree_g1dex1_zip_up_ep0.mp4,39,Jiqing,2,The plastic bag deforms before being touched by the robot's hand.,"Contact, Deformation, Momentum",no
-041_unitree_g1dex3_block_stacking_ep0.mp4,41,Xinyuan,1,lower blocks disappeared when place new blocks on top of them,"Causality, Contact",yes
-042_unitree_g1dex3_block_stacking_ep150.mp4,42,Som,1,cube is not in hand and moves up towards the end,"Contact, Causality",no
-043_unitree_g1dex3_block_stacking_ep300.mp4,43,Aditya,1,The robot never picked a block but new blocks appeared in its hand over time.,"Causality, Contact",no
-045_unitree_g1dex1_stack_block_ep199.mp4,45,Jiqing,1,"The red block appears to be lifted by an invisible force rather than grasped by the robot's hand, violating gravity. It also deforms unnaturally.","Momentum, Deformation, Contact, Gravity",no
-046_humanoid_everyday_stack_two_cubes_g1_ep4358.mp4,46,Xinyuan,3,the camera view suddenly changed; smaller cube a bit floating,"Causality, Contact",yes
-047_humanoid_everyday_unstack_two_cubes_g1_ep4518.mp4,47,Som,4,,,yes
-048_humanoid_everyday_pick_the_hammer_and_hit_desk_ep8398.mp4,48,Aditya,1,The robot never picks the hammer.,"Causality, Contact",no
-050_humanoid_everyday_push_duck_g1_ep3612.mp4,50,Jiqing,3,The duck doesn't move.,Friction,yes
-051_ai2_alphabot_2_clink_glasses_ep0.mp4,51,Xinyuan,4,,,no
-052_ai2_alphabot_2_clink_glasses_ep392.mp4,52,Som,4,,,no
-053_ai2_alphabot_2_stack_cups_ep0.mp4,53,Aditya,3,The robot picked 2 cups together without properly closing the gripper.,Contact,no
-055_unitree_g1dex1_paper_cup_stacking_ep0.mp4,55,Jiqing,1,"Two cups appear from nowhere, and they merge together instead of being stacked.","Deformation, Contact",yes
-056_unitree_g1dex1_stack_bowls_ep0.mp4,56,Xinyuan,1,arm move without the base; green bowl grew from the blue bowl,"Causality, Contact, Deformation",no
-057_gr00t_gr1_pour_items_into_basket_ep0.mp4,57,Som,1,the cup is not in grip of the robot,Contact,yes
-058_gr00t_gr1_pour_items_into_basket_ep50.mp4,58,Aditya,1,The robot never picks the glass and a weird liquid starts pouring from its hand.,"Fluid, Contact",no
-060_unitree_g1dex1_pour_medicine_ep0.mp4,60,Jiqing,1,"The bottle is not grasped by the robot; instead, it rises into the air on its own. The pouring action is also not performed.","Contact, Gravity, Momentum",no
-061_unitree_g1dex1_pour_medicine_ep100.mp4,61,Xinyuan,1,bottle grew from left hand; bottle pass through the box,"Deformation, Causality, Collision",no
-062_unitree_g1dex1_pour_medicine_ep199.mp4,62,Som,1,medcine bottle appeats out of nowhere,"Causality, Contact",no
-063_humanoid_everyday_pour_out_some_sunflower_seeds_ep3292.mp4,63,Aditya,3,The robot didn't picked the seed properly and it just moved to its hands.,"Causality, Contact",no
-066_ai2_alphabot_2_pour_mung_beans_ep0.mp4,66,Jiqing,2,"The cup isn't picked up, the beans appear from nowhere.",Causality,no
-067_ai2_alphabot_2_pour_mung_beans_ep212.mp4,67,Xinyuan,3,how the beans landed is a bit unnatural,Collision,yes
-068_dlr_sara_pour_into_mug_ep0.mp4,68,Som,1,not using the mug water is coming from the robot,Fluid,no
-070_humanoid_everyday_push_the_tape_towards_the_notebook_ep3720.mp4,70,Aditya,2,The dispenser was not moving and there was some tape like artifact in between.,"Contact, Deformation",no
-072_humanoid_everyday_push_pencil_case_container_ep3680.mp4,72,Jiqing,3,The pencil case floats up in the air before being grasped.,"Gravity, Contact",yes
-073_rh20t_cfg1_hit_pool_ball_scene0001_ep2194.mp4,73,Xinyuan,1,ball moved without being hit,"Causality, Friction",no
-074_rh20t_cfg1_hit_pool_ball_scene0002_ep2464.mp4,74,Som,1,the cue moves on its own,"Causality, Contact, Momentum",no
-075_unitree_g1dex1_conveyor_sorting_ep0.mp4,75,Aditya,2,There is some bottle like artifact when the robot arm is trying to pick the bottle.,"Contact, Causality",no
-077_humanoid_everyday_use_soft_sponge_wipe_dry_surface_ep8634.mp4,77,Jiqing,2,The sponge continuously undergoes unrealistic deformation.,"Deformation, Contact",yes
-078_humanoid_everyday_wipe_a_table_with_an_eraser_ep8914.mp4,78,Xinyuan,1,text on eraser disappeared; eraser floats to the hand,"Contact, Deformation, Causality",yes
-079_humanoid_everyday_clean_the_window_ep7001.mp4,79,Som,1,the duster is not gripped,Contact,no
-080_unitree_g1dex1_erase_board_ep0.mp4,80,Aditya,1,A pen just pops into robot arm and the eraser jumps to the robot arm in beginning.,"Contact, Causality",no
-082_galbot_g1_clear_table_residue_1_ep0.mp4,82,Jiqing,2,The shrimps are initially on the table but suddenly appear on the cloth. Their size and number change inconsistently.,Causality,yes
-083_galbot_g1_wipe_mirror_ep0.mp4,83,Xinyuan,2,the reflection in the mirror is not correct,"Causality, Collision, Deformation",no
-084_agibot_task421_wipe_stain_ep0.mp4,84,Som,1,cloth moves on its own no contact,"Contact, Causality, Momentum, Gravity",no
-085_agibot_task421_wipe_stain_ep950.mp4,85,Aditya,2,The liquid appears out of thin air after the robot wipes it.,"Contact, Fluid, Causality",yes
-087_unitree_g1dex3_toasted_bread_ep0.mp4,87,Jiqing,3,The breads floats in the air a bit.,Gravity,yes
-088_unitree_g1dex3_toasted_bread_ep208.mp4,88,Xinyuan,2,toast in the toaster disappeared; the new toast deformation is weird,"Deformation, Gravity, Causality",no
-089_unitree_g1dex3_toasted_bread_ep417.mp4,89,Som,3,the toaster moves towards the robot a bit,"Causality, Momentum",no
-091_unitree_z1_dual_pour_coffee_ep330.mp4,91,Aditya,3,"Instead of handing over the coffee capsule, the robot got stuck with one another.","Deformation, Contact",no
-094_humanoid_everyday_pick_up_kettle_place_base_turn_ep7022.mp4,94,Jiqing,1,The kettle deforms a lot.,"Deformation, Contact",yes
-095_galbot_g1_scrub_toilet_ep0.mp4,95,Xinyuan,1,"open the lid without touching it, the toilet deformed a bit","Causality, Contact, Deformation",no
-096_galbot_g1_scrub_toilet_ep186.mp4,96,Som,3,robot doesnt have complete grip of the lid,"Causality, Momentum, Contact",yes
-097_aloha_mobile_shrimp_ep0.mp4,97,Aditya,1,The arm is very weird with one half picking the shrimp and other half is made up of shrimp. And it was floating in air as well.,Causality,no
+008_unitree_g1dex1_wipe_table_ep100.mp4,8,A3,1,"The cloth moves without being touched by the robot's hand, the color of the cloth changes, the cloth deforms unnaturally.","Contact, Deformation, Momentum",yes
+009_unitree_g1dex1_wipe_table_ep199.mp4,9,A5,1,cloth suddenly showed up on the left hand; the original cloth deformed unaturally,"Causality, Collision, Friction",yes
+010_unitree_g1dex1_syringe_water_transfer_ep0.mp4,10,A4,4,,,yes
+011_unitree_g1dex1_syringe_water_transfer_ep516.mp4,11,A1,2,The syringe appeared out of thin air and the water also didn't move when syringe was placed in it.,"Fluid, Contact",no
+014_unitree_g1edu_u3_pour_drink_ep648.mp4,14,A3,2,Another cup appears out of nowhere.,Deformation,yes
+015_unitree_g1edu_u3_pour_drink_ep1297.mp4,15,A5,1,water didn't come put from faucet. first clear water then orange juice.,"Causality, Collision, Contact, Fluid",no
+016_ai2_alphabot_2_pour_water_ep0.mp4,16,A4,1,bottle floats,"Causality, Gravity, Momentum",no
+017_ai2_alphabot_2_shake_bottle_ep0.mp4,17,A1,2,The robot was not picking it from the gripper and there was significant gap between the flask and the gripper.,Contact,no
+019_agibot_task410_water_pouring_ep0.mp4,19,A3,3,The tea color becomes unnaturally much darker.,Fluid,yes
+021_aloha_mobile_wash_pan_ep0.mp4,21,A5,1,faucet shape changed; water flow changed for no reason,"Fluid, Deformation, Causality",no
+022_aloha_mobile_wipe_wine_ep0.mp4,22,A4,1,cloth duplicated,Causality,no
+025_humanoid_everyday_fold_towel_ep4838.mp4,25,A1,3,The deformation appears on the cloth before the contact.,"Deformation, Contact",no
+027_humanoid_everyday_squeeze_a_ball_ep5118.mp4,27,A3,2,The ball deforms and moves unnaturally.,"Deformation, Momentum, Contact",yes
+028_humanoid_everyday_squeeze_a_toy_ep5158.mp4,28,A5,3,sponge moved unnaturally,"Gravity, Friction",no
+029_humanoid_everyday_compress_a_plastic_bag_ep4598.mp4,29,A4,4,,,yes
+030_unitree_g1dex1_fold_towel_ep0.mp4,30,A1,1,A new blue towel appears out of thin air and it picked the towel without tocuhing.,"Causality, Contact",yes
+032_gr00t_gr1_fold_cloth_long_ep0.mp4,32,A3,1,"The cloth undergoes highly unrealistic changes in shape, color, and texture.","Contact, Deformation",yes
+033_gr00t_gr1_fold_cloth_long_ep257.mp4,33,A5,1,cloth became wide all of a sudden,Deformation,no
+034_gr00t_egodex_crumple_flatten_paper_ep56.mp4,34,A4,1,The ball of paper transforms into a complete paper without any folds and some cuts dissappear,Deformation,yes
+035_gr00t_egodex_braid_unbraid_ep63.mp4,35,A1,1,The ropes were never picked and another rope appeared out of thin air.,Causality,no
+039_unitree_g1dex1_zip_up_ep0.mp4,39,A3,2,The plastic bag deforms before being touched by the robot's hand.,"Contact, Deformation, Momentum",no
+041_unitree_g1dex3_block_stacking_ep0.mp4,41,A5,1,lower blocks disappeared when place new blocks on top of them,"Causality, Contact",yes
+042_unitree_g1dex3_block_stacking_ep150.mp4,42,A4,1,cube is not in hand and moves up towards the end,"Contact, Causality",no
+043_unitree_g1dex3_block_stacking_ep300.mp4,43,A1,1,The robot never picked a block but new blocks appeared in its hand over time.,"Causality, Contact",no
+045_unitree_g1dex1_stack_block_ep199.mp4,45,A3,1,"The red block appears to be lifted by an invisible force rather than grasped by the robot's hand, violating gravity. It also deforms unnaturally.","Momentum, Deformation, Contact, Gravity",no
+046_humanoid_everyday_stack_two_cubes_g1_ep4358.mp4,46,A5,3,the camera view suddenly changed; smaller cube a bit floating,"Causality, Contact",yes
+047_humanoid_everyday_unstack_two_cubes_g1_ep4518.mp4,47,A4,4,,,yes
+048_humanoid_everyday_pick_the_hammer_and_hit_desk_ep8398.mp4,48,A1,1,The robot never picks the hammer.,"Causality, Contact",no
+050_humanoid_everyday_push_duck_g1_ep3612.mp4,50,A3,3,The duck doesn't move.,Friction,yes
+051_ai2_alphabot_2_clink_glasses_ep0.mp4,51,A5,4,,,no
+052_ai2_alphabot_2_clink_glasses_ep392.mp4,52,A4,4,,,no
+053_ai2_alphabot_2_stack_cups_ep0.mp4,53,A1,3,The robot picked 2 cups together without properly closing the gripper.,Contact,no
+055_unitree_g1dex1_paper_cup_stacking_ep0.mp4,55,A3,1,"Two cups appear from nowhere, and they merge together instead of being stacked.","Deformation, Contact",yes
+056_unitree_g1dex1_stack_bowls_ep0.mp4,56,A5,1,arm move without the base; green bowl grew from the blue bowl,"Causality, Contact, Deformation",no
+057_gr00t_gr1_pour_items_into_basket_ep0.mp4,57,A4,1,the cup is not in grip of the robot,Contact,yes
+058_gr00t_gr1_pour_items_into_basket_ep50.mp4,58,A1,1,The robot never picks the glass and a weird liquid starts pouring from its hand.,"Fluid, Contact",no
+060_unitree_g1dex1_pour_medicine_ep0.mp4,60,A3,1,"The bottle is not grasped by the robot; instead, it rises into the air on its own. The pouring action is also not performed.","Contact, Gravity, Momentum",no
+061_unitree_g1dex1_pour_medicine_ep100.mp4,61,A5,1,bottle grew from left hand; bottle pass through the box,"Deformation, Causality, Collision",no
+062_unitree_g1dex1_pour_medicine_ep199.mp4,62,A4,1,medcine bottle appeats out of nowhere,"Causality, Contact",no
+063_humanoid_everyday_pour_out_some_sunflower_seeds_ep3292.mp4,63,A1,3,The robot didn't picked the seed properly and it just moved to its hands.,"Causality, Contact",no
+066_ai2_alphabot_2_pour_mung_beans_ep0.mp4,66,A3,2,"The cup isn't picked up, the beans appear from nowhere.",Causality,no
+067_ai2_alphabot_2_pour_mung_beans_ep212.mp4,67,A5,3,how the beans landed is a bit unnatural,Collision,yes
+068_dlr_sara_pour_into_mug_ep0.mp4,68,A4,1,not using the mug water is coming from the robot,Fluid,no
+070_humanoid_everyday_push_the_tape_towards_the_notebook_ep3720.mp4,70,A1,2,The dispenser was not moving and there was some tape like artifact in between.,"Contact, Deformation",no
+072_humanoid_everyday_push_pencil_case_container_ep3680.mp4,72,A3,3,The pencil case floats up in the air before being grasped.,"Gravity, Contact",yes
+073_rh20t_cfg1_hit_pool_ball_scene0001_ep2194.mp4,73,A5,1,ball moved without being hit,"Causality, Friction",no
+074_rh20t_cfg1_hit_pool_ball_scene0002_ep2464.mp4,74,A4,1,the cue moves on its own,"Causality, Contact, Momentum",no
+075_unitree_g1dex1_conveyor_sorting_ep0.mp4,75,A1,2,There is some bottle like artifact when the robot arm is trying to pick the bottle.,"Contact, Causality",no
+077_humanoid_everyday_use_soft_sponge_wipe_dry_surface_ep8634.mp4,77,A3,2,The sponge continuously undergoes unrealistic deformation.,"Deformation, Contact",yes
+078_humanoid_everyday_wipe_a_table_with_an_eraser_ep8914.mp4,78,A5,1,text on eraser disappeared; eraser floats to the hand,"Contact, Deformation, Causality",yes
+079_humanoid_everyday_clean_the_window_ep7001.mp4,79,A4,1,the duster is not gripped,Contact,no
+080_unitree_g1dex1_erase_board_ep0.mp4,80,A1,1,A pen just pops into robot arm and the eraser jumps to the robot arm in beginning.,"Contact, Causality",no
+082_galbot_g1_clear_table_residue_1_ep0.mp4,82,A3,2,The shrimps are initially on the table but suddenly appear on the cloth. Their size and number change inconsistently.,Causality,yes
+083_galbot_g1_wipe_mirror_ep0.mp4,83,A5,2,the reflection in the mirror is not correct,"Causality, Collision, Deformation",no
+084_agibot_task421_wipe_stain_ep0.mp4,84,A4,1,cloth moves on its own no contact,"Contact, Causality, Momentum, Gravity",no
+085_agibot_task421_wipe_stain_ep950.mp4,85,A1,2,The liquid appears out of thin air after the robot wipes it.,"Contact, Fluid, Causality",yes
+087_unitree_g1dex3_toasted_bread_ep0.mp4,87,A3,3,The breads floats in the air a bit.,Gravity,yes
+088_unitree_g1dex3_toasted_bread_ep208.mp4,88,A5,2,toast in the toaster disappeared; the new toast deformation is weird,"Deformation, Gravity, Causality",no
+089_unitree_g1dex3_toasted_bread_ep417.mp4,89,A4,3,the toaster moves towards the robot a bit,"Causality, Momentum",no
+091_unitree_z1_dual_pour_coffee_ep330.mp4,91,A1,3,"Instead of handing over the coffee capsule, the robot got stuck with one another.","Deformation, Contact",no
+094_humanoid_everyday_pick_up_kettle_place_base_turn_ep7022.mp4,94,A3,1,The kettle deforms a lot.,"Deformation, Contact",yes
+095_galbot_g1_scrub_toilet_ep0.mp4,95,A5,1,"open the lid without touching it, the toilet deformed a bit","Causality, Contact, Deformation",no
+096_galbot_g1_scrub_toilet_ep186.mp4,96,A4,3,robot doesnt have complete grip of the lid,"Causality, Momentum, Contact",yes
+097_aloha_mobile_shrimp_ep0.mp4,97,A1,1,The arm is very weird with one half picking the shrimp and other half is made up of shrimp. And it was floating in air as well.,Causality,no

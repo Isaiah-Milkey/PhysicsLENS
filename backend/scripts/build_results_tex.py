@@ -244,7 +244,6 @@ def main():
 \setlength{{\parskip}}{{4pt}}
 \setlength{{\parindent}}{{0pt}}
 \title{{PhysicsLENS --- all evaluation results and runs}}
-\author{{Som Sagar}}
 \date{{Compiled {date.today():%B %d, %Y}}}
 \begin{{document}}
 \maketitle

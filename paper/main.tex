@@ -58,21 +58,9 @@ Address \\
 % the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
 % puts 3 of 4 authors names on the first line, and the last on the second
 % line, try using \AND instead of \And before the third author name.
-\definecolor{Everyone}{RGB}{0, 150, 136}  % teal
-\definecolor{Rans}{RGB}{228, 26, 28}      % red
-\definecolor{Jiqing}{RGB}{152, 78, 163} % purple
-\definecolor{Xinyuan}{RGB}{77, 175, 74}   % green
-\definecolor{Aditya}{RGB}{255, 127, 0}    % orange
-\definecolor{Som}{RGB}{166, 86, 40}       % brown
-\definecolor{Isaiah}{RGB}{172, 145, 21}    % mustard yellow
+\definecolor{AuthorNote}{RGB}{172, 145, 21}    % mustard yellow
 
-\newcommand{\Jiqing}[1]{\textcolor{Jiqing}{\textbf{@Jiqing:} #1}}
-\newcommand{\Everyone}[1]{\textcolor{Everyone}{\textbf{@Everyone:} #1}}
-\newcommand{\Rans}[1]{\textcolor{Rans}{\textbf{@Rans:} #1}}
-\newcommand{\Xinyuan}[1]{\textcolor{Xinyuan}{\textbf{@Xinyuan:} #1}}
-\newcommand{\Aditya}[1]{\textcolor{Aditya}{\textbf{@Aditya:} #1}}
-\newcommand{\Som}[1]{\textcolor{Som}{\textbf{Som:} #1}}
-\newcommand{\Isaiah}[1]{\textcolor{Isaiah}{\textbf{@Isaiah:} #1}}
+\newcommand{\authornote}[1]{\textcolor{AuthorNote}{\textbf{[NOTE:} #1\textbf{]}}}
 
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
@@ -403,7 +391,7 @@ roles; they do not establish diagnostic accuracy.
 % retry/failure handling and software version.
 % Do not describe these choices as implemented until verified.
 
-\Isaiah{Look at sec/method.tex to get deeper more specific info. Plan to put that in Supplementary}
+\authornote{Look at sec/method.tex to get deeper more specific info. Plan to put that in Supplementary}
 
 \subsection{Domain-Specific Diagnostic Checks}
 \label{sec:specialist-checks}
@@ -473,7 +461,7 @@ constraint families.
     \end{tabular}
 \end{table}
 
-\Isaiah{Complete once evals come through}
+\authornote{Complete once evals come through}
 \subsection{Comparison with Human Judgments}
 \label{sec:pipeline-human-comparison}
 
@@ -536,7 +524,7 @@ physical violation.
 
 \section{Conclusion}
 
-This work introduces PhysicsLENS, a benchmark that separates physical plausibility from physical-property grounding in generated robot video, using matched scenarios that hold the conditioning frame and action constant while swapping a governing physical property from visually apparent to text-specified. Across four video generation models and over 400 human judgments, we find a slight trend indicating that generation models perform worse with producing physics stated in the prompt; more research is necessary to increase statistical confidence. \Isaiah{[PLACEHOLDER: automated pipeline findings once Tables are complete --- state whether the diagnostic pipeline's agreement with human judgment supports or complicates the case for automated screening as a substitute for human evaluation.]} 
+This work introduces PhysicsLENS, a benchmark that separates physical plausibility from physical-property grounding in generated robot video, using matched scenarios that hold the conditioning frame and action constant while swapping a governing physical property from visually apparent to text-specified. Across four video generation models and over 400 human judgments, we find a slight trend indicating that generation models perform worse with producing physics stated in the prompt; more research is necessary to increase statistical confidence. \authornote{[PLACEHOLDER: automated pipeline findings once Tables are complete --- state whether the diagnostic pipeline's agreement with human judgment supports or complicates the case for automated screening as a substitute for human evaluation.]} 
 
 Together, these results suggest that current video generation models do not treat physical-property grounding and general physical consistency as a single capability, and that benchmarks relying on plausibility alone cannot distinguish a model that reasons about stated physical properties from one that generates motion from visual appearance alone. As video world models are increasingly proposed as scalable training environments for robotics, this distinction --- not merely whether a generated interaction looks right, but whether the model engaged with the physical condition it was given --- is central to whether such environments can be trusted as physically reliable.
 
@@ -552,7 +540,7 @@ We have reviewed all AI-assisted work. We take responsibility for the final cont
 This work aligns with the ICLR Code of Ethics as it does not involve human subjects or sensitive information. All datasets used are publicly available and licensed for research use. We ensured that all results and methods are explained accurately, transparently, and reproducibly. Our work aligns with responsible and beneficial use of video-generation improvement for robotics.
 
 \section{Reproducibility Statement}
-\Isaiah{Not part of the 9 page limit}
+\authornote{Not part of the 9 page limit}
 
 \bibliography{iclr2026_conference}
 \bibliographystyle{iclr2027_conference}
